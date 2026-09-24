@@ -19,6 +19,7 @@ import {
   ZoomOut,
   Maximize2,
   Clock,
+  Trash2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Booking } from '../types';
@@ -76,7 +77,7 @@ type ViewMode = 'day' | '3days' | 'week';
 
 // -- Component ------------------------------------------------------------------
 export const CalendarDashboardView: React.FC = () => {
-  const { rooms, staff, bookings, clients, runAutoAssignment } = useApp();
+  const { rooms, staff, bookings, clients, runAutoAssignment, deleteBooking } = useApp();
 
   const today = new Date();
   const todayStr = formatDateToISO(today);
@@ -200,6 +201,20 @@ export const CalendarDashboardView: React.FC = () => {
     e.stopPropagation();
     setBookingToEdit(booking);
     setIsBookingModalOpen(true);
+    setActiveBookingDetail(null);
+  };
+
+  const handleDeleteBooking = (booking: Booking) => {
+    if (booking.gruppoRicorrenzaId) {
+      const choice = window.confirm(
+        'Questa prenotazione fa parte di una serie ricorrente.\n\nPremi OK per eliminare TUTTA la serie settimanale, oppure ANNULLA per eliminare solo questo singolo giorno.'
+      );
+      deleteBooking(booking.id, choice);
+    } else {
+      if (window.confirm(`Sei sicuro di voler eliminare la prenotazione di ${booking.clienteNome}?`)) {
+        deleteBooking(booking.id);
+      }
+    }
     setActiveBookingDetail(null);
   };
 
@@ -914,19 +929,33 @@ export const CalendarDashboardView: React.FC = () => {
               );
             })()}
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-yellow-500/20 flex-wrap">
               <button
-                onClick={() => setActiveBookingDetail(null)}
-                className="px-3.5 py-2 rounded-lg border border-yellow-500/30 text-neutral-300 text-xs font-semibold hover:bg-neutral-800 transition-colors"
+                type="button"
+                onClick={() => handleDeleteBooking(activeBookingDetail)}
+                className="px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Elimina questa prenotazione"
               >
-                Chiudi
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Elimina Prenotazione</span>
               </button>
-              <button
-                onClick={e => handleOpenEditBooking(activeBookingDetail, e)}
-                className="px-4 py-2 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs shadow-sm transition-all"
-              >
-                Modifica / Assegna Operatore
-              </button>
+
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveBookingDetail(null)}
+                  className="px-3.5 py-2 rounded-lg border border-yellow-500/30 text-neutral-300 text-xs font-semibold hover:bg-neutral-800 transition-colors cursor-pointer"
+                >
+                  Chiudi
+                </button>
+                <button
+                  type="button"
+                  onClick={e => handleOpenEditBooking(activeBookingDetail, e)}
+                  className="px-4 py-2 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs shadow-sm transition-all cursor-pointer"
+                >
+                  Modifica / Assegna Operatore
+                </button>
+              </div>
             </div>
           </div>
         </div>

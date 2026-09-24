@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Calendar, Clock, AlertCircle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users } from 'lucide-react';
+import { X, Calendar, Clock, AlertCircle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig } from '../types';
 import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate } from '../utils/dateUtils';
@@ -21,7 +21,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   initialRoomId,
   bookingToEdit,
 }) => {
-  const { clients, rooms, staff, bookings, addBooking, updateBooking } = useApp();
+  const { clients, rooms, staff, bookings, addBooking, updateBooking, deleteBooking } = useApp();
 
   const [clienteId, setClienteId] = useState('');
   const [isManualClient, setIsManualClient] = useState(false);
@@ -391,6 +391,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       });
     }
 
+    onClose();
+  };
+
+  const handleDeleteCurrentBooking = () => {
+    if (!bookingToEdit) return;
+    if (bookingToEdit.gruppoRicorrenzaId) {
+      const choice = window.confirm(
+        'Questa prenotazione fa parte di una serie ricorrente.\n\nPremi OK per eliminare TUTTA la serie settimanale, oppure ANNULLA per eliminare solo questo singolo giorno.'
+      );
+      deleteBooking(bookingToEdit.id, choice);
+    } else {
+      if (window.confirm(`Sei sicuro di voler eliminare la prenotazione di ${bookingToEdit.clienteNome}?`)) {
+        deleteBooking(bookingToEdit.id);
+      }
+    }
     onClose();
   };
 
@@ -904,21 +919,35 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </div>
 
           {/* Footer actions */}
-          <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-semibold transition-colors"
-            >
-              Annulla
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-xs transition-colors flex items-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              {bookingToEdit ? 'Salva Modifiche' : 'Conferma Prenotazione'}
-            </button>
+          <div className="pt-3 border-t border-slate-200 flex items-center justify-between gap-3 flex-wrap">
+            {bookingToEdit ? (
+              <button
+                type="button"
+                onClick={handleDeleteCurrentBooking}
+                className="px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Elimina questa prenotazione"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Elimina Prenotazione</span>
+              </button>
+            ) : <div />}
+
+            <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-semibold transition-colors cursor-pointer"
+              >
+                Annulla
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {bookingToEdit ? 'Salva Modifiche' : 'Conferma Prenotazione'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
