@@ -1,0 +1,6 @@
+{
+  "name": "Gestione Sala Prove Musicale",
+  "description": "Gestionale completo per sala prove: operatori e turni, tesseramento clienti con stampa e download PDF tessere e moduli A4, sale, prenotazioni con calendario Google-style, assegnazione turni intelligente e bilancio spese mensile.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
