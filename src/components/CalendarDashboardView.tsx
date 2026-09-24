@@ -240,39 +240,39 @@ export const CalendarDashboardView: React.FC = () => {
       <div className="bg-[#0e0e0e] rounded-xl border border-yellow-500/25 shadow-sm overflow-hidden">
         
         {/* Row 1: Nav & View & Zoom */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 sm:px-4 sm:py-2.5 border-b border-yellow-500/20 gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2 sm:px-4 sm:py-2.5 border-b border-yellow-500/20 gap-1.5 sm:gap-2">
           
           {/* Left: Date navigation arrows & Title */}
-          <div className="flex items-center justify-between sm:justify-start gap-2">
+          <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2">
             <div className="flex items-center bg-[#141414] rounded-lg p-0.5 border border-yellow-500/30 shrink-0">
               <button
                 onClick={handlePrev}
-                className="p-1.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors"
+                className="p-1 sm:p-1.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors"
                 title="Periodo precedente"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
               <button
                 onClick={handleGoToday}
-                className="px-2.5 py-1 rounded-md text-xs font-bold text-yellow-400 hover:bg-neutral-800 transition-colors"
+                className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-bold text-yellow-400 hover:bg-neutral-800 transition-colors"
               >
                 Oggi
               </button>
               <button
                 onClick={handleNext}
-                className="p-1.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors"
+                className="p-1 sm:p-1.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors"
                 title="Periodo successivo"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
 
             <div className="flex items-baseline gap-1.5 min-w-0">
-              <h2 className="text-sm sm:text-base font-bold text-yellow-100 tracking-tight truncate">
+              <h2 className="text-xs sm:text-base font-bold text-yellow-100 tracking-tight truncate">
                 {titleText}
               </h2>
               {viewMode === 'week' && (
-                <span className="hidden sm:inline text-[11px] font-mono text-yellow-400/80 bg-neutral-900 border border-yellow-500/30 px-1.5 py-0.5 rounded shrink-0">
+                <span className="hidden sm:inline text-[10px] sm:text-[11px] font-mono text-yellow-400/80 bg-neutral-900 border border-yellow-500/30 px-1.5 py-0.5 rounded shrink-0">
                   S{weekNum}
                 </span>
               )}
@@ -280,13 +280,13 @@ export const CalendarDashboardView: React.FC = () => {
           </div>
 
           {/* Right: View Mode Toggle & Zoom & Action Button */}
-          <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
+          <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 flex-wrap">
             
             {/* View Mode Toggle: 1G / 3G / 7G */}
             <div className="flex items-center bg-[#141414] rounded-lg p-0.5 border border-yellow-500/30 shrink-0">
               <button
                 onClick={() => setViewMode('day')}
-                className={`px-2 py-1 rounded-md text-xs font-bold transition-all ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-bold transition-all ${
                   viewMode === 'day'
                     ? 'bg-yellow-400 text-black shadow-xs'
                     : 'text-yellow-300/80 hover:text-yellow-300 hover:bg-neutral-800'
@@ -298,7 +298,7 @@ export const CalendarDashboardView: React.FC = () => {
               </button>
               <button
                 onClick={() => setViewMode('3days')}
-                className={`px-2 py-1 rounded-md text-xs font-bold transition-all ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-bold transition-all ${
                   viewMode === '3days'
                     ? 'bg-yellow-400 text-black shadow-xs'
                     : 'text-yellow-300/80 hover:text-yellow-300 hover:bg-neutral-800'
@@ -310,7 +310,7 @@ export const CalendarDashboardView: React.FC = () => {
               </button>
               <button
                 onClick={() => setViewMode('week')}
-                className={`px-2 py-1 rounded-md text-xs font-bold transition-all ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-bold transition-all ${
                   viewMode === 'week'
                     ? 'bg-yellow-400 text-black shadow-xs'
                     : 'text-yellow-300/80 hover:text-yellow-300 hover:bg-neutral-800'
@@ -328,10 +328,10 @@ export const CalendarDashboardView: React.FC = () => {
                 <button
                   onClick={handleZoomOut}
                   disabled={cellHeight <= 34}
-                  className="p-1 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-0.5 sm:p-1 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Rimpicciolisci zoom"
                 >
-                  <ZoomOut className="w-3.5 h-3.5" />
+                  <ZoomOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
                 <button
                   onClick={() => {
@@ -339,7 +339,7 @@ export const CalendarDashboardView: React.FC = () => {
                     else if (cellHeight <= 68) setCellHeight(84);
                     else setCellHeight(36);
                   }}
-                  className="px-1.5 py-0.5 text-[10px] font-mono font-bold text-yellow-400 hover:bg-neutral-800 rounded transition-colors"
+                  className="px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[10px] font-mono font-bold text-yellow-400 hover:bg-neutral-800 rounded transition-colors"
                   title="Alterna livelli di zoom (Panoramica, Standard, Dettagliato)"
                 >
                   {zoomPercent}%
@@ -347,17 +347,17 @@ export const CalendarDashboardView: React.FC = () => {
                 <button
                   onClick={handleZoomIn}
                   disabled={cellHeight >= 105}
-                  className="p-1 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-0.5 sm:p-1 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Ingrandisci zoom"
                 >
-                  <ZoomIn className="w-3.5 h-3.5" />
+                  <ZoomIn className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
               </div>
 
               {/* 1-Click Panoramica Preset */}
               <button
                 onClick={() => setCellHeight(cellHeight <= 40 ? 56 : 36)}
-                className={`px-2 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold border transition-all flex items-center gap-1 ${
                   cellHeight <= 40
                     ? 'bg-yellow-400 text-black border-yellow-400 shadow-sm'
                     : 'bg-[#141414] text-yellow-400 hover:bg-yellow-400/10 border-yellow-500/30'
@@ -372,7 +372,7 @@ export const CalendarDashboardView: React.FC = () => {
             {/* New Booking Button */}
             <button
               onClick={() => { setSelectedDateForBooking(formatDateToISO(today)); setBookingToEdit(null); setIsBookingModalOpen(true); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-black font-bold text-xs rounded-lg shadow-sm transition-all whitespace-nowrap ml-auto sm:ml-0"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-black font-bold text-[11px] sm:text-xs rounded-lg shadow-sm transition-all whitespace-nowrap ml-auto sm:ml-0"
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
               <span className="hidden sm:inline">Nuova Prenotazione</span>
@@ -382,26 +382,26 @@ export const CalendarDashboardView: React.FC = () => {
         </div>
 
         {/* Row 2: Filters & Actions */}
-        <div className="flex items-center justify-between px-2.5 sm:px-4 py-2 gap-2 flex-wrap bg-[#080808]">
-          <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-[200px]">
-            <div className="flex items-center gap-1 bg-[#141414] border border-yellow-500/25 rounded-lg px-2 py-1 h-7">
+        <div className="flex items-center justify-between px-2 sm:px-4 py-1.5 sm:py-2 gap-1.5 flex-wrap bg-[#080808]">
+          <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-[160px]">
+            <div className="flex items-center gap-1 bg-[#141414] border border-yellow-500/25 rounded-lg px-1.5 sm:px-2 py-0.5 h-6.5 sm:h-7">
               <DoorOpen className="w-3 h-3 text-yellow-500/70 shrink-0" />
               <select
                 value={selectedRoomFilter}
                 onChange={e => setSelectedRoomFilter(e.target.value)}
-                className="text-xs font-semibold bg-transparent text-yellow-200 focus:outline-none cursor-pointer max-w-[130px]"
+                className="text-[11px] sm:text-xs font-semibold bg-transparent text-yellow-200 focus:outline-none cursor-pointer max-w-[110px] sm:max-w-[130px]"
               >
                 <option value="all">Tutte le Sale ({rooms.length})</option>
                 {rooms.map(r => <option key={r.id} value={r.id}>{r.nome}</option>)}
               </select>
             </div>
 
-            <div className="flex items-center gap-1 bg-[#141414] border border-yellow-500/25 rounded-lg px-2 py-1 h-7">
+            <div className="flex items-center gap-1 bg-[#141414] border border-yellow-500/25 rounded-lg px-1.5 sm:px-2 py-0.5 h-6.5 sm:h-7">
               <Filter className="w-3 h-3 text-yellow-500/70 shrink-0" />
               <select
                 value={selectedTypeFilter}
                 onChange={e => setSelectedTypeFilter(e.target.value as 'all' | 'prove' | 'lezione')}
-                className="text-xs font-semibold bg-transparent text-yellow-200 focus:outline-none cursor-pointer"
+                className="text-[11px] sm:text-xs font-semibold bg-transparent text-yellow-200 focus:outline-none cursor-pointer"
               >
                 <option value="all">Tutte le Attività</option>
                 <option value="prove">Solo Prove</option>
@@ -410,33 +410,34 @@ export const CalendarDashboardView: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <button
               onClick={() => setIsEquipmentModalOpen(true)}
-              className="flex items-center gap-1.5 h-7 px-2.5 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 font-semibold text-xs rounded-lg border border-yellow-500/30 transition-all whitespace-nowrap"
+              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 font-semibold text-[11px] sm:text-xs rounded-lg border border-yellow-500/30 transition-all whitespace-nowrap"
+              title="Prospetto Strumenti"
             >
               <SlidersHorizontal className="w-3 h-3 text-yellow-400" />
-              <span className="hidden md:inline">Prospetto Strumenti</span>
-              <span className="md:hidden">Strumenti</span>
+              <span className="hidden sm:inline">Strumenti</span>
             </button>
 
             <button
               onClick={() => setIsOperatorScheduleModalOpen(true)}
-              className="flex items-center gap-1.5 h-7 px-2.5 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 font-semibold text-xs rounded-lg border border-yellow-500/30 transition-all whitespace-nowrap"
+              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 font-semibold text-[11px] sm:text-xs rounded-lg border border-yellow-500/30 transition-all whitespace-nowrap"
+              title="PDF Operatori"
             >
               <Printer className="w-3 h-3 text-yellow-400" />
-              <span className="hidden md:inline">PDF Operatori</span>
-              <span className="md:hidden">PDF</span>
+              <span className="hidden sm:inline">PDF</span>
             </button>
 
             <button
               onClick={handleRunAutoAssign}
-              className="flex items-center gap-1.5 h-7 px-2.5 bg-yellow-400/20 hover:bg-yellow-400 text-yellow-300 hover:text-black font-bold text-xs rounded-lg border border-yellow-500/40 transition-all whitespace-nowrap"
+              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-yellow-400/20 hover:bg-yellow-400 text-yellow-300 hover:text-black font-bold text-[11px] sm:text-xs rounded-lg border border-yellow-500/40 transition-all whitespace-nowrap"
             >
               <Sparkles className="w-3 h-3 text-yellow-400" />
-              <span>Assegna IA</span>
+              <span className="hidden sm:inline">Assegna IA</span>
+              <span className="sm:hidden">IA</span>
               {unassignedCount > 0 && (
-                <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-yellow-400 text-black text-[10px] font-bold leading-none">
+                <span className="ml-0.5 px-1 py-0.2 rounded-full bg-yellow-400 text-black text-[9px] font-bold leading-none">
                   {unassignedCount}
                 </span>
               )}
@@ -483,42 +484,43 @@ export const CalendarDashboardView: React.FC = () => {
         )}
       </div>
 
-      {/* -- Operator Shift Balance Banner -- */}
-      <div className="bg-[#0e0e0e] text-white rounded-xl px-3 sm:px-4 py-2.5 shadow-sm border border-yellow-500/20">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-yellow-400/20 text-yellow-400 flex items-center justify-center shrink-0 border border-yellow-500/30">
-              <User className="w-3.5 h-3.5" />
+      {/* -- Operator Shift Balance Banner (Space-optimized for mobile) -- */}
+      <div className="bg-[#0e0e0e] text-white rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 shadow-sm border border-yellow-500/20">
+        <div className="flex items-center justify-between gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-yellow-400/20 text-yellow-400 flex items-center justify-center shrink-0 border border-yellow-500/30">
+              <User className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
-            <h3 className="text-xs sm:text-sm font-semibold text-yellow-100">
-              Monte Ore Operatori &bull; {monthLabel} {yearLabel}
+            <h3 className="text-xs sm:text-sm font-semibold text-yellow-100 truncate">
+              <span className="sm:hidden">Monte Ore:</span>
+              <span className="hidden sm:inline">Monte Ore Operatori &bull; {monthLabel} {yearLabel}</span>
             </h3>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 text-xs flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <span className="text-neutral-400 text-[11px]">Prenotazioni:</span>
+          <div className="flex items-center gap-1.5 sm:gap-3 text-[11px] sm:text-xs flex-wrap">
+            <div className="flex items-center gap-1">
+              <span className="text-neutral-400 text-[10px] sm:text-[11px]">Pren:</span>
               <strong className="text-yellow-400 font-bold">{monthlyBookings.length}</strong>
             </div>
-            <span className="text-neutral-600 hidden sm:inline">&bull;</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-neutral-400 text-[11px]">Totale ore:</span>
+            <span className="text-neutral-600">&bull;</span>
+            <div className="flex items-center gap-1">
+              <span className="text-neutral-400 text-[10px] sm:text-[11px]">Ore:</span>
               <strong className="text-yellow-400 font-bold">{totalHoursMonth}h</strong>
             </div>
-            <span className="text-neutral-600 hidden sm:inline">&bull;</span>
+            <span className="text-neutral-600">&bull;</span>
             {unassignedCount > 0 ? (
-              <div className="flex items-center gap-1 text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 text-[11px]">
-                <AlertTriangle className="w-3 h-3" /><span>{unassignedCount} scoperti</span>
+              <div className="flex items-center gap-0.5 text-amber-300 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30 text-[10px]">
+                <AlertTriangle className="w-2.5 h-2.5" /><span>{unassignedCount} scoperti</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1 text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 text-[11px]">
-                <CheckCircle2 className="w-3 h-3" /><span>Tutti coperti</span>
+              <div className="flex items-center gap-0.5 text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30 text-[10px]">
+                <CheckCircle2 className="w-2.5 h-2.5" /><span>Coperti</span>
               </div>
             )}
             <button
               onClick={() => setIsBalanceExpanded(!isBalanceExpanded)}
-              className="flex items-center gap-1 text-[11px] font-semibold text-yellow-300 hover:text-yellow-100 bg-neutral-900 hover:bg-neutral-800 px-2 py-1 rounded border border-yellow-500/25 transition-colors ml-1"
+              className="flex items-center gap-0.5 text-[10px] sm:text-[11px] font-semibold text-yellow-300 hover:text-yellow-100 bg-neutral-900 hover:bg-neutral-800 px-1.5 py-0.5 rounded border border-yellow-500/25 transition-colors"
             >
-              <span>{isBalanceExpanded ? 'Nascondi' : 'Dettagli'}</span>
+              <span>{isBalanceExpanded ? 'Chiudi' : 'Dettagli'}</span>
               {isBalanceExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
           </div>
@@ -561,25 +563,22 @@ export const CalendarDashboardView: React.FC = () => {
         <div
           className="overflow-auto relative"
           style={{
-            maxHeight: cellHeight <= 38 && viewMode === 'week' ? 'none' : '75vh',
+            maxHeight: cellHeight <= 38 && viewMode === 'week' ? 'none' : 'calc(100vh - 210px)',
+            minHeight: '380px',
           }}
           onWheel={handleWheel}
         >
-          <div
-            style={{
-              minWidth: viewMode === 'week' ? '700px' : '100%',
-            }}
-          >
+          <div className="w-full min-w-full">
             {/* Day Header: STICKY TOP */}
             <div
               className="grid border-b border-yellow-500/25 bg-neutral-950 sticky top-0 z-30 shadow-xs"
               style={{
-                gridTemplateColumns: `52px repeat(${displayDays.length}, minmax(0, 1fr))`,
+                gridTemplateColumns: `clamp(34px, 8.5vw, 50px) repeat(${displayDays.length}, minmax(0, 1fr))`,
               }}
             >
               {/* Corner cell: STICKY TOP & LEFT */}
-              <div className="sticky left-0 top-0 z-40 bg-neutral-950 border-r border-yellow-500/20 py-2.5 flex items-center justify-center">
-                <Clock className="w-3.5 h-3.5 text-yellow-400/70" />
+              <div className="sticky left-0 top-0 z-40 bg-neutral-950 border-r border-yellow-500/20 py-1.5 sm:py-2 flex items-center justify-center">
+                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-400/70" />
               </div>
 
               {displayDays.map((day, i) => {
@@ -590,16 +589,16 @@ export const CalendarDashboardView: React.FC = () => {
                 return (
                   <div
                     key={ds}
-                    className={`py-2 px-1 text-center border-r border-yellow-500/20 last:border-r-0 cursor-pointer hover:bg-neutral-900 transition-colors ${
+                    className={`py-1.5 sm:py-2 px-0.5 sm:px-1 text-center border-r border-yellow-500/20 last:border-r-0 cursor-pointer hover:bg-neutral-900 transition-colors ${
                       isToday ? 'bg-yellow-400/10' : ''
                     }`}
                     onClick={() => handleDayClick(ds)}
                   >
-                    <p className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-yellow-400' : 'text-neutral-400'}`}>
+                    <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-yellow-400' : 'text-neutral-400'}`}>
                       {SHORT_DAYS[dayNameIdx]}
                     </p>
                     <div
-                      className={`mx-auto mt-0.5 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm ${
+                      className={`mx-auto mt-0.5 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm ${
                         isToday ? 'bg-yellow-400 text-black shadow-sm font-bold' : 'text-yellow-100'
                       }`}
                     >
@@ -607,11 +606,8 @@ export const CalendarDashboardView: React.FC = () => {
                     </div>
                     {cnt > 0 && (
                       <div className="flex justify-center items-center mt-0.5 gap-0.5">
-                        {Array.from({ length: Math.min(cnt, 4) }).map((_, k) => (
-                          <div key={k} className="w-1 h-1 rounded-full bg-yellow-400" />
-                        ))}
-                        {cnt > 4 && <div className="w-1 h-1 rounded-full bg-neutral-500" />}
-                        <span className="text-[9px] font-mono text-yellow-400/70 ml-0.5">{cnt}</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />
+                        <span className="text-[8px] sm:text-[9px] font-mono text-yellow-400/80">{cnt}</span>
                       </div>
                     )}
                   </div>
@@ -623,7 +619,7 @@ export const CalendarDashboardView: React.FC = () => {
             <div
               className="grid relative"
               style={{
-                gridTemplateColumns: `52px repeat(${displayDays.length}, minmax(0, 1fr))`,
+                gridTemplateColumns: `clamp(34px, 8.5vw, 50px) repeat(${displayDays.length}, minmax(0, 1fr))`,
               }}
             >
               {/* Hour labels: STICKY LEFT */}
@@ -632,9 +628,9 @@ export const CalendarDashboardView: React.FC = () => {
                   <div
                     key={i}
                     style={{ height: `${cellHeight}px` }}
-                    className="flex items-start justify-end pr-1.5 pt-0.5 border-b border-neutral-900 last:border-b-0"
+                    className="flex items-start justify-end pr-1 sm:pr-1.5 pt-0.5 border-b border-neutral-900 last:border-b-0"
                   >
-                    <span className="text-[10px] font-mono text-yellow-500/70 -translate-y-2.5">
+                    <span className="text-[8px] sm:text-[10px] font-mono text-yellow-500/70 -translate-y-2.5">
                       {String(HOUR_START + i).padStart(2, '0')}:00
                     </span>
                   </div>
@@ -709,13 +705,15 @@ export const CalendarDashboardView: React.FC = () => {
                       const widthPct = 100 / cols;
                       const leftPct = col * widthPct;
                       const hasOperator = !!b.operatoreAssegnatoId;
-                      const shortName = b.clienteNome.length > 12 && cols > 1 ? b.clienteNome.split(' ')[0] : b.clienteNome;
+                      const shortName = b.clienteNome.length > 8 && (cols > 1 || viewMode === 'week') ? b.clienteNome.split(' ')[0] : b.clienteNome;
+                      const startShort = b.oraInizio.endsWith(':00') ? b.oraInizio.slice(0, 2) : b.oraInizio;
+                      const endShort = b.oraFine.endsWith(':00') ? b.oraFine.slice(0, 2) : b.oraFine;
 
                       return (
                         <div
                           key={b.id}
                           onClick={e => { e.stopPropagation(); setActiveBookingDetail(b); }}
-                          className="absolute rounded-md cursor-pointer overflow-hidden transition-all hover:brightness-115 hover:z-10 hover:shadow-lg select-none group border"
+                          className="absolute rounded sm:rounded-md cursor-pointer overflow-hidden transition-all hover:brightness-115 hover:z-10 hover:shadow-lg select-none group border"
                           style={{
                             top: `${topPx + 1}px`,
                             height: `${heightPx - 2}px`,
@@ -723,16 +721,16 @@ export const CalendarDashboardView: React.FC = () => {
                             width: `${widthPct - 1}%`,
                             backgroundColor: colors.bg,
                             borderColor: colors.border,
-                            borderLeftWidth: '3.5px',
+                            borderLeftWidth: '2.5px',
                             zIndex: 1,
                           }}
                           title={`${b.clienteNome} • ${b.oraInizio}-${b.oraFine} • ${b.salaNome}`}
                         >
-                          <div className="p-1 h-full flex flex-col justify-between overflow-hidden gap-0.5 leading-tight">
-                            <div className="flex items-center justify-between gap-1 min-w-0">
+                          <div className="p-0.5 sm:p-1 h-full flex flex-col justify-between overflow-hidden gap-0.5 leading-tight">
+                            <div className="flex items-center justify-between gap-0.5 min-w-0">
                               <span
                                 className={`font-bold truncate ${
-                                  cellHeight < 42 ? 'text-[9px]' : cellHeight > 70 ? 'text-xs' : 'text-[10px]'
+                                  viewMode === 'week' ? 'text-[8px] sm:text-[9px]' : cellHeight < 42 ? 'text-[9px]' : cellHeight > 70 ? 'text-xs' : 'text-[10px]'
                                 }`}
                                 style={{ color: colors.text }}
                               >
@@ -740,22 +738,22 @@ export const CalendarDashboardView: React.FC = () => {
                               </span>
                               {b.tipo === 'lezione' && (
                                 <span
-                                  className="shrink-0 text-[8px] px-1 py-0.2 rounded bg-black/40 font-bold uppercase"
+                                  className="shrink-0 text-[7px] sm:text-[8px] px-0.5 rounded bg-black/40 font-bold uppercase"
                                   style={{ color: colors.text }}
                                 >
-                                  Lez
+                                  L
                                 </span>
                               )}
                             </div>
 
-                            {heightPx >= 26 && (
+                            {heightPx >= 20 && (
                               <span
                                 className={`leading-tight truncate opacity-90 font-mono ${
-                                  cellHeight < 42 ? 'text-[8px]' : 'text-[9px]'
+                                  viewMode === 'week' ? 'text-[7px] sm:text-[8px]' : cellHeight < 42 ? 'text-[8px]' : 'text-[9px]'
                                 }`}
                                 style={{ color: colors.text }}
                               >
-                                {b.oraInizio}-{b.oraFine}
+                                {viewMode === 'week' ? `${startShort}-${endShort}` : `${b.oraInizio}-${b.oraFine}`}
                               </span>
                             )}
 
@@ -807,10 +805,10 @@ export const CalendarDashboardView: React.FC = () => {
       {/* Floating + button (mobile) */}
       <button
         onClick={() => { setSelectedDateForBooking(formatDateToISO(today)); setBookingToEdit(null); setIsBookingModalOpen(true); }}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-yellow-400 text-black font-bold rounded-full shadow-2xl shadow-yellow-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 sm:hidden border border-black/20"
+        className="fixed bottom-4 right-4 w-12 h-12 bg-yellow-400 text-black font-bold rounded-full shadow-2xl shadow-yellow-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 sm:hidden border border-black/20"
         title="Nuova Prenotazione"
       >
-        <Plus className="w-6 h-6 stroke-[3]" />
+        <Plus className="w-5 h-5 stroke-[3]" />
       </button>
 
       {/* Booking Quick Detail Dialog */}
@@ -864,7 +862,14 @@ export const CalendarDashboardView: React.FC = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-neutral-400">Tariffa:</span>
-                <span className="font-bold text-yellow-400 text-sm">&#x20AC;{activeBookingDetail.tariffaTotale}</span>
+                <div className="flex items-center gap-2">
+                  {activeBookingDetail.sconto && activeBookingDetail.sconto > 0 ? (
+                    <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                      Sconto -€{activeBookingDetail.sconto}
+                    </span>
+                  ) : null}
+                  <span className="font-bold text-yellow-400 text-sm">&#x20AC;{activeBookingDetail.tariffaTotale}</span>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-neutral-400">Stato Pagamento:</span>

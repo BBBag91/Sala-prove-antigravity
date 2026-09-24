@@ -160,3 +160,147 @@ export function formatCurrency(amount: number): string {
     currency: 'EUR',
   }).format(amount);
 }
+
+export function generateRecurrenceDates(
+  startDateStr: string,
+  config: {
+    attiva: boolean;
+    frequenza: 'nessuna' | 'giornaliera' | 'settimanale' | 'mensile';
+    intervallo: number;
+    giorniSettimana: number[];
+    tipoFine: 'fino_al' | 'conteggio' | 'per_sempre';
+    dataFine?: string;
+    conteggioOccorrenze?: number;
+  }
+): string[] {
+  if (!config.attiva || config.frequenza === 'nessuna') {
+    return [startDateStr];
+  }
+
+  const result: string[] = [];
+  const baseDate = parseISODate(startDateStr);
+  const maxLimit = 52; // Safety cap: max 52 occurrences (~1 year)
+
+  const targetCount = config.tipoFine === 'conteggio'
+    ? Math.min(config.conteggioOccorrenze || 4, maxLimit)
+    : config.tipoFine === 'per_sempre'
+      ? 52 // 1 anno intero di sessioni continuative
+      : maxLimit;
+
+  const untilDate = config.tipoFine === 'fino_al' && config.dataFine
+    ? parseISODate(config.dataFine)
+    : null;
+
+  if (config.frequenza === 'settimanale') {
+    const interval = Math.max(1, config.intervallo || 1);
+    const selectedDays = config.giorniSettimana && config.giorniSettimana.length > 0
+      ? config.giorniSettimana
+      : [baseDate.getDay()];
+
+    let currentWeekStart = new Date(baseDate);
+    const dayOfWeek = currentWeekStart.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    currentWeekStart.setDate(currentWeekStart.getDate() + diffToMonday);
+
+    let weekIndex = 0;
+    while (result.length < targetCount && weekIndex < 100) {
+      if (weekIndex % interval === 0) {
+        for (let d = 0; d < 7; d++) {
+          const checkDate = new Date(currentWeekStart);
+          checkDate.setDate(currentWeekStart.getDate() + d);
+          const dayIndex = checkDate.getDay();
+
+          if (selectedDays.includes(dayIndex)) {
+            const iso = formatDateToISO(checkDate);
+            if (iso >= startDateStr) {
+              if (untilDate && checkDate > untilDate) {
+                return result.length > 0 ? result : [startDateStr];
+              }
+              if (!result.includes(iso)) {
+                result.push(iso);
+                if (result.length >= targetCount) break;
+              }
+            }
+          }
+        }
+      }
+      currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+      weekIndex++;
+    }
+  } else if (config.frequenza === 'giornaliera') {
+    const interval = Math.max(1, config.intervallo || 1);
+    let cur = new Date(baseDate);
+    while (result.length < targetCount) {
+      if (untilDate && cur > untilDate) break;
+      result.push(formatDateToISO(cur));
+      cur.setDate(cur.getDate() + interval);
+    }
+  } else if (config.frequenza === 'mensile') {
+    const interval = Math.max(1, config.intervallo || 1);
+    let cur = new Date(baseDate);
+    while (result.length < targetCount) {
+      if (untilDate && cur > untilDate) break;
+      result.push(formatDateToISO(cur));
+      cur.setMonth(cur.getMonth() + interval);
+    }
+  }
+
+  if (result.length === 0) {
+    result.push(startDateStr);
+  }
+  return result;
+}
+
+export function getRecurrenceSummary(
+  config: {
+    attiva: boolean;
+    frequenza: 'nessuna' | 'giornaliera' | 'settimanale' | 'mensile';
+    intervallo: number;
+    giorniSettimana: number[];
+    tipoFine: 'fino_al' | 'conteggio' | 'per_sempre';
+    dataFine?: string;
+    conteggioOccorrenze?: number;
+  },
+  startDateStr: string
+): string {
+  if (!config.attiva || config.frequenza === 'nessuna') {
+    return 'Non si ripete';
+  }
+
+  const daysMap: Record<number, string> = {
+    1: 'LUN', 2: 'MAR', 3: 'MER', 4: 'GIO', 5: 'VEN', 6: 'SAB', 0: 'DOM'
+  };
+
+  const daysStr = (config.giorniSettimana || [])
+    .map(d => daysMap[d])
+    .filter(Boolean)
+    .join(', ');
+
+  const dates = generateRecurrenceDates(startDateStr, config);
+  const count = dates.length;
+  const lastDate = dates[dates.length - 1];
+
+  let freqStr = 'Ogni settimana';
+  if (config.frequenza === 'giornaliera') {
+    freqStr = config.intervallo > 1 ? `Ogni ${config.intervallo} giorni` : 'Ogni giorno';
+  } else if (config.frequenza === 'mensile') {
+    freqStr = config.intervallo > 1 ? `Ogni ${config.intervallo} mesi` : 'Ogni mese';
+  } else if (config.intervallo > 1) {
+    freqStr = `Ogni ${config.intervallo} settimane`;
+  }
+
+  let endStr = '';
+  if (config.tipoFine === 'fino_al') {
+    endStr = `fino al ${config.dataFine || lastDate}`;
+  } else if (config.tipoFine === 'conteggio') {
+    endStr = `${count} sessioni`;
+  } else {
+    endStr = 'Per sempre';
+  }
+
+  if (config.frequenza === 'settimanale') {
+    return `${freqStr} [${daysStr}] • ${endStr}`;
+  }
+  return `${freqStr} • ${endStr}`;
+}
+

@@ -91,13 +91,28 @@ export interface Booking {
   ripetizioneSettimanale: boolean;
   gruppoRicorrenzaId?: string;
   settimaneRipetizione?: number;
+  recurrenceConfig?: RecurrenceConfig;
   operatoreAssegnatoId?: string; // ID operatore responsabile del turno sala
   operatoreAssegnatoNome?: string;
   tariffaTotale: number;
+  sconto?: number; // Sconto applicato (€)
   statoPagamento: PaymentStatus;
   metodoPagamento?: PaymentMethod;
   richiesteStrumentazione?: string;
   note?: string;
+}
+
+export type RecurrenceFrequency = 'nessuna' | 'giornaliera' | 'settimanale' | 'mensile';
+export type RecurrenceEndType = 'fino_al' | 'conteggio' | 'per_sempre';
+
+export interface RecurrenceConfig {
+  attiva: boolean;
+  frequenza: RecurrenceFrequency;
+  intervallo: number; // ogni 1, 2, ... settimane
+  giorniSettimana: number[]; // 0=Dom, 1=Lun, 2=Mar, 3=Mer, 4=Gio, 5=Ven, 6=Sab
+  tipoFine: RecurrenceEndType; // 'fino_al' | 'conteggio' | 'per_sempre'
+  dataFine?: string; // YYYY-MM-DD
+  conteggioOccorrenze?: number; // es. 4, 8, 12...
 }
 
 export type ExpenseCategory =

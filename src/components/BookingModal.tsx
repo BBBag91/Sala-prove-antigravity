@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { X, Calendar, Clock, AlertCircle, CheckCircle2, RefreshCw, Music2, GraduationCap } from 'lucide-react';
+import { X, Calendar, Clock, AlertCircle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Booking, BookingType, PaymentMethod, PaymentStatus } from '../types';
-import { calculateDurationHours, formatDateToISO } from '../utils/dateUtils';
+import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig } from '../types';
+import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate } from '../utils/dateUtils';
 import { checkOperatorAvailability } from '../utils/scheduler';
+import { RecurrenceModal } from './RecurrenceModal';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const { clients, rooms, staff, bookings, addBooking, updateBooking } = useApp();
 
   const [clienteId, setClienteId] = useState('');
+  const [isManualClient, setIsManualClient] = useState(false);
+  const [manualClientName, setManualClientName] = useState('');
   const [salaId, setSalaId] = useState('');
   const [tipo, setTipo] = useState<BookingType>('prove');
   const [insegnanteId, setInsegnanteId] = useState('');
@@ -30,8 +33,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [oraInizio, setOraInizio] = useState('18:00');
   const [oraFine, setOraFine] = useState('20:00');
   const [ripetizioneSettimanale, setRipetizioneSettimanale] = useState(false);
+  const [repeatOption, setRepeatOption] = useState<string>('per_sempre');
   const [repeatWeeks, setRepeatWeeks] = useState(4);
+  const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
+  const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig>({
+    attiva: false,
+    frequenza: 'settimanale',
+    intervallo: 1,
+    giorniSettimana: [new Date().getDay()],
+    tipoFine: 'per_sempre',
+    conteggioOccorrenze: 4,
+  });
   const [operatoreAssegnatoId, setOperatoreAssegnatoId] = useState('');
+  const [tariffaBase, setTariffaBase] = useState(36);
+  const [sconto, setSconto] = useState(0);
   const [tariffaTotale, setTariffaTotale] = useState(36);
   const [customTariffa, setCustomTariffa] = useState(false);
   const [statoPagamento, setStatoPagamento] = useState<PaymentStatus>('da_saldare');
@@ -42,7 +57,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Pre-fill on open/edit
   useEffect(() => {
     if (bookingToEdit) {
-      setClienteId(bookingToEdit.clienteId);
+      const isExistingClient = clients.some((c) => c.id === bookingToEdit.clienteId);
+      if (!isExistingClient && bookingToEdit.clienteNome) {
+        setIsManualClient(true);
+        setManualClientName(bookingToEdit.clienteNome);
+        setClienteId(bookingToEdit.clienteId);
+      } else {
+        setIsManualClient(false);
+        setClienteId(bookingToEdit.clienteId);
+        setManualClientName('');
+      }
       setSalaId(bookingToEdit.salaId);
       setTipo(bookingToEdit.tipo);
       setInsegnanteId(bookingToEdit.insegnanteId || '');
@@ -51,24 +75,75 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setOraFine(bookingToEdit.oraFine);
       setRipetizioneSettimanale(bookingToEdit.ripetizioneSettimanale);
       setRepeatWeeks(bookingToEdit.settimaneRipetizione || 4);
+      if (bookingToEdit.recurrenceConfig) {
+        setRecurrenceConfig(bookingToEdit.recurrenceConfig);
+        if (bookingToEdit.recurrenceConfig.tipoFine === 'per_sempre') {
+          setRepeatOption('per_sempre');
+        } else if (bookingToEdit.recurrenceConfig.conteggioOccorrenze) {
+          const occ = bookingToEdit.recurrenceConfig.conteggioOccorrenze;
+          setRepeatOption([2, 4, 8, 12, 24, 52].includes(occ) ? String(occ) : 'personalizzata');
+        } else {
+          setRepeatOption('personalizzata');
+        }
+      } else if (bookingToEdit.ripetizioneSettimanale) {
+        const dIndex = parseISODate(bookingToEdit.data).getDay();
+        const weeks = bookingToEdit.settimaneRipetizione || 4;
+        setRepeatOption([2, 4, 8, 12, 24, 52].includes(weeks) ? String(weeks) : 'personalizzata');
+        setRecurrenceConfig({
+          attiva: true,
+          frequenza: 'settimanale',
+          intervallo: 1,
+          giorniSettimana: [dIndex],
+          tipoFine: 'conteggio',
+          conteggioOccorrenze: weeks,
+        });
+      } else {
+        const dIndex = parseISODate(bookingToEdit.data).getDay();
+        setRepeatOption('per_sempre');
+        setRecurrenceConfig({
+          attiva: false,
+          frequenza: 'settimanale',
+          intervallo: 1,
+          giorniSettimana: [dIndex],
+          tipoFine: 'per_sempre',
+          conteggioOccorrenze: 4,
+        });
+      }
       setOperatoreAssegnatoId(bookingToEdit.operatoreAssegnatoId || '');
+      const disc = bookingToEdit.sconto || 0;
+      setSconto(disc);
       setTariffaTotale(bookingToEdit.tariffaTotale);
+      setTariffaBase((bookingToEdit.tariffaTotale || 0) + disc);
       setCustomTariffa(true);
       setStatoPagamento(bookingToEdit.statoPagamento);
       setMetodoPagamento(bookingToEdit.metodoPagamento || 'pos');
       setRichiesteStrumentazione(bookingToEdit.richiesteStrumentazione || '');
       setNote(bookingToEdit.note || '');
     } else {
+      const defaultDate = initialDate || formatDateToISO(new Date());
+      const dIndex = parseISODate(defaultDate).getDay();
+      setIsManualClient(false);
+      setManualClientName('');
       setClienteId(clients[0]?.id || '');
       setSalaId(initialRoomId || rooms[0]?.id || '');
       setTipo('prove');
       setInsegnanteId('');
-      setData(initialDate || formatDateToISO(new Date()));
+      setData(defaultDate);
       setOraInizio('18:00');
       setOraFine('20:00');
       setRipetizioneSettimanale(false);
+      setRepeatOption('per_sempre');
       setRepeatWeeks(4);
+      setRecurrenceConfig({
+        attiva: false,
+        frequenza: 'settimanale',
+        intervallo: 1,
+        giorniSettimana: [dIndex],
+        tipoFine: 'per_sempre',
+        conteggioOccorrenze: 4,
+      });
       setOperatoreAssegnatoId('');
+      setSconto(0);
       setCustomTariffa(false);
       setStatoPagamento('da_saldare');
       setMetodoPagamento('pos');
@@ -76,6 +151,91 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setNote('');
     }
   }, [bookingToEdit, initialDate, initialRoomId, isOpen, clients, rooms]);
+
+  const handleToggleRipetizione = (checked: boolean) => {
+    setRipetizioneSettimanale(checked);
+    const currentDay = parseISODate(data).getDay();
+    const days = recurrenceConfig.giorniSettimana.length > 0 ? recurrenceConfig.giorniSettimana : [currentDay];
+
+    if (checked) {
+      if (repeatOption === 'per_sempre') {
+        setRepeatWeeks(52);
+        setRecurrenceConfig({
+          attiva: true,
+          frequenza: 'settimanale',
+          intervallo: 1,
+          tipoFine: 'per_sempre',
+          giorniSettimana: days,
+        });
+      } else if (repeatOption === 'personalizzata') {
+        setIsRecurrenceModalOpen(true);
+      } else {
+        const num = Number(repeatOption) || 4;
+        setRepeatWeeks(num);
+        setRecurrenceConfig({
+          attiva: true,
+          frequenza: 'settimanale',
+          intervallo: 1,
+          tipoFine: 'conteggio',
+          conteggioOccorrenze: num,
+          giorniSettimana: days,
+        });
+      }
+    } else {
+      setRecurrenceConfig((prev) => ({ ...prev, attiva: false }));
+    }
+  };
+
+  const handleRepeatOptionChange = (opt: string) => {
+    setRepeatOption(opt);
+    const currentDay = parseISODate(data).getDay();
+    const days = recurrenceConfig.giorniSettimana.length > 0 ? recurrenceConfig.giorniSettimana : [currentDay];
+
+    if (opt === 'personalizzata') {
+      setIsRecurrenceModalOpen(true);
+      return;
+    }
+
+    if (opt === 'per_sempre') {
+      setRepeatWeeks(52);
+      setRecurrenceConfig({
+        attiva: true,
+        frequenza: 'settimanale',
+        intervallo: 1,
+        tipoFine: 'per_sempre',
+        giorniSettimana: days,
+      });
+    } else {
+      const num = Number(opt) || 4;
+      setRepeatWeeks(num);
+      setRecurrenceConfig({
+        attiva: true,
+        frequenza: 'settimanale',
+        intervallo: 1,
+        tipoFine: 'conteggio',
+        conteggioOccorrenze: num,
+        giorniSettimana: days,
+      });
+    }
+  };
+
+  const handleDateChange = (newDate: string) => {
+    setData(newDate);
+    try {
+      const newDayIndex = parseISODate(newDate).getDay();
+      setRecurrenceConfig((prev) => {
+        if (!prev.attiva) {
+          return {
+            ...prev,
+            giorniSettimana: [newDayIndex],
+          };
+        }
+        return prev;
+      });
+    } catch {
+      // ignore
+    }
+  };
 
   // When client changes, automatically copy default gear description
   const handleClientChange = (cId: string) => {
@@ -88,13 +248,29 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // Recalculate price automatically if not manually set
   useEffect(() => {
-    if (customTariffa) return;
     const room = rooms.find((r) => r.id === salaId);
     if (!room) return;
     const hours = calculateDurationHours(oraInizio, oraFine);
     const rate = tipo === 'lezione' && room.tariffaLezione ? room.tariffaLezione : room.tariffaOraria;
-    setTariffaTotale(Math.round(hours * rate));
-  }, [salaId, tipo, oraInizio, oraFine, customTariffa, rooms]);
+    const base = Math.round(hours * rate);
+    setTariffaBase(base);
+    if (!customTariffa) {
+      setTariffaTotale(Math.max(0, base - (Number(sconto) || 0)));
+    }
+  }, [salaId, tipo, oraInizio, oraFine, customTariffa, rooms, sconto]);
+
+  const handleScontoChange = (val: number) => {
+    const disc = Math.max(0, val);
+    setSconto(disc);
+    setTariffaTotale(Math.max(0, tariffaBase - disc));
+  };
+
+  const handleTariffaBaseChange = (val: number) => {
+    const base = Math.max(0, val);
+    setTariffaBase(base);
+    setCustomTariffa(true);
+    setTariffaTotale(Math.max(0, base - (Number(sconto) || 0)));
+  };
 
   if (!isOpen) return null;
 
@@ -129,19 +305,44 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedClient || !selectedRoom) return;
+    const finalClienteNome = isManualClient
+      ? manualClientName.trim()
+      : selectedClient
+        ? `${selectedClient.nome} ${selectedClient.cognome}${
+            selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''
+          }`
+        : '';
+
+    const finalClienteId = isManualClient
+      ? (bookingToEdit?.clienteId?.startsWith('manual-') ? bookingToEdit.clienteId : `manual-${Date.now()}`)
+      : (selectedClient?.id || '');
+
+    if (!finalClienteNome || !selectedRoom) return;
 
     const op = staff.find((s) => s.id === operatoreAssegnatoId);
     const teacher = staff.find((s) => s.id === insegnanteId);
 
-    const clientDisplayName = `${selectedClient.nome} ${selectedClient.cognome}${
-      selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''
-    }`;
+    const clientDisplayName = finalClienteNome;
+
+    const isRecurring = !bookingToEdit && (ripetizioneSettimanale || recurrenceConfig.attiva);
+    const activeConfig: RecurrenceConfig | undefined = isRecurring
+      ? {
+          attiva: true,
+          frequenza: recurrenceConfig.frequenza || 'settimanale',
+          intervallo: recurrenceConfig.intervallo || 1,
+          tipoFine: repeatOption === 'per_sempre' ? 'per_sempre' : (recurrenceConfig.tipoFine || 'per_sempre'),
+          conteggioOccorrenze: repeatOption === 'per_sempre' ? undefined : (recurrenceConfig.conteggioOccorrenze || Number(repeatOption) || 4),
+          dataFine: recurrenceConfig.dataFine,
+          giorniSettimana: recurrenceConfig.giorniSettimana && recurrenceConfig.giorniSettimana.length > 0
+            ? recurrenceConfig.giorniSettimana
+            : [parseISODate(data).getDay()],
+        }
+      : undefined;
 
     if (bookingToEdit) {
       updateBooking({
         ...bookingToEdit,
-        clienteId,
+        clienteId: finalClienteId,
         clienteNome: clientDisplayName,
         salaId,
         salaNome: selectedRoom.nome,
@@ -152,11 +353,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         oraInizio,
         oraFine,
         durataOre: durationHours,
-        ripetizioneSettimanale,
-        settimaneRipetizione: ripetizioneSettimanale ? repeatWeeks : 1,
+        ripetizioneSettimanale: recurrenceConfig.attiva,
+        settimaneRipetizione: recurrenceConfig.attiva ? (recurrenceConfig.conteggioOccorrenze || 4) : 1,
+        recurrenceConfig: recurrenceConfig.attiva ? recurrenceConfig : undefined,
         operatoreAssegnatoId: operatoreAssegnatoId || undefined,
         operatoreAssegnatoNome: op ? `${op.nome} ${op.cognome}` : undefined,
         tariffaTotale: Number(tariffaTotale),
+        sconto: Number(sconto) || 0,
         statoPagamento,
         metodoPagamento: statoPagamento === 'pagato' ? metodoPagamento : undefined,
         richiesteStrumentazione,
@@ -164,7 +367,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       });
     } else {
       addBooking({
-        clienteId,
+        clienteId: finalClienteId,
         clienteNome: clientDisplayName,
         salaId,
         salaNome: selectedRoom.nome,
@@ -174,11 +377,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         data,
         oraInizio,
         oraFine,
-        ripetizioneSettimanale,
-        repeatWeeks: ripetizioneSettimanale ? repeatWeeks : 1,
+        ripetizioneSettimanale: isRecurring,
+        repeatWeeks: isRecurring ? (repeatOption === 'per_sempre' ? 52 : (Number(repeatOption) || 4)) : 1,
+        recurrenceConfig: activeConfig,
         operatoreAssegnatoId: operatoreAssegnatoId || undefined,
         operatoreAssegnatoNome: op ? `${op.nome} ${op.cognome}` : undefined,
         tariffaTotale: Number(tariffaTotale),
+        sconto: Number(sconto) || 0,
         statoPagamento,
         metodoPagamento: statoPagamento === 'pagato' ? metodoPagamento : undefined,
         richiesteStrumentazione,
@@ -253,28 +458,90 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           {/* Cliente & Sala */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                Cliente / Tesserato *
-              </label>
-              <select
-                required
-                value={clienteId}
-                onChange={(e) => handleClientChange(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-              >
-                <option value="">-- Seleziona cliente --</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome} {c.cognome} {c.gruppoBand ? `[${c.gruppoBand}]` : ''} - Tessera:{' '}
-                    {c.statoTesseramento === 'attivo' ? 'Attiva' : 'Scaduta/Attesa'}
-                  </option>
-                ))}
-              </select>
-              {selectedClient && selectedClient.statoTesseramento !== 'attivo' && (
-                <div className="mt-1.5 flex items-center gap-1 text-xs text-amber-700 font-medium">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>Attenzione: tesseramento {selectedClient.statoTesseramento}. Da rinnovare!</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  {isManualClient ? 'Cliente / Band (Inserimento Manuale) *' : 'Cliente / Tesserato *'}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !isManualClient;
+                    setIsManualClient(next);
+                    if (next && !manualClientName && selectedClient) {
+                      setManualClientName(`${selectedClient.nome} ${selectedClient.cognome}${selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''}`);
+                    }
+                  }}
+                  className="text-[11px] font-bold text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-1 cursor-pointer bg-neutral-900 px-2 py-0.5 rounded border border-yellow-500/30"
+                  title={isManualClient ? 'Torna alla selezione da anagrafica tesserati' : 'Inserisci manualmente band o cliente non tesserato'}
+                >
+                  {isManualClient ? (
+                    <>
+                      <Users className="w-3 h-3" />
+                      <span>Scegli da tesserati</span>
+                    </>
+                  ) : (
+                    <>
+                      <Edit3 className="w-3 h-3" />
+                      <span>Inserimento manuale</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {isManualClient ? (
+                <div className="space-y-1.5">
+                  <input
+                    type="text"
+                    required
+                    value={manualClientName}
+                    onChange={(e) => setManualClientName(e.target.value)}
+                    placeholder="Nome band o cliente (es. The Velvet Echoes, Mario Rossi...)"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-yellow-500/40 bg-neutral-950 text-yellow-100 text-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none placeholder:text-neutral-500"
+                    autoFocus
+                  />
+                  <div className="flex items-center justify-between text-[11px] text-neutral-400">
+                    <span className="text-yellow-400/80">✨ Prenotazione libera (non tesserato / ospite)</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsManualClient(false)}
+                      className="text-yellow-400 hover:underline cursor-pointer"
+                    >
+                      Torna alla lista
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <select
+                    required
+                    value={clienteId}
+                    onChange={(e) => {
+                      if (e.target.value === '__manual__') {
+                        setIsManualClient(true);
+                      } else {
+                        handleClientChange(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  >
+                    <option value="">-- Seleziona cliente --</option>
+                    <option value="__manual__" className="text-yellow-400 font-bold bg-neutral-900">
+                      ✍️ Inserimento manuale (non tesserato / ospite)...
+                    </option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome} {c.cognome} {c.gruppoBand ? `[${c.gruppoBand}]` : ''} - Tessera:{' '}
+                        {c.statoTesseramento === 'attivo' ? 'Attiva' : 'Scaduta/Attesa'}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedClient && selectedClient.statoTesseramento !== 'attivo' && (
+                    <div className="mt-1.5 flex items-center gap-1 text-xs text-amber-700 font-medium">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Attenzione: tesseramento {selectedClient.statoTesseramento}. Da rinnovare!</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -329,7 +596,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 type="date"
                 required
                 value={data}
-                onChange={(e) => setData(e.target.value)}
+                onChange={(e) => handleDateChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
               />
             </div>
@@ -365,38 +632,113 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             )}
           </div>
 
-          {/* Ripetizione Settimanale */}
+          {/* Ripetizione Settimanale Fissa */}
           {!bookingToEdit && (
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5">
+            <div className="p-3.5 bg-neutral-900 border border-yellow-500/40 rounded-xl space-y-2.5 shadow-sm text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-indigo-600" />
-                  <span className="text-sm font-semibold text-slate-800">Ripetizione Settimanale Fissa</span>
+                  <RefreshCw className={`w-4 h-4 text-yellow-400 ${ripetizioneSettimanale ? 'animate-spin-slow' : ''}`} />
+                  <span className="text-sm font-bold text-yellow-300">Ripetizione Settimanale Fissa</span>
+                  {ripetizioneSettimanale && repeatOption === 'per_sempre' && (
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-yellow-400 text-black">
+                      Per sempre
+                    </span>
+                  )}
                 </div>
                 <input
                   type="checkbox"
                   id="ripetizione"
                   checked={ripetizioneSettimanale}
-                  onChange={(e) => setRipetizioneSettimanale(e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                  onChange={(e) => handleToggleRipetizione(e.target.checked)}
+                  className="w-4 h-4 text-yellow-400 rounded border-neutral-700 bg-neutral-800 focus:ring-yellow-400 cursor-pointer accent-yellow-400"
                 />
               </div>
+
               {ripetizioneSettimanale && (
-                <div className="flex items-center gap-3 pt-2 text-xs text-slate-600 border-t border-slate-200">
-                  <span>Ripeti per:</span>
-                  <select
-                    value={repeatWeeks}
-                    onChange={(e) => setRepeatWeeks(Number(e.target.value))}
-                    className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-800"
-                  >
-                    <option value={2}>2 settimane consecutive</option>
-                    <option value={4}>4 settimane (1 mese)</option>
-                    <option value={8}>8 settimane (2 mesi)</option>
-                    <option value={12}>12 settimane (3 mesi)</option>
-                  </select>
-                  <span className="text-slate-500">
-                    (Verranno create {repeatWeeks} prenotazioni nello stesso giorno e orario)
-                  </span>
+                <div className="pt-2 text-xs text-neutral-300 border-t border-neutral-800 space-y-2.5">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="font-semibold text-neutral-200">Ripeti per:</span>
+                    <select
+                      value={repeatOption}
+                      onChange={(e) => handleRepeatOptionChange(e.target.value)}
+                      className="px-3 py-1.5 rounded-lg border border-yellow-500/50 bg-neutral-950 text-xs font-bold text-yellow-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+                    >
+                      <option value="per_sempre">Per sempre</option>
+                      <option value="2">2 settimane consecutive</option>
+                      <option value="4">4 settimane (1 mese)</option>
+                      <option value="8">8 settimane (2 mesi)</option>
+                      <option value="12">12 settimane (3 mesi)</option>
+                      <option value="24">24 settimane (6 mesi)</option>
+                      <option value="52">52 settimane (12 mesi)</option>
+                      <option value="personalizzata">⚙️ Personalizzata (giorni specifici, fine al...)</option>
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsRecurrenceModalOpen(true)}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-yellow-400 border border-yellow-500/30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>⚙️ Giorni / Dettagli</span>
+                    </button>
+                  </div>
+
+                  <div className="text-xs text-neutral-400">
+                    {repeatOption === 'per_sempre' ? (
+                      <span className="text-yellow-400 font-medium">
+                        ✨ (Verranno create prenotazioni fisse ogni settimana per sempre, senza data di scadenza)
+                      </span>
+                    ) : repeatOption === 'personalizzata' ? (
+                      <span className="text-yellow-400 font-medium">
+                        Regola personalizzata: {getRecurrenceSummary(recurrenceConfig, data)}
+                      </span>
+                    ) : (
+                      <span>
+                        (Verranno create {repeatWeeks} prenotazioni nello stesso giorno e orario)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Giorni della settimana selezionabili */}
+                  {recurrenceConfig.giorniSettimana && recurrenceConfig.giorniSettimana.length > 0 && (
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-neutral-800/80">
+                      <span className="text-[11px] text-neutral-400">Giorni fissati:</span>
+                      {[
+                        { index: 1, label: 'LUN' },
+                        { index: 2, label: 'MAR' },
+                        { index: 3, label: 'MER' },
+                        { index: 4, label: 'GIO' },
+                        { index: 5, label: 'VEN' },
+                        { index: 6, label: 'SAB' },
+                        { index: 0, label: 'DOM' },
+                      ].map((d) => {
+                        const sel = recurrenceConfig.giorniSettimana.includes(d.index);
+                        return (
+                          <button
+                            key={d.index}
+                            type="button"
+                            onClick={() => {
+                              const exists = recurrenceConfig.giorniSettimana.includes(d.index);
+                              let newDays: number[];
+                              if (exists) {
+                                newDays = recurrenceConfig.giorniSettimana.filter((x) => x !== d.index);
+                                if (newDays.length === 0) newDays = [d.index];
+                              } else {
+                                newDays = [...recurrenceConfig.giorniSettimana, d.index];
+                              }
+                              setRecurrenceConfig((prev) => ({ ...prev, giorniSettimana: newDays }));
+                            }}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                              sel
+                                ? 'bg-yellow-400 text-black font-extrabold ring-2 ring-yellow-300 scale-105'
+                                : 'bg-neutral-800 text-neutral-400 hover:text-yellow-300 hover:bg-neutral-700'
+                            }`}
+                          >
+                            {d.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -445,56 +787,106 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             />
           </div>
 
-          {/* Importo & Pagamento */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50 rounded-lg border border-slate-200">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                Tariffa Totale (€)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={tariffaTotale}
-                  onChange={(e) => {
-                    setCustomTariffa(true);
-                    setTariffaTotale(Number(e.target.value));
-                  }}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
-                />
-                <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                Stato Pagamento
-              </label>
-              <select
-                value={statoPagamento}
-                onChange={(e) => setStatoPagamento(e.target.value as PaymentStatus)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-800"
-              >
-                <option value="da_saldare">⏳ Da Saldare</option>
-                <option value="pagato">✅ Pagato</option>
-              </select>
-            </div>
-            {statoPagamento === 'pagato' && (
+          {/* Importo, Sconto & Pagamento */}
+          <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Tariffa Base (€) */}
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                  Metodo Pagamento
+                  Tariffa Base (€)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={tariffaBase}
+                    onChange={(e) => handleTariffaBaseChange(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
+                  />
+                  <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
+                </div>
+              </div>
+
+              {/* Sconto (€) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Sconto (€)</span>
+                  {sconto > 0 && (
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                      -{sconto}€
+                    </span>
+                  )}
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={sconto === 0 ? '' : sconto}
+                    placeholder="0"
+                    onChange={(e) => handleScontoChange(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
+                  />
+                  <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
+                </div>
+              </div>
+
+              {/* Tariffa Totale Finale (€) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                  Tariffa Totale (€)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={tariffaTotale}
+                    onChange={(e) => {
+                      setCustomTariffa(true);
+                      setTariffaTotale(Number(e.target.value));
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
+                  />
+                  <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stato Pagamento & Metodo Pagamento */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                  Stato Pagamento
                 </label>
                 <select
-                  value={metodoPagamento}
-                  onChange={(e) => setMetodoPagamento(e.target.value as PaymentMethod)}
+                  value={statoPagamento}
+                  onChange={(e) => setStatoPagamento(e.target.value as PaymentStatus)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-800"
                 >
-                  <option value="pos">POS / Carta</option>
-                  <option value="contanti">Contanti</option>
-                  <option value="bonifico">Bonifico</option>
+                  <option value="da_saldare">⏳ Da Saldare</option>
+                  <option value="pagato">✅ Pagato</option>
                 </select>
               </div>
-            )}
+
+              {statoPagamento === 'pagato' && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                    Metodo Pagamento
+                  </label>
+                  <select
+                    value={metodoPagamento}
+                    onChange={(e) => setMetodoPagamento(e.target.value as PaymentMethod)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-800"
+                  >
+                    <option value="pos">POS / Carta</option>
+                    <option value="contanti">Contanti</option>
+                    <option value="bonifico">Bonifico</option>
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Note generali */}
@@ -530,6 +922,28 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Recurrence Popup Modal matching the user's screenshot */}
+      <RecurrenceModal
+        isOpen={isRecurrenceModalOpen}
+        onClose={() => setIsRecurrenceModalOpen(false)}
+        startDate={data}
+        initialConfig={recurrenceConfig}
+        onSave={(newConfig) => {
+          setRecurrenceConfig(newConfig);
+          setRipetizioneSettimanale(newConfig.attiva);
+          if (newConfig.tipoFine === 'per_sempre') {
+            setRepeatOption('per_sempre');
+            setRepeatWeeks(52);
+          } else if (newConfig.conteggioOccorrenze && [2, 4, 8, 12, 24, 52].includes(newConfig.conteggioOccorrenze)) {
+            setRepeatOption(String(newConfig.conteggioOccorrenze));
+            setRepeatWeeks(newConfig.conteggioOccorrenze);
+          } else {
+            setRepeatOption('personalizzata');
+            setRepeatWeeks(newConfig.conteggioOccorrenze || 4);
+          }
+        }}
+      />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { DEFAULT_STUDIO_INFO, INITIAL_BOOKINGS, INITIAL_CLIENTS, INITIAL_EXPENSES, INITIAL_ROOMS, INITIAL_STAFF } from '../data/initialData';
-import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo } from '../types';
-import { calculateDurationHours, formatDateToISO, parseISODate } from '../utils/dateUtils';
+import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig } from '../types';
+import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates } from '../utils/dateUtils';
 import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
 
 interface AppContextType {
@@ -33,7 +33,7 @@ interface AppContextType {
   deleteClient: (id: string) => void;
 
   // Booking actions
-  addBooking: (booking: Omit<Booking, 'id' | 'durataOre'> & { repeatWeeks?: number }) => void;
+  addBooking: (booking: Omit<Booking, 'id' | 'durataOre'> & { repeatWeeks?: number; recurrenceConfig?: RecurrenceConfig }) => void;
   updateBooking: (booking: Booking) => void;
   deleteBooking: (id: string, deleteAllRecurring?: boolean) => void;
   assignOperatorToBooking: (bookingId: string, operatorId?: string) => void;
@@ -222,50 +222,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Booking CRUD with recurrence support
   const addBooking = (
-    bookingData: Omit<Booking, 'id' | 'durataOre'> & { repeatWeeks?: number }
+    bookingData: Omit<Booking, 'id' | 'durataOre'> & {
+      repeatWeeks?: number;
+      recurrenceConfig?: RecurrenceConfig;
+    }
   ) => {
     const duration = calculateDurationHours(bookingData.oraInizio, bookingData.oraFine);
-    const recurrenceId = bookingData.ripetizioneSettimanale
-      ? `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
-      : undefined;
 
-    const repeatWeeks = bookingData.ripetizioneSettimanale ? bookingData.repeatWeeks || 4 : 1;
-    const newBookings: Booking[] = [];
+    let datesToBook: string[] = [bookingData.data];
+    let isRecurring = false;
+    let recurrenceId: string | undefined = undefined;
 
-    const baseDate = parseISODate(bookingData.data);
-
-    for (let i = 0; i < repeatWeeks; i++) {
-      const occurrenceDate = new Date(baseDate);
-      occurrenceDate.setDate(baseDate.getDate() + i * 7);
-      const dateStr = formatDateToISO(occurrenceDate);
-
-      const newBooking: Booking = {
-        id: `book-${Date.now()}-${i}`,
-        clienteId: bookingData.clienteId,
-        clienteNome: bookingData.clienteNome,
-        salaId: bookingData.salaId,
-        salaNome: bookingData.salaNome,
-        tipo: bookingData.tipo,
-        insegnanteId: bookingData.insegnanteId,
-        insegnanteNome: bookingData.insegnanteNome,
-        data: dateStr,
-        oraInizio: bookingData.oraInizio,
-        oraFine: bookingData.oraFine,
-        durataOre: duration,
-        ripetizioneSettimanale: bookingData.ripetizioneSettimanale,
-        gruppoRicorrenzaId: recurrenceId,
-        settimaneRipetizione: repeatWeeks,
-        operatoreAssegnatoId: bookingData.operatoreAssegnatoId,
-        operatoreAssegnatoNome: bookingData.operatoreAssegnatoNome,
-        tariffaTotale: bookingData.tariffaTotale,
-        statoPagamento: bookingData.statoPagamento,
-        metodoPagamento: bookingData.metodoPagamento,
-        richiesteStrumentazione: bookingData.richiesteStrumentazione,
-        note: bookingData.note,
-      };
-
-      newBookings.push(newBooking);
+    if (bookingData.recurrenceConfig && bookingData.recurrenceConfig.attiva) {
+      datesToBook = generateRecurrenceDates(bookingData.data, bookingData.recurrenceConfig);
+      isRecurring = datesToBook.length > 1;
+      if (isRecurring) {
+        recurrenceId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      }
+    } else if (bookingData.ripetizioneSettimanale) {
+      const repeatWeeks = bookingData.repeatWeeks || 4;
+      datesToBook = [];
+      const baseDate = parseISODate(bookingData.data);
+      for (let i = 0; i < repeatWeeks; i++) {
+        const occurrenceDate = new Date(baseDate);
+        occurrenceDate.setDate(baseDate.getDate() + i * 7);
+        datesToBook.push(formatDateToISO(occurrenceDate));
+      }
+      isRecurring = datesToBook.length > 1;
+      if (isRecurring) {
+        recurrenceId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      }
     }
+
+    const newBookings: Booking[] = datesToBook.map((dateStr, idx) => ({
+      id: `book-${Date.now()}-${idx}`,
+      clienteId: bookingData.clienteId,
+      clienteNome: bookingData.clienteNome,
+      salaId: bookingData.salaId,
+      salaNome: bookingData.salaNome,
+      tipo: bookingData.tipo,
+      insegnanteId: bookingData.insegnanteId,
+      insegnanteNome: bookingData.insegnanteNome,
+      data: dateStr,
+      oraInizio: bookingData.oraInizio,
+      oraFine: bookingData.oraFine,
+      durataOre: duration,
+      ripetizioneSettimanale: isRecurring,
+      gruppoRicorrenzaId: recurrenceId,
+      settimaneRipetizione: datesToBook.length,
+      recurrenceConfig: bookingData.recurrenceConfig,
+      operatoreAssegnatoId: bookingData.operatoreAssegnatoId,
+      operatoreAssegnatoNome: bookingData.operatoreAssegnatoNome,
+      tariffaTotale: bookingData.tariffaTotale,
+      sconto: bookingData.sconto,
+      statoPagamento: bookingData.statoPagamento,
+      metodoPagamento: bookingData.metodoPagamento,
+      richiesteStrumentazione: bookingData.richiesteStrumentazione,
+      note: bookingData.note,
+    }));
 
     setBookings((prev) => [...prev, ...newBookings]);
   };
