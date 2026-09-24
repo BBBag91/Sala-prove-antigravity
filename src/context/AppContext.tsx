@@ -3,6 +3,8 @@ import { DEFAULT_STUDIO_INFO, INITIAL_BOOKINGS, INITIAL_CLIENTS, INITIAL_EXPENSE
 import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig } from '../types';
 import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates } from '../utils/dateUtils';
 import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
+import { isSupabaseConfigured } from '../lib/supabase';
+import { supabaseService } from '../services/supabaseService';
 
 interface AppContextType {
   // Data
@@ -13,6 +15,13 @@ interface AppContextType {
   bookings: Booking[];
   expenses: Expense[];
   incomes: ManualIncome[];
+
+  // Cloud & Supabase
+  isSupabaseConfigured: boolean;
+  isCloudConnected: boolean;
+  isLoadingCloud: boolean;
+  syncLocalToCloud: () => Promise<boolean>;
+  refreshFromCloud: () => Promise<void>;
 
   // Studio actions
   updateStudioInfo: (info: Partial<StudioInfo>) => void;
@@ -107,7 +116,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
     const parsed = safeLocalStorageGet<Booking[]>(STORAGE_KEYS.BOOKINGS, INITIAL_BOOKINGS);
-    // Ensure book-1 has complete equipment description
     return parsed.map((b) => {
       if (b.id === 'book-1' && !b.richiesteStrumentazione?.includes('Batteria 5 pezzi')) {
         return {
@@ -128,6 +136,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     safeLocalStorageGet(STORAGE_KEYS.INCOMES, [])
   );
 
+  const [isCloudConnected, setIsCloudConnected] = useState(false);
+  const [isLoadingCloud, setIsLoadingCloud] = useState(false);
+  const configured = isSupabaseConfigured();
+
+  // Sync initial / fetch from Supabase if configured
+  useEffect(() => {
+    if (!configured) return;
+    setIsLoadingCloud(true);
+    supabaseService.fetchAll()
+      .then((remote) => {
+        if (remote) {
+          const hasRemoteData =
+            remote.rooms.length > 0 ||
+            remote.staff.length > 0 ||
+            remote.clients.length > 0 ||
+            remote.bookings.length > 0;
+
+          if (hasRemoteData) {
+            if (remote.rooms.length > 0) setRooms(remote.rooms);
+            if (remote.staff.length > 0) setStaff(remote.staff);
+            if (remote.clients.length > 0) setClients(remote.clients);
+            if (remote.bookings.length > 0) setBookings(remote.bookings);
+            if (remote.expenses.length > 0) setExpenses(remote.expenses);
+            if (remote.incomes.length > 0) setIncomes(remote.incomes);
+            if (remote.studioInfo) setStudioInfo(remote.studioInfo);
+          } else {
+            // Primo avvio con database Supabase vuoto: popolamento automatico con i dati attuali
+            supabaseService.syncAllLocalDataToSupabase({
+              rooms,
+              staff,
+              clients,
+              bookings,
+              expenses,
+              incomes,
+              studioInfo,
+            }).catch((e) => console.warn('[AppContext] Errore popolamento iniziale Supabase:', e));
+          }
+          setIsCloudConnected(true);
+        }
+      })
+      .catch((err) => {
+        console.warn('[AppContext] Supabase offline o non ancora inizializzato:', err);
+        setIsCloudConnected(false);
+      })
+      .finally(() => {
+        setIsLoadingCloud(false);
+      });
+  }, [configured]);
+
   // Sync with localStorage (with safe write)
   useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.STUDIO, studioInfo); }, [studioInfo]);
   useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.ROOMS, rooms); }, [rooms]);
@@ -137,6 +194,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.EXPENSES, expenses); }, [expenses]);
   useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.INCOMES, incomes); }, [incomes]);
 
+  // Cloud Actions
+  const syncLocalToCloud = async (): Promise<boolean> => {
+    await supabaseService.syncAllLocalDataToSupabase({
+      rooms,
+      staff,
+      clients,
+      bookings,
+      expenses,
+      incomes,
+      studioInfo,
+    });
+    setIsCloudConnected(true);
+    return true;
+  };
+
+  const refreshFromCloud = async (): Promise<void> => {
+    const remote = await supabaseService.fetchAll();
+    if (remote) {
+      if (remote.rooms.length > 0) setRooms(remote.rooms);
+      if (remote.staff.length > 0) setStaff(remote.staff);
+      if (remote.clients.length > 0) setClients(remote.clients);
+      if (remote.bookings.length > 0) setBookings(remote.bookings);
+      if (remote.expenses.length > 0) setExpenses(remote.expenses);
+      if (remote.incomes.length > 0) setIncomes(remote.incomes);
+      if (remote.studioInfo) setStudioInfo(remote.studioInfo);
+      setIsCloudConnected(true);
+    }
+  };
+
   // Rooms CRUD
   const addRoom = (roomData: Omit<Room, 'id'>) => {
     const newRoom: Room = {
@@ -144,6 +230,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `room-${Date.now()}`,
     };
     setRooms((prev) => [...prev, newRoom]);
+    if (configured) {
+      supabaseService.upsertRoom(newRoom).catch(console.error);
+    }
   };
 
   const updateRoom = (updated: Room) => {
@@ -152,10 +241,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBookings((prev) =>
       prev.map((b) => (b.salaId === updated.id ? { ...b, salaNome: updated.nome } : b))
     );
+    if (configured) {
+      supabaseService.upsertRoom(updated).catch(console.error);
+    }
   };
 
   const deleteRoom = (id: string) => {
     setRooms((prev) => prev.filter((r) => r.id !== id));
+    if (configured) {
+      supabaseService.deleteRoom(id).catch(console.error);
+    }
   };
 
   // Staff CRUD
@@ -165,6 +260,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `staff-${Date.now()}`,
     };
     setStaff((prev) => [...prev, newMember]);
+    if (configured) {
+      supabaseService.upsertStaff(newMember).catch(console.error);
+    }
   };
 
   const updateStaff = (updated: StaffMember) => {
@@ -177,6 +275,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : b
       )
     );
+    if (configured) {
+      supabaseService.upsertStaff(updated).catch(console.error);
+    }
   };
 
   const deleteStaff = (id: string) => {
@@ -189,6 +290,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : b
       )
     );
+    if (configured) {
+      supabaseService.deleteStaff(id).catch(console.error);
+    }
   };
 
   // Client CRUD
@@ -198,6 +302,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `cli-${Date.now()}`,
     };
     setClients((prev) => [...prev, newClient]);
+    if (configured) {
+      supabaseService.upsertClient(newClient).catch(console.error);
+    }
   };
 
   const updateClient = (updated: Client) => {
@@ -214,10 +321,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : b
       )
     );
+    if (configured) {
+      supabaseService.upsertClient(updated).catch(console.error);
+    }
   };
 
   const deleteClient = (id: string) => {
     setClients((prev) => prev.filter((c) => c.id !== id));
+    if (configured) {
+      supabaseService.deleteClient(id).catch(console.error);
+    }
   };
 
   // Booking CRUD with recurrence support
@@ -282,42 +395,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
 
     setBookings((prev) => [...prev, ...newBookings]);
+    if (configured) {
+      supabaseService.upsertMultipleBookings(newBookings).catch(console.error);
+    }
   };
 
   const updateBooking = (updated: Booking) => {
     const duration = calculateDurationHours(updated.oraInizio, updated.oraFine);
+    const finalBooking = { ...updated, durataOre: duration };
     setBookings((prev) =>
-      prev.map((b) => (b.id === updated.id ? { ...updated, durataOre: duration } : b))
+      prev.map((b) => (b.id === updated.id ? finalBooking : b))
     );
+    if (configured) {
+      supabaseService.upsertBooking(finalBooking).catch(console.error);
+    }
   };
 
   const deleteBooking = (id: string, deleteAllRecurring: boolean = false) => {
-    // Use functional updater to avoid stale closure over 'bookings'
+    let targetGroup: string | undefined = undefined;
     setBookings((prev) => {
       if (!deleteAllRecurring) {
         return prev.filter((b) => b.id !== id);
       }
       const target = prev.find((b) => b.id === id);
-      if (target?.gruppoRicorrenzaId) {
-        return prev.filter((b) => b.gruppoRicorrenzaId !== target.gruppoRicorrenzaId);
+      targetGroup = target?.gruppoRicorrenzaId;
+      if (targetGroup) {
+        return prev.filter((b) => b.gruppoRicorrenzaId !== targetGroup);
       }
       return prev.filter((b) => b.id !== id);
     });
+
+    if (configured) {
+      if (deleteAllRecurring && targetGroup) {
+        supabaseService.deleteBookingsByGroup(targetGroup).catch(console.error);
+      } else {
+        supabaseService.deleteBooking(id).catch(console.error);
+      }
+    }
   };
 
   const assignOperatorToBooking = (bookingId: string, operatorId?: string) => {
     const op = staff.find((s) => s.id === operatorId);
+    let updatedBooking: Booking | undefined;
     setBookings((prev) =>
-      prev.map((b) =>
-        b.id === bookingId
-          ? {
-              ...b,
-              operatoreAssegnatoId: operatorId || undefined,
-              operatoreAssegnatoNome: op ? `${op.nome} ${op.cognome}` : undefined,
-            }
-          : b
-      )
+      prev.map((b) => {
+        if (b.id === bookingId) {
+          updatedBooking = {
+            ...b,
+            operatoreAssegnatoId: operatorId || undefined,
+            operatoreAssegnatoNome: op ? `${op.nome} ${op.cognome}` : undefined,
+          };
+          return updatedBooking;
+        }
+        return b;
+      })
     );
+    if (configured && updatedBooking) {
+      supabaseService.upsertBooking(updatedBooking).catch(console.error);
+    }
   };
 
   const runAutoAssignment = (monthFilter?: string): AutoAssignResult => {
@@ -329,6 +464,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const result = autoAssignOperators(targetBookings, bookings, staff, monthFilter);
     setBookings(result.updatedBookings);
+    if (configured && result.assignedCount > 0) {
+      supabaseService.upsertMultipleBookings(result.updatedBookings).catch(console.error);
+    }
     return result;
   };
 
@@ -339,14 +477,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `exp-${Date.now()}`,
     };
     setExpenses((prev) => [newExpense, ...prev]);
+    if (configured) {
+      supabaseService.upsertExpense(newExpense).catch(console.error);
+    }
   };
 
   const updateExpense = (updated: Expense) => {
     setExpenses((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    if (configured) {
+      supabaseService.upsertExpense(updated).catch(console.error);
+    }
   };
 
   const deleteExpense = (id: string) => {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
+    if (configured) {
+      supabaseService.deleteExpense(id).catch(console.error);
+    }
   };
 
   // Income
@@ -356,15 +503,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `inc-${Date.now()}`,
     };
     setIncomes((prev) => [newIncome, ...prev]);
+    if (configured) {
+      supabaseService.upsertIncome(newIncome).catch(console.error);
+    }
   };
 
   const deleteIncome = (id: string) => {
     setIncomes((prev) => prev.filter((i) => i.id !== id));
+    if (configured) {
+      supabaseService.deleteIncome(id).catch(console.error);
+    }
   };
 
   // Studio actions
   const updateStudioInfo = (info: Partial<StudioInfo>) => {
-    setStudioInfo((prev) => ({ ...prev, ...info }));
+    const updated = { ...studioInfo, ...info };
+    setStudioInfo(updated);
+    if (configured) {
+      supabaseService.upsertStudioInfo(updated).catch(console.error);
+    }
   };
 
   const resetToDemoData = () => {
@@ -395,6 +552,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bookings,
         expenses,
         incomes,
+        isSupabaseConfigured: configured,
+        isCloudConnected,
+        isLoadingCloud,
+        syncLocalToCloud,
+        refreshFromCloud,
         addRoom,
         updateRoom,
         deleteRoom,
