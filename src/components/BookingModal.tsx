@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Calendar, Clock, AlertCircle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig } from '../types';
-import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate } from '../utils/dateUtils';
+import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime } from '../utils/dateUtils';
 import { checkOperatorAvailability } from '../utils/scheduler';
 import { RecurrenceModal } from './RecurrenceModal';
 
@@ -11,6 +11,7 @@ interface BookingModalProps {
   onClose: () => void;
   initialDate?: string;
   initialRoomId?: string;
+  initialType?: BookingType;
   bookingToEdit?: Booking | null;
 }
 
@@ -19,6 +20,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onClose,
   initialDate,
   initialRoomId,
+  initialType,
   bookingToEdit,
 }) => {
   const { clients, rooms, staff, bookings, addBooking, updateBooking, deleteBooking } = useApp();
@@ -122,15 +124,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     } else {
       const defaultDate = initialDate || formatDateToISO(new Date());
       const dIndex = parseISODate(defaultDate).getDay();
+      const defaultTipo = initialType || 'prove';
       setIsManualClient(false);
       setManualClientName('');
       setClienteId(clients[0]?.id || '');
       setSalaId(initialRoomId || rooms[0]?.id || '');
-      setTipo('prove');
+      setTipo(defaultTipo);
       setInsegnanteId('');
       setData(defaultDate);
       setOraInizio('18:00');
-      setOraFine('20:00');
+      setOraFine(defaultTipo === 'lezione' ? '19:00' : '20:00');
       setRipetizioneSettimanale(false);
       setRepeatOption('per_sempre');
       setRepeatWeeks(4);
@@ -243,6 +246,39 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const client = clients.find((c) => c.id === cId);
     if (client && client.descrizioneStrumentazione && !bookingToEdit) {
       setRichiesteStrumentazione(client.descrizioneStrumentazione);
+    }
+  };
+
+  // Gestione selezione tipo prenotazione con impostazione automatica durata (1 ora per lezioni, 2 ore per prove)
+  const handleSelectTipo = (newTipo: BookingType) => {
+    setTipo(newTipo);
+    if (newTipo === 'lezione') {
+      // Quando si seleziona 'lezione', imposta automaticamente 1 ora di lezione (anziché 2 ore)
+      const startMin = timeToMinutes(oraInizio);
+      setOraFine(minutesToTime(startMin + 60));
+    } else if (newTipo === 'prove') {
+      // Se si torna a 'prove' ed era impostata 1 ora, reimposta la durata standard delle prove a 2 ore
+      const currentDuration = calculateDurationHours(oraInizio, oraFine);
+      if (currentDuration === 1) {
+        const startMin = timeToMinutes(oraInizio);
+        setOraFine(minutesToTime(startMin + 120));
+      }
+    }
+  };
+
+  const handleOraInizioChange = (newStart: string) => {
+    setOraInizio(newStart);
+    if (newStart) {
+      const startMin = timeToMinutes(newStart);
+      if (tipo === 'lezione') {
+        // Nelle lezioni mantieni la durata automatica di 1 ora
+        setOraFine(minutesToTime(startMin + 60));
+      } else {
+        const endMin = timeToMinutes(oraFine);
+        if (endMin <= startMin) {
+          setOraFine(minutesToTime(startMin + 120));
+        }
+      }
     }
   };
 
@@ -445,7 +481,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
               <button
                 type="button"
-                onClick={() => setTipo('prove')}
+                onClick={() => handleSelectTipo('prove')}
                 className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border text-sm font-semibold transition-all ${
                   tipo === 'prove'
                     ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
@@ -457,7 +493,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setTipo('lezione')}
+                onClick={() => handleSelectTipo('lezione')}
                 className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border text-sm font-semibold transition-all ${
                   tipo === 'lezione'
                     ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
@@ -623,7 +659,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 type="time"
                 required
                 value={oraInizio}
-                onChange={(e) => setOraInizio(e.target.value)}
+                onChange={(e) => handleOraInizioChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
               />
             </div>
@@ -641,7 +677,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           </div>
           <div className="text-xs text-slate-500 px-1 flex items-center justify-between">
-            <span>Durata sessione: <strong className="text-slate-800">{durationHours} ore</strong></span>
+            <span>Durata sessione: <strong className="text-slate-800">{durationHours} {durationHours === 1 ? 'ora' : 'ore'}</strong></span>
             {durationHours <= 0 && (
               <span className="text-rose-500 font-medium">L'orario di fine deve essere successivo all'inizio</span>
             )}

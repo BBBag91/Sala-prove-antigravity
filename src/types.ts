@@ -1,3 +1,13 @@
+export type UserRole = 'admin' | 'user';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  nome: string;
+  ruolo: UserRole;
+  avatar?: string;
+}
+
 export type StaffRole = 'operatore' | 'insegnante' | 'entrambi';
 
 export interface PrimaryWorkShift {
