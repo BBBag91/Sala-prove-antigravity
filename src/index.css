@@ -3,29 +3,251 @@
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    color: #1e293b;
-    background-color: #f8fafc;
+    color: #fef08a;
+    background-color: #000000;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
   }
+
+  ::selection {
+    background-color: #facc15;
+    color: #000000;
+  }
 }
 
-/* Custom subtle scrollbar */
+/* Custom yellow & black scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #000000;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #854d0e;
   border-radius: 9999px;
+  border: 1px solid rgba(250, 204, 21, 0.3);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #facc15;
+}
+
+/* Hide scrollbar for clean horizontal strips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Screen Theme Overrides: Black Background & Predominantly Yellow Elements */
+@media screen {
+  /* Surfaces: Cards, Modals, Panels, Toolbars */
+  .bg-white {
+    background-color: #0d0d0d !important;
+    border-color: rgba(250, 204, 21, 0.22) !important;
+  }
+
+  .bg-slate-50,
+  .bg-slate-50\/60,
+  .bg-slate-50\/40,
+  .bg-slate-50\/80 {
+    background-color: #121212 !important;
+  }
+
+  .bg-slate-100 {
+    background-color: #1a1a1a !important;
+  }
+
+  .bg-slate-200 {
+    background-color: #242424 !important;
+  }
+
+  .bg-slate-900 {
+    background-color: #141410 !important;
+    border-color: rgba(250, 204, 21, 0.35) !important;
+  }
+
+  /* Borders: Golden Yellow Tinted Borders */
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-300 {
+    border-color: rgba(250, 204, 21, 0.22) !important;
+  }
+
+  .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+  .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgba(250, 204, 21, 0.18) !important;
+  }
+
+  /* Typography: Yellow Palette & High Contrast Headings */
+  .text-slate-900 {
+    color: #fef9c3 !important; /* bright warm yellow-white */
+  }
+
+  .text-slate-800 {
+    color: #fef08a !important; /* soft primary yellow */
+  }
+
+  .text-slate-700 {
+    color: #fde047 !important; /* light yellow */
+  }
+
+  .text-slate-600 {
+    color: #eab308 !important; /* golden yellow */
+  }
+
+  .text-slate-500 {
+    color: #ca8a04 !important; /* amber yellow */
+  }
+
+  .text-slate-400 {
+    color: #a1a1aa !important; /* readable muted secondary text */
+  }
+
+  .text-slate-300 {
+    color: #71717a !important;
+  }
+
+  /* Primary Brand: Indigo converted to Vibrant High-Contrast Yellow */
+  .bg-indigo-600 {
+    background-color: #facc15 !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+
+  .bg-indigo-600:hover,
+  .hover\:bg-indigo-700:hover {
+    background-color: #eab308 !important;
+    color: #000000 !important;
+  }
+
+  .bg-indigo-600 *,
+  .bg-indigo-700 * {
+    color: #000000 !important;
+  }
+
+  .bg-indigo-50 {
+    background-color: rgba(250, 204, 21, 0.12) !important;
+    color: #facc15 !important;
+    border-color: rgba(250, 204, 21, 0.35) !important;
+  }
+
+  .bg-indigo-100 {
+    background-color: rgba(250, 204, 21, 0.22) !important;
+    border-color: rgba(250, 204, 21, 0.45) !important;
+  }
+
+  .bg-indigo-200,
+  .bg-indigo-200\/80 {
+    background-color: #facc15 !important;
+    color: #000000 !important;
+  }
+
+  .text-indigo-600,
+  .text-indigo-700,
+  .text-indigo-500,
+  .text-indigo-400 {
+    color: #facc15 !important;
+  }
+
+  .text-indigo-900,
+  .text-indigo-950 {
+    color: #fef08a !important;
+  }
+
+  .border-indigo-100,
+  .border-indigo-200,
+  .border-indigo-500 {
+    border-color: rgba(250, 204, 21, 0.45) !important;
+  }
+
+  /* Colored status badges adapted for dark mode */
+  .bg-emerald-50 {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    border-color: rgba(16, 185, 129, 0.35) !important;
+  }
+  .text-emerald-700, .text-emerald-800, .text-emerald-600 {
+    color: #34d399 !important;
+  }
+
+  .bg-rose-50, .bg-red-50 {
+    background-color: rgba(244, 63, 94, 0.15) !important;
+    border-color: rgba(244, 63, 94, 0.35) !important;
+  }
+  .text-rose-700, .text-rose-600, .text-rose-500 {
+    color: #fb7185 !important;
+  }
+
+  .bg-amber-50, .bg-amber-100 {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    border-color: rgba(245, 158, 11, 0.35) !important;
+  }
+  .text-amber-700, .text-amber-800 {
+    color: #fbbf24 !important;
+  }
+
+  .bg-purple-50, .bg-purple-100 {
+    background-color: rgba(168, 85, 247, 0.15) !important;
+    border-color: rgba(168, 85, 247, 0.35) !important;
+  }
+  .text-purple-700, .text-purple-900 {
+    color: #c084fc !important;
+  }
+
+  .bg-sky-50, .bg-sky-100 {
+    background-color: rgba(14, 165, 233, 0.15) !important;
+    border-color: rgba(14, 165, 233, 0.35) !important;
+  }
+
+  /* Secondary buttons and chips */
+  .hover\:bg-slate-50:hover,
+  .hover\:bg-slate-100:hover,
+  .hover\:bg-white:hover {
+    background-color: rgba(250, 204, 21, 0.1) !important;
+  }
+
+  /* Form Elements: Dark inputs with yellow borders & text */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    background-color: #141414 !important;
+    color: #fef08a !important;
+    border-color: rgba(250, 204, 21, 0.35) !important;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):focus,
+  select:focus,
+  textarea:focus {
+    border-color: #facc15 !important;
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.4) !important;
+    outline: none !important;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: #facc15;
+  }
+
+  /* Modals backdrop */
+  .fixed.inset-0.bg-black\/50,
+  .fixed.inset-0.bg-slate-900\/40,
+  .fixed.inset-0.bg-slate-900\/50 {
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(4px);
+  }
+
+  /* Shadow adjustment */
+  .shadow-sm,
+  .shadow-xs,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.7), 0 0 10px rgba(250, 204, 21, 0.04) !important;
+  }
 }
 
 @media print {
@@ -36,6 +258,17 @@
 
   body {
     background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .bg-white {
+    background-color: #ffffff !important;
+  }
+
+  .text-slate-900,
+  .text-slate-800,
+  .text-slate-700,
+  .text-slate-600 {
     color: #000000 !important;
   }
 
