@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo } from '../types';
+import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, WorkShift } from '../types';
 
 // =========================================================================
 // MAPPERS: TypeScript (camelCase) <-> Supabase PostgreSQL (snake_case)
@@ -235,6 +235,38 @@ export const mapStudioInfoFromDb = (s: any): StudioInfo => ({
   note: s.note || '',
 });
 
+export const mapShiftToDb = (s: WorkShift) => ({
+  id: s.id,
+  data: s.data,
+  turno_numero: s.turnoNumero,
+  nome_turno: s.nomeTurno,
+  ora_inizio_base: s.oraInizioBase,
+  ora_fine_base: s.oraFineBase,
+  ora_inizio_effettiva: s.oraInizioEffettiva || null,
+  ora_fine_effettiva: s.oraFineEffettiva || null,
+  operatore_id: s.operatoreId || '',
+  operatore_nome: s.operatoreNome || '',
+  note: s.note || '',
+  is_custom_hours: Boolean(s.isCustomHours),
+  updated_at: new Date().toISOString(),
+});
+
+export const mapShiftFromDb = (s: any): WorkShift => ({
+  id: s.id,
+  data: s.data,
+  turnoNumero: (Number(s.turno_numero) || 1) as 1 | 2,
+  nomeTurno: s.nome_turno || (s.turno_numero === 1 ? '1° Turno (Pomeridiano)' : '2° Turno (Serale)'),
+  oraInizioBase: s.ora_inizio_base || (s.turno_numero === 1 ? '17:00' : '20:00'),
+  oraFineBase: s.ora_fine_base || (s.turno_numero === 1 ? '20:00' : '23:00'),
+  oraInizioEffettiva: s.ora_inizio_effettiva || undefined,
+  oraFineEffettiva: s.ora_fine_effettiva || undefined,
+  operatoreId: s.operatore_id || undefined,
+  operatoreNome: s.operatore_nome || undefined,
+  note: s.note || '',
+  isCustomHours: Boolean(s.is_custom_hours),
+});
+
+
 // =========================================================================
 // OPERAZIONI DATABASE CON SUPABASE
 // =========================================================================
@@ -266,6 +298,7 @@ export const supabaseService = {
       expensesRes,
       incomesRes,
       studioRes,
+      shiftsRes,
     ] = await Promise.all([
       supabase.from('rooms').select('*').order('nome'),
       supabase.from('staff').select('*').order('cognome'),
@@ -274,6 +307,7 @@ export const supabaseService = {
       supabase.from('expenses').select('*').order('data', { ascending: false }),
       supabase.from('incomes').select('*').order('data', { ascending: false }),
       supabase.from('studio_info').select('*').limit(1).maybeSingle(),
+      supabase.from('shifts').select('*').order('data', { ascending: true }),
     ]);
 
     return {
@@ -284,6 +318,7 @@ export const supabaseService = {
       expenses: (expensesRes.data || []).map(mapExpenseFromDb),
       incomes: (incomesRes.data || []).map(mapIncomeFromDb),
       studioInfo: studioRes.data ? mapStudioInfoFromDb(studioRes.data) : null,
+      shifts: (shiftsRes.data || []).map(mapShiftFromDb),
     };
   },
 
@@ -370,6 +405,36 @@ export const supabaseService = {
     if (error) console.error('[Supabase] Errore deleteIncome:', error);
   },
 
+  // Shifts (Turni Presidio Sala)
+  async upsertShift(shift: WorkShift) {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase.from('shifts').upsert(mapShiftToDb(shift));
+      if (error) console.warn('[Supabase] upsertShift:', error.message);
+    } catch (e) {
+      console.warn('[Supabase] upsertShift error:', e);
+    }
+  },
+  async upsertMultipleShifts(shifts: WorkShift[]) {
+    if (!supabase || shifts.length === 0) return;
+    try {
+      const rows = shifts.map(mapShiftToDb);
+      const { error } = await supabase.from('shifts').upsert(rows);
+      if (error) console.warn('[Supabase] upsertMultipleShifts:', error.message);
+    } catch (e) {
+      console.warn('[Supabase] upsertMultipleShifts error:', e);
+    }
+  },
+  async deleteShift(id: string) {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase.from('shifts').delete().eq('id', id);
+      if (error) console.warn('[Supabase] deleteShift:', error.message);
+    } catch (e) {
+      console.warn('[Supabase] deleteShift error:', e);
+    }
+  },
+
   // Studio Info
   async upsertStudioInfo(info: StudioInfo) {
     if (!supabase) return;
@@ -386,6 +451,7 @@ export const supabaseService = {
     expenses: Expense[];
     incomes: ManualIncome[];
     studioInfo: StudioInfo;
+    shifts?: WorkShift[];
   }) {
     if (!supabase) throw new Error('Client Supabase non configurato');
 
@@ -397,6 +463,7 @@ export const supabaseService = {
       bookingsRes,
       expensesRes,
       incomesRes,
+      shiftsRes,
     ] = await Promise.all([
       supabase.from('studio_info').upsert(mapStudioInfoToDb(data.studioInfo)),
       supabase.from('rooms').upsert(data.rooms.map(mapRoomToDb)),
@@ -405,6 +472,7 @@ export const supabaseService = {
       data.bookings.length > 0 ? supabase.from('bookings').upsert(data.bookings.map(mapBookingToDb)) : Promise.resolve({ error: null }),
       data.expenses.length > 0 ? supabase.from('expenses').upsert(data.expenses.map(mapExpenseToDb)) : Promise.resolve({ error: null }),
       data.incomes.length > 0 ? supabase.from('incomes').upsert(data.incomes.map(mapIncomeToDb)) : Promise.resolve({ error: null }),
+      data.shifts && data.shifts.length > 0 ? Promise.resolve(supabase.from('shifts').upsert(data.shifts.map(mapShiftToDb))) : Promise.resolve({ error: null }),
     ]);
 
     const errors: string[] = [];

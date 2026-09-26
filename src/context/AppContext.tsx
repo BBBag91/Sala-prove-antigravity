@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { DEFAULT_STUDIO_INFO, INITIAL_BOOKINGS, INITIAL_CLIENTS, INITIAL_EXPENSES, INITIAL_ROOMS, INITIAL_STAFF } from '../data/initialData';
-import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig } from '../types';
-import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates } from '../utils/dateUtils';
+import { DEFAULT_STUDIO_INFO, INITIAL_BOOKINGS, INITIAL_CLIENTS, INITIAL_EXPENSES, INITIAL_ROOMS, INITIAL_STAFF, INITIAL_SHIFTS } from '../data/initialData';
+import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig, WorkShift } from '../types';
+import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates, timeToMinutes } from '../utils/dateUtils';
 import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
+import { computeDailyShifts, autoAssignWeeklyShifts } from '../utils/shiftUtils';
 import { isSupabaseConfigured, setSupabaseCredentials, getSupabaseUrl, getSupabaseKey, supabase } from '../lib/supabase';
 import { supabaseService } from '../services/supabaseService';
 
@@ -15,6 +16,7 @@ interface AppContextType {
   bookings: Booking[];
   expenses: Expense[];
   incomes: ManualIncome[];
+  shifts: WorkShift[];
 
   // Cloud & Supabase
   isSupabaseConfigured: boolean;
@@ -38,6 +40,12 @@ interface AppContextType {
   addStaff: (member: Omit<StaffMember, 'id'>) => void;
   updateStaff: (member: StaffMember) => void;
   deleteStaff: (id: string) => void;
+
+  // Shift actions (Turni Presidio Sala Prove)
+  assignOperatorToShift: (date: string, turnoNumero: 1 | 2, operatorId?: string, syncToBookings?: boolean) => void;
+  updateShift: (shift: WorkShift) => void;
+  deleteShift: (id: string) => void;
+  autoAssignWeeklyShiftsAction: (weekDates: string[]) => { assignedCount: number; unassignedCount: number };
 
   // Client actions
   addClient: (client: Omit<Client, 'id'>) => void;
@@ -74,6 +82,7 @@ const STORAGE_KEYS = {
   BOOKINGS: 'salaprove_bookings_v1',
   EXPENSES: 'salaprove_expenses_v1',
   INCOMES: 'salaprove_incomes_v1',
+  SHIFTS: 'salaprove_shifts_v1',
 };
 
 // Safe localStorage read with fallback on parse error
@@ -139,6 +148,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     safeLocalStorageGet(STORAGE_KEYS.INCOMES, [])
   );
 
+  const [shifts, setShifts] = useState<WorkShift[]>(() =>
+    safeLocalStorageGet(STORAGE_KEYS.SHIFTS, INITIAL_SHIFTS)
+  );
+
   const [isCloudConnected, setIsCloudConnected] = useState(false);
   const [isLoadingCloud, setIsLoadingCloud] = useState(false);
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
@@ -158,6 +171,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (remote.expenses.length > 0) setExpenses(remote.expenses);
           if (remote.incomes.length > 0) setIncomes(remote.incomes);
           if (remote.studioInfo) setStudioInfo(remote.studioInfo);
+          if (remote.shifts && remote.shifts.length > 0) setShifts(remote.shifts);
           setIsCloudConnected(true);
         }
       })
@@ -178,6 +192,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.BOOKINGS, bookings); }, [bookings]);
   useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.EXPENSES, expenses); }, [expenses]);
   useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.INCOMES, incomes); }, [incomes]);
+  useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.SHIFTS, shifts); }, [shifts]);
 
   // Cloud Actions
   const syncLocalToCloud = async (): Promise<boolean> => {
@@ -189,6 +204,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       expenses,
       incomes,
       studioInfo,
+      shifts,
     });
     setIsCloudConnected(true);
     return true;
@@ -206,6 +222,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (remote.expenses.length > 0) setExpenses(remote.expenses);
         if (remote.incomes.length > 0) setIncomes(remote.incomes);
         if (remote.studioInfo) setStudioInfo(remote.studioInfo);
+        if (remote.shifts && remote.shifts.length > 0) setShifts(remote.shifts);
         setIsCloudConnected(true);
         setLastCloudRefresh(new Date());
       }
@@ -246,12 +263,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       const channel = supabase
-        .channel('realtime:bookings-sync')
+        .channel('realtime:app-sync')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'bookings' },
           (payload) => {
             console.log('[Supabase Realtime] Modifica prenotazioni rilevata da altro client:', payload);
+            refreshFromCloud();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'shifts' },
+          (payload) => {
+            console.log('[Supabase Realtime] Modifica turni rilevata da altro client:', payload);
             refreshFromCloud();
           }
         )
@@ -362,6 +387,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (configured) {
       supabaseService.deleteStaff(id).catch(console.error);
     }
+  };
+
+  // Shift Actions (Turni Presidio Sala Prove)
+  const assignOperatorToShift = (
+    date: string,
+    turnoNumero: 1 | 2,
+    operatorId?: string,
+    syncToBookings = true
+  ) => {
+    const existing = shifts.find((s) => s.data === date && s.turnoNumero === turnoNumero);
+    const op = operatorId ? staff.find((st) => st.id === operatorId) : undefined;
+    const opName = op ? `${op.nome} ${op.cognome}` : undefined;
+
+    const baseStart = turnoNumero === 1 ? '17:00' : '20:00';
+    const baseEnd = turnoNumero === 1 ? '20:00' : '23:00';
+
+    const updatedShift: WorkShift = {
+      id: existing?.id || `shift-${date}-${turnoNumero}`,
+      data: date,
+      turnoNumero,
+      nomeTurno: turnoNumero === 1 ? '1° Turno (Pomeridiano)' : '2° Turno (Serale)',
+      oraInizioBase: baseStart,
+      oraFineBase: baseEnd,
+      oraInizioEffettiva: existing?.oraInizioEffettiva,
+      oraFineEffettiva: existing?.oraFineEffettiva,
+      operatoreId: operatorId || undefined,
+      operatoreNome: opName,
+      note: existing?.note || '',
+      isCustomHours: existing?.isCustomHours || false,
+    };
+
+    const newShifts = shifts.filter((s) => !(s.data === date && s.turnoNumero === turnoNumero));
+    newShifts.push(updatedShift);
+    setShifts(newShifts);
+    supabaseService.upsertShift(updatedShift);
+
+    // Se richiesto, applica l'operatore anche a tutte le prenotazioni in questa fascia
+    if (syncToBookings && operatorId && opName) {
+      const dayBookings = bookings.filter((b) => b.data === date);
+      const [c1, c2] = computeDailyShifts(date, dayBookings, newShifts, staff);
+      const computed = turnoNumero === 1 ? c1 : c2;
+      const shiftStartMins = timeToMinutes(computed.oraInizio);
+      const shiftEndMins = timeToMinutes(computed.oraFine);
+
+      let updatedAnyBooking = false;
+      const updatedBookings = bookings.map((b) => {
+        if (b.data !== date) return b;
+        const bStartMins = timeToMinutes(b.oraInizio);
+        let bEndMins = timeToMinutes(b.oraFine);
+        if (bEndMins <= bStartMins) bEndMins += 24 * 60;
+
+        const overlaps = Math.max(bStartMins, shiftStartMins) < Math.min(bEndMins, shiftEndMins);
+        if (overlaps) {
+          updatedAnyBooking = true;
+          const updatedB: Booking = {
+            ...b,
+            operatoreAssegnatoId: operatorId,
+            operatoreAssegnatoNome: opName,
+          };
+          supabaseService.upsertBooking(updatedB);
+          return updatedB;
+        }
+        return b;
+      });
+
+      if (updatedAnyBooking) {
+        setBookings(updatedBookings);
+      }
+    }
+  };
+
+  const updateShift = (shift: WorkShift) => {
+    const newShifts = shifts.filter((s) => s.id !== shift.id && !(s.data === shift.data && s.turnoNumero === shift.turnoNumero));
+    newShifts.push(shift);
+    setShifts(newShifts);
+    supabaseService.upsertShift(shift);
+  };
+
+  const deleteShift = (id: string) => {
+    setShifts((prev) => prev.filter((s) => s.id !== id));
+    supabaseService.deleteShift(id);
+  };
+
+  const autoAssignWeeklyShiftsAction = (weekDates: string[]) => {
+    const result = autoAssignWeeklyShifts(weekDates, shifts, bookings, staff);
+    setShifts(result.updatedShifts);
+    supabaseService.upsertMultipleShifts(result.updatedShifts);
+    return { assignedCount: result.assignedCount, unassignedCount: result.unassignedCount };
   };
 
   // Client CRUD
@@ -601,6 +714,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBookings(INITIAL_BOOKINGS);
     setExpenses(INITIAL_EXPENSES);
     setIncomes([]);
+    setShifts(INITIAL_SHIFTS);
     localStorage.removeItem(STORAGE_KEYS.STUDIO);
     localStorage.removeItem(STORAGE_KEYS.ROOMS);
     localStorage.removeItem(STORAGE_KEYS.STAFF);
@@ -608,6 +722,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem(STORAGE_KEYS.BOOKINGS);
     localStorage.removeItem(STORAGE_KEYS.EXPENSES);
     localStorage.removeItem(STORAGE_KEYS.INCOMES);
+    localStorage.removeItem(STORAGE_KEYS.SHIFTS);
   };
 
   return (
@@ -621,6 +736,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bookings,
         expenses,
         incomes,
+        shifts,
+        assignOperatorToShift,
+        updateShift,
+        deleteShift,
+        autoAssignWeeklyShiftsAction,
         isSupabaseConfigured: configured,
         isCloudConnected,
         isLoadingCloud,

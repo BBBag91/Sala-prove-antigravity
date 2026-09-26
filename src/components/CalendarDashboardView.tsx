@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronDown,
   ChevronUp,
   Plus,
@@ -21,20 +23,29 @@ import {
   Clock,
   Trash2,
   RefreshCw,
+  CalendarClock,
+  CalendarDays,
+  Calendar,
+  Shield,
+  X,
+  RotateCcw,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { Booking } from '../types';
+import { Booking, DailyShiftComputed } from '../types';
 import {
   formatDateToISO,
   MESI_ITALIANI,
   timeToMinutes,
 } from '../utils/dateUtils';
 import { AutoAssignResult, getOperatorAccumulatedHours } from '../utils/scheduler';
+import { computeDailyShifts, isWeekdayDate } from '../utils/shiftUtils';
 import { AutoAssignModal } from './AutoAssignModal';
 import { BookingModal } from './BookingModal';
 import { EquipmentOverviewModal, getAllEquipmentForBooking } from './EquipmentOverviewModal';
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
+import { ShiftQuickModal } from './ShiftQuickModal';
+import { ShiftsView } from './ShiftsView';
 
 // -- Constants ------------------------------------------------------------------
 const HOUR_START = 9;
@@ -53,6 +64,16 @@ function getMondayOf(date: Date): Date {
 function addDays(date: Date, n: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + n);
+  return d;
+}
+
+function addMonths(date: Date, n: number): Date {
+  const d = new Date(date);
+  const targetDay = d.getDate();
+  d.setMonth(d.getMonth() + n);
+  if (d.getDate() !== targetDay) {
+    d.setDate(0);
+  }
   return d;
 }
 
@@ -80,7 +101,7 @@ type ViewMode = 'day' | '3days' | 'week';
 
 // -- Component ------------------------------------------------------------------
 export const CalendarDashboardView: React.FC = () => {
-  const { rooms, staff, bookings, clients, runAutoAssignment, deleteBooking, refreshFromCloud, isAutoRefreshing } = useApp();
+  const { rooms, staff, bookings, clients, runAutoAssignment, deleteBooking, refreshFromCloud, isAutoRefreshing, shifts } = useApp();
   const { isAdmin } = useAuth();
 
   const today = new Date();
@@ -122,6 +143,20 @@ export const CalendarDashboardView: React.FC = () => {
   const [autoAssignResult, setAutoAssignResult] = useState<AutoAssignResult | null>(null);
   const [activeBookingDetail, setActiveBookingDetail] = useState<Booking | null>(null);
   const [isBalanceExpanded, setIsBalanceExpanded] = useState(false);
+  const [selectedShiftForEdit, setSelectedShiftForEdit] = useState<DailyShiftComputed | null>(null);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [isShiftsPanelOpen, setIsShiftsPanelOpen] = useState(false);
+  const [showShiftsInGrid, setShowShiftsInGrid] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('salaprove_show_shifts_grid_v1');
+      if (saved !== null) return saved === 'true';
+    }
+    return true;
+  });
+
+  // Quick Date/Month Picker state
+  const [isQuickDatePickerOpen, setIsQuickDatePickerOpen] = useState(false);
+  const [quickPickerYear, setQuickPickerYear] = useState<number>(() => today.getFullYear());
 
   // Full week starting on Monday of currentDate
   const weekStart = getMondayOf(currentDate);
@@ -167,9 +202,97 @@ export const CalendarDashboardView: React.FC = () => {
     }
   };
 
+  // Navigazione esplicita per settimane
+  const handlePrevWeek = () => {
+    setCurrentDate(d => addDays(d, -7));
+  };
+
+  const handleNextWeek = () => {
+    setCurrentDate(d => addDays(d, 7));
+  };
+
+  // Navigazione rapida per mesi
+  const handlePrevMonth = () => {
+    setCurrentDate(d => addMonths(d, -1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(d => addMonths(d, 1));
+  };
+
   const handleGoToday = () => {
     setCurrentDate(today);
   };
+
+  // Salto diretto a mese e anno
+  const handleJumpToMonth = (targetMonthIndex: number, targetYear?: number) => {
+    setCurrentDate(d => {
+      const year = targetYear !== undefined ? targetYear : d.getFullYear();
+      const maxDaysInTargetMonth = new Date(year, targetMonthIndex + 1, 0).getDate();
+      const day = Math.min(d.getDate(), maxDaysInTargetMonth);
+      return new Date(year, targetMonthIndex, day);
+    });
+  };
+
+  // Salto a data specifica
+  const handleJumpToDate = (isoDateStr: string) => {
+    if (!isoDateStr) return;
+    const parsed = parseISODate(isoDateStr);
+    if (!isNaN(parsed.getTime())) {
+      setCurrentDate(parsed);
+    }
+  };
+
+  // Scorciatoie da tastiera per navigazione rapida (Frecce Sinistra/Destra, Shift per Mesi, 'T' o 'O' per Oggi)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+      if (
+        isBookingModalOpen ||
+        isShiftModalOpen ||
+        isShiftsPanelOpen ||
+        isEquipmentModalOpen ||
+        isOperatorScheduleModalOpen ||
+        isAutoAssignModalOpen ||
+        isQuickDatePickerOpen
+      ) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handlePrevMonth();
+        } else {
+          e.preventDefault();
+          handlePrev();
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleNextMonth();
+        } else {
+          e.preventDefault();
+          handleNext();
+        }
+      } else if (e.key.toLowerCase() === 't' || e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        handleGoToday();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isBookingModalOpen,
+    isShiftModalOpen,
+    isShiftsPanelOpen,
+    isEquipmentModalOpen,
+    isOperatorScheduleModalOpen,
+    isAutoAssignModalOpen,
+    isQuickDatePickerOpen,
+    viewMode,
+  ]);
 
   // Zoom handlers
   const handleZoomIn = () => {
@@ -244,6 +367,20 @@ export const CalendarDashboardView: React.FC = () => {
       .sort((a, b) => a.oraInizio.localeCompare(b.oraInizio));
   });
 
+  // Estensione dinamica dell'orario massimo della griglia (es. fino alle 24:00 se ci sono prenotazioni alle 23:30)
+  const maxDisplayTimeMins = Math.max(
+    23 * 60,
+    ...displayDayStrs.flatMap((ds) =>
+      (bookingsByDay[ds] || []).map((b) => {
+        let e = timeToMinutes(b.oraFine);
+        if (e <= timeToMinutes(b.oraInizio)) e += 24 * 60;
+        return e;
+      })
+    )
+  );
+  const currentHourEnd = Math.max(23, Math.ceil(maxDisplayTimeMins / 60));
+  const currentTotalHours = currentHourEnd - HOUR_START;
+
   const ROOM_COLORS: Record<string, { bg: string; border: string; text: string }> = {};
   rooms.forEach((r, i) => {
     const fallback = COLOR_PALETTE[i % COLOR_PALETTE.length];
@@ -278,41 +415,80 @@ export const CalendarDashboardView: React.FC = () => {
         {/* Row 1: Nav & View & Zoom */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2 sm:px-4 sm:py-2.5 border-b border-yellow-500/20 gap-1.5 sm:gap-2">
           
-          {/* Left: Date navigation arrows & Title */}
-          <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2">
+          {/* Left: Date navigation arrows (Mesi & Settimane) & Title with Quick Picker */}
+          <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2 flex-wrap">
             <div className="flex items-center bg-[#141414] rounded-lg p-0.5 border border-yellow-500/30 shrink-0">
+              {/* Mese Precedente */}
+              <button
+                onClick={handlePrevMonth}
+                className="flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                title="Mese precedente (Shift + Freccia Sinistra)"
+              >
+                <ChevronsLeft className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Mese</span>
+              </button>
+
+              {/* Settimana Precedente */}
               <button
                 onClick={handlePrev}
-                className="p-1 sm:p-1.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors"
-                title="Periodo precedente"
+                className="flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                title="Settimana precedente (Freccia Sinistra)"
               >
-                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Sett.</span>
               </button>
+
+              {/* Oggi */}
               <button
                 onClick={handleGoToday}
-                className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-bold text-yellow-400 hover:bg-neutral-800 transition-colors"
+                className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-black text-black bg-yellow-400 hover:bg-yellow-300 transition-colors shadow-xs cursor-pointer"
+                title="Torna alla data corrente (Tasto T o O)"
               >
                 Oggi
               </button>
+
+              {/* Settimana Successiva */}
               <button
                 onClick={handleNext}
-                className="p-1 sm:p-1.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors"
-                title="Periodo successivo"
+                className="flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                title="Settimana successiva (Freccia Destra)"
               >
-                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden md:inline">Sett.</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Mese Successivo */}
+              <button
+                onClick={handleNextMonth}
+                className="flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                title="Mese successivo (Shift + Freccia Destra)"
+              >
+                <span className="hidden md:inline">Mese</span>
+                <ChevronsRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="flex items-baseline gap-1.5 min-w-0">
-              <h2 className="text-xs sm:text-base font-bold text-yellow-100 tracking-tight truncate">
-                {titleText}
+            {/* Clickable Title that opens Quick Date/Month Picker */}
+            <button
+              type="button"
+              onClick={() => {
+                setQuickPickerYear(dominantMonth.getFullYear());
+                setIsQuickDatePickerOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-neutral-900 border border-transparent hover:border-yellow-500/30 transition-all text-left cursor-pointer group"
+              title="Clicca per aprire il selettore rapido di Mesi, Anni e Settimane"
+            >
+              <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 group-hover:scale-110 transition-transform shrink-0" />
+              <h2 className="text-xs sm:text-base font-bold text-yellow-100 group-hover:text-yellow-300 tracking-tight truncate flex items-center gap-1.5">
+                <span>{titleText}</span>
+                <ChevronDown className="w-3 h-3 text-yellow-400/70 group-hover:text-yellow-300 transition-transform" />
               </h2>
               {viewMode === 'week' && (
                 <span className="hidden sm:inline text-[10px] sm:text-[11px] font-mono text-yellow-400/80 bg-neutral-900 border border-yellow-500/30 px-1.5 py-0.5 rounded shrink-0">
                   S{weekNum}
                 </span>
               )}
-            </div>
+            </button>
           </div>
 
           {/* Right: View Mode Toggle & Zoom & Action Button */}
@@ -460,9 +636,39 @@ export const CalendarDashboardView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+            {/* Pulsante Pannello Turni (17-20 / 20-23 dinamico) */}
+            <button
+              onClick={() => setIsShiftsPanelOpen(true)}
+              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-[11px] sm:text-xs rounded-lg shadow-sm transition-all whitespace-nowrap cursor-pointer"
+              title="Apri pannello completo gestione turni presidio sala (17-20 e 20-23 con adattamento dinamico)"
+            >
+              <CalendarClock className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Pannello Turni</span>
+              <span className="sm:hidden">Turni</span>
+            </button>
+
+            {/* Toggle Visibilità Turni nella Griglia Oraria */}
+            <button
+              onClick={() => {
+                const next = !showShiftsInGrid;
+                setShowShiftsInGrid(next);
+                localStorage.setItem('salaprove_show_shifts_grid_v1', String(next));
+              }}
+              className={`flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 font-semibold text-[11px] sm:text-xs rounded-lg border transition-all whitespace-nowrap cursor-pointer ${
+                showShiftsInGrid
+                  ? 'bg-neutral-900 text-yellow-300 border-yellow-500/50 hover:bg-neutral-800'
+                  : 'bg-neutral-950 text-neutral-500 border-neutral-800 hover:text-neutral-300'
+              }`}
+              title="Attiva/Disattiva la visualizzazione dei turni operatore direttamente nella griglia del calendario"
+            >
+              <Shield className={`w-3 h-3 ${showShiftsInGrid ? 'text-yellow-400' : 'text-neutral-500'}`} />
+              <span className="hidden lg:inline">{showShiftsInGrid ? 'Turni in Griglia: ON' : 'Turni in Griglia: OFF'}</span>
+              <span className="lg:hidden">{showShiftsInGrid ? 'In Griglia' : 'No Griglia'}</span>
+            </button>
+
             <button
               onClick={() => setIsEquipmentModalOpen(true)}
-              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 font-semibold text-[11px] sm:text-xs rounded-lg border border-yellow-500/30 transition-all whitespace-nowrap"
+              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 font-semibold text-[11px] sm:text-xs rounded-lg border border-yellow-500/30 transition-all whitespace-nowrap cursor-pointer"
               title="Prospetto Strumenti"
             >
               <SlidersHorizontal className="w-3 h-3 text-yellow-400" />
@@ -624,50 +830,251 @@ export const CalendarDashboardView: React.FC = () => {
           onWheel={handleWheel}
         >
           <div className="w-full min-w-full">
-            {/* Day Header: STICKY TOP */}
-            <div
-              className="grid border-b border-yellow-500/25 bg-neutral-950 sticky top-0 z-30 shadow-xs"
-              style={{
-                gridTemplateColumns: `clamp(34px, 8.5vw, 50px) repeat(${displayDays.length}, minmax(0, 1fr))`,
-              }}
-            >
-              {/* Corner cell: STICKY TOP & LEFT */}
-              <div className="sticky left-0 top-0 z-40 bg-neutral-950 border-r border-yellow-500/20 py-1.5 sm:py-2 flex items-center justify-center">
-                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-400/70" />
+            {/* Day Header: STICKY TOP with integrated Quick Navigation Strip */}
+            <div className="sticky top-0 z-30 bg-neutral-950 shadow-md">
+              
+              {/* Quick Navigation Strip (All buttons grouped together on the same side!) */}
+              <div className="flex items-center gap-2 px-2 sm:px-3 py-1 bg-black/95 border-b border-yellow-500/25 text-xs select-none sticky left-0 min-w-full overflow-x-auto no-scrollbar">
+                {/* Unified Navigation Button Cluster */}
+                <div className="flex items-center bg-[#141414] rounded-lg p-0.5 border border-yellow-500/30 shrink-0 shadow-xs">
+                  {/* Mese Precedente */}
+                  <button
+                    type="button"
+                    onClick={handlePrevMonth}
+                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                    title="Mese precedente (Shift + Freccia Sinistra)"
+                  >
+                    <ChevronsLeft className="w-3.5 h-3.5" />
+                    <span>Mese</span>
+                  </button>
+
+                  {/* Settimana Precedente */}
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                    title="Settimana precedente (Freccia Sinistra)"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Sett.</span>
+                  </button>
+
+                  {/* Oggi */}
+                  <button
+                    type="button"
+                    onClick={handleGoToday}
+                    className="px-2.5 py-0.5 rounded-md bg-yellow-400 hover:bg-yellow-300 text-black text-[11px] font-black transition-colors cursor-pointer shadow-xs"
+                    title="Torna alla settimana corrente / Oggi (Tasto T o O)"
+                  >
+                    Oggi
+                  </button>
+
+                  {/* Settimana Successiva */}
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                    title="Settimana successiva (Freccia Destra)"
+                  >
+                    <span>Sett.</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Mese Successivo */}
+                  <button
+                    type="button"
+                    onClick={handleNextMonth}
+                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                    title="Mese successivo (Shift + Freccia Destra)"
+                  >
+                    <span>Mese</span>
+                    <ChevronsRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Date / Month Picker right beside the buttons */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickPickerYear(dominantMonth.getFullYear());
+                    setIsQuickDatePickerOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-neutral-900/90 hover:bg-yellow-400/20 text-yellow-200 hover:text-yellow-400 border border-yellow-500/40 text-xs font-bold transition-all cursor-pointer group shrink-0"
+                  title="Clicca per aprire il selettore rapido di Mesi, Anni e Settimane"
+                >
+                  <CalendarDays className="w-3.5 h-3.5 text-yellow-400 group-hover:scale-110 transition-transform" />
+                  <span className="font-extrabold tracking-tight">{monthLabel} {yearLabel}</span>
+                  <span className="text-[10px] font-mono text-yellow-400 bg-yellow-400/10 px-1 py-0.2 rounded border border-yellow-500/30">
+                    S{weekNum}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-yellow-400/70" />
+                </button>
               </div>
+
+              {/* Day Header Columns Grid */}
+              <div
+                className="grid border-b border-yellow-500/25 bg-neutral-950"
+                style={{
+                  gridTemplateColumns: `clamp(34px, 8.5vw, 50px) repeat(${displayDays.length}, minmax(0, 1fr))`,
+                }}
+              >
+                {/* Corner cell: STICKY LEFT */}
+                <div className="sticky left-0 z-30 bg-neutral-950 border-r border-yellow-500/20 py-1.5 sm:py-2 flex items-center justify-center">
+                  <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-400/70" />
+                </div>
 
               {displayDays.map((day, i) => {
                 const ds = displayDayStrs[i];
                 const isToday = ds === todayStr;
                 const cnt = bookingsByDay[ds]?.length ?? 0;
                 const dayNameIdx = day.getDay() === 0 ? 6 : day.getDay() - 1;
+                const isWeekday = isWeekdayDate(ds);
+                const [s1, s2] = isWeekday
+                  ? computeDailyShifts(ds, bookingsByDay[ds] || [], shifts, staff)
+                  : [null, null];
+
                 return (
                   <div
                     key={ds}
-                    className={`py-1.5 sm:py-2 px-0.5 sm:px-1 text-center border-r border-yellow-500/20 last:border-r-0 cursor-pointer hover:bg-neutral-900 transition-colors ${
+                    className={`py-1.5 sm:py-2 px-1 text-center border-r border-yellow-500/20 last:border-r-0 cursor-pointer hover:bg-neutral-900 transition-colors flex flex-col justify-between ${
                       isToday ? 'bg-yellow-400/10' : ''
                     }`}
                     onClick={() => handleDayClick(ds)}
                   >
-                    <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-yellow-400' : 'text-neutral-400'}`}>
-                      {SHORT_DAYS[dayNameIdx]}
-                    </p>
-                    <div
-                      className={`mx-auto mt-0.5 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm ${
-                        isToday ? 'bg-yellow-400 text-black shadow-sm font-bold' : 'text-yellow-100'
-                      }`}
-                    >
-                      {day.getDate()}
-                    </div>
-                    {cnt > 0 && (
-                      <div className="flex justify-center items-center mt-0.5 gap-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />
-                        <span className="text-[8px] sm:text-[9px] font-mono text-yellow-400/80">{cnt}</span>
+                    <div>
+                      <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-yellow-400' : 'text-neutral-400'}`}>
+                        {SHORT_DAYS[dayNameIdx]}
+                      </p>
+                      <div
+                        className={`mx-auto mt-0.5 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm ${
+                          isToday ? 'bg-yellow-400 text-black shadow-sm font-bold' : 'text-yellow-100'
+                        }`}
+                      >
+                        {day.getDate()}
                       </div>
+                      {cnt > 0 && (
+                        <div className="flex justify-center items-center mt-0.5 gap-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />
+                          <span className="text-[8px] sm:text-[9px] font-mono text-yellow-400/80">{cnt}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Blocchi Turno (1° e 2° Turno Presidio Sala) */}
+                    {isWeekday && s1 && s2 && (
+                      showShiftsInGrid ? (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedShiftForEdit(s1);
+                            setIsShiftModalOpen(true);
+                          }}
+                          className="mt-1 pt-1 border-t border-yellow-500/20 flex items-center justify-center gap-1 cursor-pointer hover:bg-yellow-400/10 px-1 py-0.5 rounded transition-all group/hdr"
+                          title={`Turni di oggi:\n• T1 (${s1.oraInizio}-${s1.oraFine}): ${s1.operatoreNome || 'Da assegnare'}\n• T2 (${s2.oraInizio}-${s2.oraFine}): ${s2.operatoreNome || 'Da assegnare'}\n(Clicca per gestire)`}
+                        >
+                          <Shield className="w-2.5 h-2.5 text-yellow-400 shrink-0" />
+                          <span className="text-[7.5px] sm:text-[8px] font-bold text-yellow-200/90 group-hover/hdr:text-yellow-300 truncate">
+                            {s1.operatoreNome ? s1.operatoreNome.split(' ')[0] : '⚠️'} &bull; {s2.operatoreNome ? s2.operatoreNome.split(' ')[0] : '⚠️'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-1.5 pt-1 border-t border-yellow-500/20 flex flex-col gap-1 w-full" onClick={(e) => e.stopPropagation()}>
+                          {/* 1° Turno */}
+                          <div
+                            onClick={() => {
+                              setSelectedShiftForEdit(s1);
+                              setIsShiftModalOpen(true);
+                            }}
+                            className={`p-1 rounded-md border text-left cursor-pointer transition-all hover:scale-[1.02] shadow-2xs ${
+                              s1.operatoreNome
+                                ? 'bg-neutral-900/90 border-yellow-500/30 hover:border-yellow-400'
+                                : 'bg-amber-500/10 border-amber-500/35 hover:border-amber-400'
+                            }`}
+                            title={`1° Turno (${s1.oraInizio} - ${s1.oraFine}): ${s1.operatoreNome || 'Non assegnato'} (Clicca per visualizzare/modificare)`}
+                          >
+                            <div className="flex items-center justify-between gap-0.5 leading-none">
+                              <span className="text-[7.5px] font-black px-0.5 py-0.2 rounded bg-yellow-400/25 text-yellow-300">
+                                T1
+                              </span>
+                              <span className="text-[8px] sm:text-[8.5px] font-mono font-bold text-yellow-200 truncate">
+                                {s1.oraInizio.slice(0, 5)}-{s1.oraFine.slice(0, 5)}
+                              </span>
+                              {s1.isAdapted && (
+                                <span className="text-[6.5px] font-bold text-amber-300 bg-amber-400/20 px-0.5 rounded" title={s1.adaptationReason}>
+                                  +{s1.minutiExtra}m
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-0.5 flex items-center gap-1 min-w-0">
+                              {s1.operatoreNome ? (
+                                <>
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                    style={{ backgroundColor: s1.operatoreBadgeColor || '#f59e0b' }}
+                                  />
+                                  <span className="text-[8px] sm:text-[8.5px] font-semibold text-white truncate">
+                                    {s1.operatoreNome.split(' ')[0]}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-[7.5px] font-semibold text-amber-400 truncate">
+                                  ⚠️ Assegna
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 2° Turno */}
+                          <div
+                            onClick={() => {
+                              setSelectedShiftForEdit(s2);
+                              setIsShiftModalOpen(true);
+                            }}
+                            className={`p-1 rounded-md border text-left cursor-pointer transition-all hover:scale-[1.02] shadow-2xs ${
+                              s2.operatoreNome
+                                ? 'bg-neutral-900/90 border-yellow-500/30 hover:border-yellow-400'
+                                : 'bg-amber-500/10 border-amber-500/35 hover:border-amber-400'
+                            }`}
+                            title={`2° Turno (${s2.oraInizio} - ${s2.oraFine}): ${s2.operatoreNome || 'Non assegnato'} (Clicca per visualizzare/modificare)`}
+                          >
+                            <div className="flex items-center justify-between gap-0.5 leading-none">
+                              <span className="text-[7.5px] font-black px-0.5 py-0.2 rounded bg-yellow-400/25 text-yellow-300">
+                                T2
+                              </span>
+                              <span className="text-[8px] sm:text-[8.5px] font-mono font-bold text-yellow-200 truncate">
+                                {s2.oraInizio.slice(0, 5)}-{s2.oraFine.slice(0, 5)}
+                              </span>
+                              {s2.isAdapted && (
+                                <span className="text-[6.5px] font-bold text-amber-300 bg-amber-400/20 px-0.5 rounded" title={s2.adaptationReason}>
+                                  +{s2.minutiExtra}m
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-0.5 flex items-center gap-1 min-w-0">
+                              {s2.operatoreNome ? (
+                                <>
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                    style={{ backgroundColor: s2.operatoreBadgeColor || '#f59e0b' }}
+                                  />
+                                  <span className="text-[8px] sm:text-[8.5px] font-semibold text-white truncate">
+                                    {s2.operatoreNome.split(' ')[0]}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-[7.5px] font-semibold text-amber-400 truncate">
+                                  ⚠️ Assegna
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
                     )}
                   </div>
                 );
               })}
+            </div>
             </div>
 
             {/* Grid Body: Hour Labels (Sticky Left) + Day Columns */}
@@ -679,17 +1086,21 @@ export const CalendarDashboardView: React.FC = () => {
             >
               {/* Hour labels: STICKY LEFT */}
               <div className="sticky left-0 z-20 bg-neutral-950 border-r border-yellow-500/20 select-none">
-                {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => (
-                  <div
-                    key={i}
-                    style={{ height: `${cellHeight}px` }}
-                    className="flex items-start justify-end pr-1 sm:pr-1.5 pt-0.5 border-b border-neutral-900 last:border-b-0"
-                  >
-                    <span className="text-[8px] sm:text-[10px] font-mono text-yellow-500/70 -translate-y-2.5">
-                      {String(HOUR_START + i).padStart(2, '0')}:00
-                    </span>
-                  </div>
-                ))}
+                {Array.from({ length: currentTotalHours + 1 }, (_, i) => {
+                  const hourNum = HOUR_START + i;
+                  const labelStr = hourNum === 24 ? '00:00' : `${String(hourNum % 24).padStart(2, '0')}:00`;
+                  return (
+                    <div
+                      key={i}
+                      style={{ height: `${cellHeight}px` }}
+                      className="flex items-start justify-end pr-1 sm:pr-1.5 pt-0.5 border-b border-neutral-900 last:border-b-0"
+                    >
+                      <span className="text-[8px] sm:text-[10px] font-mono text-yellow-500/70 -translate-y-2.5">
+                        {labelStr}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Day columns */}
@@ -698,7 +1109,31 @@ export const CalendarDashboardView: React.FC = () => {
                 const isToday = ds === todayStr;
                 const dayBks = bookingsByDay[ds] ?? [];
 
-                // Layout overlapping events using interval packing to optimize column widths
+                const isWeekdayCol = isWeekdayDate(ds);
+                const [s1Col, s2Col] = isWeekdayCol
+                  ? computeDailyShifts(ds, dayBks, shifts, staff)
+                  : [null, null];
+
+                let s1TopPx = 0;
+                let s1HeightPx = 0;
+                let s2TopPx = 0;
+                let s2HeightPx = 0;
+
+                if (s1Col && s2Col) {
+                  const s1Start = timeToMinutes(s1Col.oraInizio) - HOUR_START * 60;
+                  let s1End = timeToMinutes(s1Col.oraFine) - HOUR_START * 60;
+                  if (s1End <= s1Start) s1End += 24 * 60;
+                  s1TopPx = (s1Start / 60) * cellHeight;
+                  s1HeightPx = ((s1End - s1Start) / 60) * cellHeight;
+
+                  const s2Start = timeToMinutes(s2Col.oraInizio) - HOUR_START * 60;
+                  let s2End = timeToMinutes(s2Col.oraFine) - HOUR_START * 60;
+                  if (s2End <= s2Start) s2End += 24 * 60;
+                  s2TopPx = (s2Start / 60) * cellHeight;
+                  s2HeightPx = ((s2End - s2Start) / 60) * cellHeight;
+                }
+
+                // Layout overlapping events using interval packing to optimize column widths for bookings
                 type BlockLayout = { booking: Booking; col: number; cols: number };
                 const layouts: BlockLayout[] = [];
                 if (dayBks.length > 0) {
@@ -771,11 +1206,11 @@ export const CalendarDashboardView: React.FC = () => {
                   <div
                     key={ds}
                     className={`relative border-r border-yellow-500/20 last:border-r-0 ${isToday ? 'bg-yellow-400/[0.03]' : 'bg-[#0a0a0a]'}`}
-                    style={{ height: `${(TOTAL_HOURS + 1) * cellHeight}px` }}
+                    style={{ height: `${(currentTotalHours + 1) * cellHeight}px` }}
                     onClick={() => handleDayClick(ds)}
                   >
                     {/* Hour lines */}
-                    {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => (
+                    {Array.from({ length: currentTotalHours + 1 }, (_, i) => (
                       <div
                         key={i}
                         className="absolute left-0 right-0 border-t border-neutral-800/80"
@@ -783,7 +1218,7 @@ export const CalendarDashboardView: React.FC = () => {
                       />
                     ))}
                     {/* Half-hour lines */}
-                    {Array.from({ length: TOTAL_HOURS }, (_, i) => (
+                    {Array.from({ length: currentTotalHours }, (_, i) => (
                       <div
                         key={`h${i}`}
                         className="absolute left-0 right-0 border-t border-neutral-900/60 border-dashed"
@@ -791,15 +1226,146 @@ export const CalendarDashboardView: React.FC = () => {
                       />
                     ))}
 
+                    {/* Sfondi Turni Operatore (Background Blocks: 17:00-20:00 e 20:00-23:00 con adattamento dinamico) */}
+                    {showShiftsInGrid && isWeekdayCol && s1Col && s2Col && (
+                      <>
+                        {/* Blocco Sfondo 1° Turno */}
+                        <div
+                          style={{
+                            top: `${s1TopPx}px`,
+                            height: `${s1HeightPx}px`,
+                            left: 0,
+                            right: 0,
+                            borderLeftColor: s1Col.operatoreBadgeColor || (s1Col.operatoreId ? '#f59e0b' : '#ef4444'),
+                          }}
+                          className="absolute z-[1] pointer-events-none border-l-[3px] transition-all bg-gradient-to-b from-amber-500/[0.08] via-amber-500/[0.03] to-transparent overflow-hidden"
+                        >
+                          {/* Header compatto del turno nello sfondo */}
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedShiftForEdit(s1Col);
+                              setIsShiftModalOpen(true);
+                            }}
+                            className="pointer-events-auto flex items-center justify-between px-1.5 py-0.5 bg-neutral-950/85 backdrop-blur-2xs border-b border-amber-500/20 hover:bg-neutral-900 transition-colors cursor-pointer group/hdr1 select-none"
+                            title={`1° Turno (${s1Col.oraInizio} - ${s1Col.oraFine}): ${s1Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`}
+                          >
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0 shadow-xs ring-1 ring-black/60"
+                                style={{ backgroundColor: s1Col.operatoreBadgeColor || (s1Col.operatoreId ? '#f59e0b' : '#ef4444') }}
+                              />
+                              <span className="text-[8.5px] sm:text-[9.5px] font-bold text-yellow-300 group-hover/hdr1:text-yellow-100 truncate flex items-center gap-0.5">
+                                <Shield className="w-2.5 h-2.5 text-yellow-400 shrink-0" />
+                                T1: {s1Col.operatoreNome ? s1Col.operatoreNome : '⚠️ Da Assegnare'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-[8px] sm:text-[8.5px] font-mono text-yellow-400/80">
+                                {s1Col.oraInizio.slice(0, 5)}-{s1Col.oraFine.slice(0, 5)}
+                              </span>
+                              {s1Col.isAdapted && (
+                                <span
+                                  className="text-[6.5px] sm:text-[7px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40"
+                                  title={s1Col.adaptationReason}
+                                >
+                                  +{s1Col.minutiExtra}m
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Watermark discreto nello sfondo */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-20 select-none overflow-hidden p-2 mt-4">
+                            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-yellow-400/70 font-mono text-center">
+                              🛡️ PRESIDIO T1 &bull; {s1Col.operatoreNome ? s1Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
+                            </span>
+                            <span className="text-[8px] font-mono text-yellow-500/60 mt-0.5">
+                              {s1Col.oraInizio} &rarr; {s1Col.oraFine}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Blocco Sfondo 2° Turno */}
+                        <div
+                          style={{
+                            top: `${s2TopPx}px`,
+                            height: `${s2HeightPx}px`,
+                            left: 0,
+                            right: 0,
+                            borderLeftColor: s2Col.operatoreBadgeColor || (s2Col.operatoreId ? '#eab308' : '#ef4444'),
+                          }}
+                          className="absolute z-[1] pointer-events-none border-l-[3px] transition-all bg-gradient-to-b from-yellow-500/[0.08] via-yellow-500/[0.03] to-transparent overflow-hidden"
+                        >
+                          {/* Header compatto del turno nello sfondo */}
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedShiftForEdit(s2Col);
+                              setIsShiftModalOpen(true);
+                            }}
+                            className="pointer-events-auto flex items-center justify-between px-1.5 py-0.5 bg-neutral-950/85 backdrop-blur-2xs border-b border-yellow-500/20 hover:bg-neutral-900 transition-colors cursor-pointer group/hdr2 select-none"
+                            title={`2° Turno (${s2Col.oraInizio} - ${s2Col.oraFine}): ${s2Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`}
+                          >
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0 shadow-xs ring-1 ring-black/60"
+                                style={{ backgroundColor: s2Col.operatoreBadgeColor || (s2Col.operatoreId ? '#eab308' : '#ef4444') }}
+                              />
+                              <span className="text-[8.5px] sm:text-[9.5px] font-bold text-yellow-300 group-hover/hdr2:text-yellow-100 truncate flex items-center gap-0.5">
+                                <Shield className="w-2.5 h-2.5 text-yellow-400 shrink-0" />
+                                T2: {s2Col.operatoreNome ? s2Col.operatoreNome : '⚠️ Da Assegnare'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-[8px] sm:text-[8.5px] font-mono text-yellow-400/80">
+                                {s2Col.oraInizio.slice(0, 5)}-{s2Col.oraFine.slice(0, 5)}
+                              </span>
+                              {s2Col.isAdapted && (
+                                <span
+                                  className="text-[6.5px] sm:text-[7px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40"
+                                  title={s2Col.adaptationReason}
+                                >
+                                  +{s2Col.minutiExtra}m
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Watermark discreto nello sfondo */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-20 select-none overflow-hidden p-2 mt-4">
+                            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-yellow-400/70 font-mono text-center">
+                              🛡️ PRESIDIO T2 &bull; {s2Col.operatoreNome ? s2Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
+                            </span>
+                            <span className="text-[8px] font-mono text-yellow-500/60 mt-0.5">
+                              {s2Col.oraInizio} &rarr; {s2Col.oraFine}
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Linea indicatore Cambio Turno (T1 -> T2) */}
+                    {isWeekdayCol && s1Col && s2Col && (
+                      <div
+                        style={{ top: `${s2TopPx}px` }}
+                        className="absolute left-0 right-0 border-t-2 border-yellow-500/40 border-dashed z-[3] pointer-events-none flex items-center justify-end pr-1"
+                      >
+                        <span className="text-[7.5px] font-mono font-bold text-yellow-300 bg-neutral-950/95 px-1 py-0.2 rounded border border-yellow-500/30 shadow-xs">
+                          Cambio Turno {s1Col.oraFine}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Current time horizontal indicator for today */}
                     {isToday && (() => {
                       const now = new Date();
                       const currentMins = (now.getHours() - HOUR_START) * 60 + now.getMinutes();
-                      if (currentMins >= 0 && currentMins <= TOTAL_HOURS * 60) {
+                      if (currentMins >= 0 && currentMins <= currentTotalHours * 60) {
                         const lineTopPx = (currentMins / 60) * cellHeight;
                         return (
                           <div
-                            className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
+                            className="absolute left-0 right-0 z-[4] pointer-events-none flex items-center"
                             style={{ top: `${lineTopPx}px` }}
                           >
                             <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1 shadow-md ring-2 ring-black" />
@@ -810,7 +1376,7 @@ export const CalendarDashboardView: React.FC = () => {
                       return null;
                     })()}
 
-                    {/* Booking blocks */}
+                    {/* Booking blocks rendered on top of background */}
                     {layouts.map(({ booking: b, col, cols }) => {
                       const room = rooms.find(r => r.id === b.salaId);
                       const colors = ROOM_COLORS[b.salaId] ?? COLOR_PALETTE[0];
@@ -858,7 +1424,7 @@ export const CalendarDashboardView: React.FC = () => {
                             left: `${leftPct + 0.5}%`,
                             width: `${widthPct - 1}%`,
                             backgroundColor: colors.bg,
-                            zIndex: 2,
+                            zIndex: 10,
                           }}
                           title={`${b.clienteNome} • ${b.oraInizio}-${b.oraFine} • ${b.salaNome}`}
                         >
@@ -883,8 +1449,8 @@ export const CalendarDashboardView: React.FC = () => {
                                 </span>
                               )}
 
-                              {/* Unassigned operator alert */}
-                              {!hasOperator && (
+                              {/* Unassigned operator alert (solo per prove musicali band) */}
+                              {!hasOperator && b.tipo === 'prove' && (
                                 <div
                                   className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-300 ring-1 ring-black/70 shadow-xs"
                                   title="Nessun operatore assegnato"
@@ -935,8 +1501,8 @@ export const CalendarDashboardView: React.FC = () => {
                                 </span>
                               )}
 
-                              {/* Unassigned operator alert */}
-                              {!hasOperator && (
+                              {/* Unassigned operator alert (solo per prove musicali band) */}
+                              {!hasOperator && b.tipo === 'prove' && (
                                 <div
                                   className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-amber-300 ring-1 ring-black/50 shadow-xs"
                                   title="Nessun operatore assegnato"
@@ -965,6 +1531,14 @@ export const CalendarDashboardView: React.FC = () => {
               </div>
             );
           })}
+          {/* Indicatore Turni nella legenda */}
+          <div className="flex items-center gap-1.5 border-l border-yellow-500/25 pl-2.5">
+            <div className="w-3.5 h-3.5 rounded-xs bg-linear-to-b from-neutral-900 via-amber-950/40 to-neutral-950 border border-amber-500/60 flex items-center justify-center">
+              <Shield className="w-2 h-2 text-yellow-400" />
+            </div>
+            <span className="text-[10px] text-yellow-300 font-medium">Turno Presidio (17-20 / 20-23)</span>
+          </div>
+
           <div className="flex items-center gap-1.5 ml-auto">
             <div className="w-2 h-2 rounded-full bg-amber-400 border border-amber-500 shrink-0" />
             <span className="text-[10px] text-neutral-400">Senza operatore</span>
@@ -1018,18 +1592,28 @@ export const CalendarDashboardView: React.FC = () => {
                 <span className="text-neutral-400">Durata:</span>
                 <span className="font-semibold text-yellow-300">{activeBookingDetail.durataOre} ore</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-neutral-400">Operatore Sala:</span>
-                {activeBookingDetail.operatoreAssegnatoNome ? (
-                  <span className="font-semibold text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />{activeBookingDetail.operatoreAssegnatoNome}
+              {activeBookingDetail.tipo === 'lezione' ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-neutral-400">Docente / Insegnante:</span>
+                  <span className="font-semibold text-yellow-300 flex items-center gap-1">
+                    <GraduationCap className="w-3.5 h-3.5 text-yellow-400" />
+                    {activeBookingDetail.insegnanteNome || 'Insegnante non specificato'}
                   </span>
-                ) : (
-                  <span className="font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded">
-                    &#9888;&#65039; Non Assegnato
-                  </span>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-neutral-400">Operatore Sala:</span>
+                  {activeBookingDetail.operatoreAssegnatoNome ? (
+                    <span className="font-semibold text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />{activeBookingDetail.operatoreAssegnatoNome}
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded">
+                      &#9888;&#65039; Non Assegnato
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-neutral-400">Tariffa:</span>
                 <div className="flex items-center gap-2">
@@ -1130,6 +1714,203 @@ export const CalendarDashboardView: React.FC = () => {
         onSelectBooking={b => { setIsEquipmentModalOpen(false); setActiveBookingDetail(b); }}
       />
       <OperatorSchedulePrintModal isOpen={isOperatorScheduleModalOpen} onClose={() => setIsOperatorScheduleModalOpen(false)} />
+
+      {/* Quick Shift View & Edit Modal */}
+      <ShiftQuickModal
+        isOpen={isShiftModalOpen}
+        onClose={() => {
+          setIsShiftModalOpen(false);
+          setSelectedShiftForEdit(null);
+        }}
+        shiftComputed={selectedShiftForEdit}
+      />
+
+      {/* Full Shifts Panel Modal */}
+      {isShiftsPanelOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md">
+          <div className="bg-[#0a0a0a] rounded-2xl max-w-6xl w-full p-4 sm:p-6 shadow-2xl border border-yellow-500/40 max-h-[94vh] overflow-y-auto space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-yellow-500/20">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-yellow-400 text-black flex items-center justify-center font-black">
+                  <CalendarClock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-yellow-100 text-lg">Pannello Gestione Turni Presidio Sala</h3>
+                  <p className="text-xs text-neutral-400">Pianificazione Lunedì-Venerdì (17:00-20:00 & 20:00-23:00 con adattamento dinamico)</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsShiftsPanelOpen(false)}
+                className="text-neutral-400 hover:text-yellow-400 p-2 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <ShiftsView />
+          </div>
+        </div>
+      )}
+
+      {/* Quick Date / Month & Year Jumper Modal */}
+      {isQuickDatePickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="bg-[#0f0f0f] rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-yellow-500/40 space-y-4 animate-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-yellow-500/20">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-yellow-400 text-black flex items-center justify-center font-black shadow-md shadow-yellow-500/30">
+                  <CalendarDays className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-yellow-100 text-base sm:text-lg">Salto Rapido Calendario</h3>
+                  <p className="text-[11px] text-neutral-400">Scorri all'istante settimane, mesi o scegli una data esatta</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQuickDatePickerOpen(false)}
+                className="text-neutral-400 hover:text-yellow-400 p-1.5 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Year Selector Bar */}
+            <div className="flex items-center justify-between bg-neutral-950 p-1.5 rounded-xl border border-yellow-500/30">
+              <button
+                type="button"
+                onClick={() => setQuickPickerYear(y => y - 1)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 text-xs font-bold transition-all cursor-pointer"
+                title="Anno precedente"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>{quickPickerYear - 1}</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <span className="text-base sm:text-lg font-black text-yellow-300 tracking-tight">
+                  {quickPickerYear}
+                </span>
+                {quickPickerYear === today.getFullYear() && (
+                  <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-500/40">
+                    Anno Corrente
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setQuickPickerYear(y => y + 1)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 text-xs font-bold transition-all cursor-pointer"
+                title="Anno successivo"
+              >
+                <span>{quickPickerYear + 1}</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Months Grid (12 Months in 4x3) */}
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-bold text-yellow-500/80 uppercase tracking-wider">
+                Seleziona Mese:
+              </p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {MESI_ITALIANI.map((mName, mIdx) => {
+                  const isSelected = dominantMonth.getMonth() === mIdx && dominantMonth.getFullYear() === quickPickerYear;
+                  const isCurrentMonthNow = today.getMonth() === mIdx && today.getFullYear() === quickPickerYear;
+                  return (
+                    <button
+                      key={mName}
+                      type="button"
+                      onClick={() => {
+                        handleJumpToMonth(mIdx, quickPickerYear);
+                        setIsQuickDatePickerOpen(false);
+                      }}
+                      className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer text-center ${
+                        isSelected
+                          ? 'bg-yellow-400 text-black font-black border-yellow-300 ring-2 ring-yellow-400/50 shadow-md shadow-yellow-500/20 scale-[1.03]'
+                          : isCurrentMonthNow
+                            ? 'bg-yellow-400/15 text-yellow-300 border-yellow-500/60 hover:bg-yellow-400/25 font-bold'
+                            : 'bg-neutral-900 text-neutral-300 border-neutral-800 hover:bg-neutral-800 hover:text-yellow-300 hover:border-yellow-500/30'
+                      }`}
+                    >
+                      <span className="text-xs font-black uppercase tracking-wider">{mName.substring(0, 3)}</span>
+                      <span className="text-[10px] font-medium opacity-85 truncate max-w-full">{mName}</span>
+                      {isCurrentMonthNow && !isSelected && (
+                        <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.2 rounded-full font-extrabold bg-yellow-400 text-black mt-0.5">
+                          Oggi
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Week Selector of Active Month */}
+            <div className="pt-2 border-t border-yellow-500/20 space-y-1.5">
+              <p className="text-[11px] font-bold text-yellow-500/80 uppercase tracking-wider">
+                Salta a una settimana specifica di {MESI_ITALIANI[dominantMonth.getMonth()]}:
+              </p>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[1, 2, 3, 4, 5].map((wk) => {
+                  const dayNum = Math.min((wk - 1) * 7 + 1, new Date(quickPickerYear, dominantMonth.getMonth() + 1, 0).getDate());
+                  const targetDate = new Date(quickPickerYear, dominantMonth.getMonth(), dayNum);
+                  const isCurrentActiveWeek = Math.abs(currentDate.getTime() - targetDate.getTime()) < 4 * 86400000;
+                  return (
+                    <button
+                      key={wk}
+                      type="button"
+                      onClick={() => {
+                        setCurrentDate(targetDate);
+                        setIsQuickDatePickerOpen(false);
+                      }}
+                      className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-all text-center cursor-pointer ${
+                        isCurrentActiveWeek
+                          ? 'bg-yellow-400 text-black border-yellow-400 font-black'
+                          : 'bg-neutral-900 hover:bg-yellow-400/20 text-yellow-200 border-neutral-800 hover:border-yellow-500/30'
+                      }`}
+                    >
+                      Sett. {wk}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Exact Date Picker & Quick Today Button */}
+            <div className="pt-3 border-t border-yellow-500/20 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-neutral-400">Data esatta:</span>
+                <input
+                  type="date"
+                  value={formatDateToISO(currentDate)}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleJumpToDate(e.target.value);
+                      setIsQuickDatePickerOpen(false);
+                    }
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg bg-neutral-900 border border-yellow-500/40 text-yellow-300 text-xs font-bold focus:ring-2 focus:ring-yellow-400 cursor-pointer"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleGoToday();
+                  setIsQuickDatePickerOpen(false);
+                }}
+                className="px-3.5 py-1.5 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs transition-all shadow-md shadow-yellow-500/20 cursor-pointer flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Torna a Oggi</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

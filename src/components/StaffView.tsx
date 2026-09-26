@@ -20,7 +20,11 @@ import { getOperatorAccumulatedHours } from '../utils/scheduler';
 import { StaffModal } from './StaffModal';
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
 
-export const StaffView: React.FC = () => {
+interface StaffViewProps {
+  onNavigateToTurni?: () => void;
+}
+
+export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
   const { staff, bookings, deleteStaff } = useApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -67,6 +71,17 @@ export const StaffView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          {onNavigateToTurni && (
+            <button
+              onClick={onNavigateToTurni}
+              className="px-3.5 py-2 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs rounded-lg shadow-xs transition-colors flex items-center gap-2"
+              title="Apri pannello completo pianificazione turni presidio sala"
+            >
+              <Clock className="w-4 h-4" />
+              <span>Pannello Turni Presidio</span>
+            </button>
+          )}
+
           <button
             onClick={() => handleOpenSchedulePrint(null)}
             className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg border border-slate-300 shadow-2xs transition-colors flex items-center gap-2"

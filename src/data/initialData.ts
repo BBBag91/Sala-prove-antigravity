@@ -1,4 +1,4 @@
-import { Booking, Client, Expense, Room, StaffMember, StudioInfo } from '../types';
+import { Booking, Client, Expense, Room, StaffMember, StudioInfo, WorkShift } from '../types';
 
 export const DEFAULT_STUDIO_INFO: StudioInfo = {
   nome: 'Sound Studio',
@@ -474,5 +474,141 @@ export const INITIAL_EXPENSES: Expense[] = [
     fornitore: 'Federazione Nazionale Musica',
     numeroFatturaRicevuta: 'AFF-2026-11',
     stato: 'in_scadenza',
+  },
+];
+
+// Helper per ottenere le date dal Lunedì al Venerdì della settimana corrente
+function getWeekdaysCurrentWeek(): string[] {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Lunedì
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+
+  const dates: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const cur = new Date(monday);
+    cur.setDate(monday.getDate() + i);
+    const y = cur.getFullYear();
+    const m = String(cur.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(cur.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${dayStr}`);
+  }
+  return dates;
+}
+
+const currentWeekdays = getWeekdaysCurrentWeek();
+
+export const INITIAL_SHIFTS: WorkShift[] = [
+  // Lunedì
+  {
+    id: `shift-${currentWeekdays[0]}-1`,
+    data: currentWeekdays[0],
+    turnoNumero: 1,
+    nomeTurno: '1° Turno (Pomeridiano)',
+    oraInizioBase: '17:00',
+    oraFineBase: '20:00',
+    operatoreId: 'staff-1',
+    operatoreNome: 'Marco Bellini',
+    note: 'Presidio accoglienza e controllo microfonazione.',
+  },
+  {
+    id: `shift-${currentWeekdays[0]}-2`,
+    data: currentWeekdays[0],
+    turnoNumero: 2,
+    nomeTurno: '2° Turno (Serale)',
+    oraInizioBase: '20:00',
+    oraFineBase: '23:00',
+    operatoreId: 'staff-3',
+    operatoreNome: 'Davide Ferri',
+    note: 'Chiusura sale e controllo amplificatori.',
+  },
+  // Martedì
+  {
+    id: `shift-${currentWeekdays[1]}-1`,
+    data: currentWeekdays[1],
+    turnoNumero: 1,
+    nomeTurno: '1° Turno (Pomeridiano)',
+    oraInizioBase: '17:00',
+    oraFineBase: '20:00',
+    operatoreId: 'staff-2',
+    operatoreNome: 'Silvia Romano',
+    note: 'Accoglienza prove e allievi lezioni.',
+  },
+  {
+    id: `shift-${currentWeekdays[1]}-2`,
+    data: currentWeekdays[1],
+    turnoNumero: 2,
+    nomeTurno: '2° Turno (Serale)',
+    oraInizioBase: '20:00',
+    oraFineBase: '23:00',
+    operatoreId: 'staff-1',
+    operatoreNome: 'Marco Bellini',
+    note: 'Verifica mixer e assistenza tecnica serale.',
+  },
+  // Mercoledì
+  {
+    id: `shift-${currentWeekdays[2]}-1`,
+    data: currentWeekdays[2],
+    turnoNumero: 1,
+    nomeTurno: '1° Turno (Pomeridiano)',
+    oraInizioBase: '17:00',
+    oraFineBase: '20:00',
+    operatoreId: 'staff-1',
+    operatoreNome: 'Marco Bellini',
+  },
+  {
+    id: `shift-${currentWeekdays[2]}-2`,
+    data: currentWeekdays[2],
+    turnoNumero: 2,
+    nomeTurno: '2° Turno (Serale)',
+    oraInizioBase: '20:00',
+    oraFineBase: '23:00',
+    operatoreId: 'staff-2',
+    operatoreNome: 'Silvia Romano',
+  },
+  // Giovedì
+  {
+    id: `shift-${currentWeekdays[3]}-1`,
+    data: currentWeekdays[3],
+    turnoNumero: 1,
+    nomeTurno: '1° Turno (Pomeridiano)',
+    oraInizioBase: '17:00',
+    oraFineBase: '20:00',
+    operatoreId: 'staff-3',
+    operatoreNome: 'Davide Ferri',
+  },
+  {
+    id: `shift-${currentWeekdays[3]}-2`,
+    data: currentWeekdays[3],
+    turnoNumero: 2,
+    nomeTurno: '2° Turno (Serale)',
+    oraInizioBase: '20:00',
+    oraFineBase: '23:00',
+    operatoreId: 'staff-1',
+    operatoreNome: 'Marco Bellini',
+  },
+  // Venerdì
+  {
+    id: `shift-${currentWeekdays[4]}-1`,
+    data: currentWeekdays[4],
+    turnoNumero: 1,
+    nomeTurno: '1° Turno (Pomeridiano)',
+    oraInizioBase: '17:00',
+    oraFineBase: '20:00',
+    operatoreId: 'staff-1',
+    operatoreNome: 'Marco Bellini',
+    note: 'Serata con prenotazioni multiple fino a tarda ora.',
+  },
+  {
+    id: `shift-${currentWeekdays[4]}-2`,
+    data: currentWeekdays[4],
+    turnoNumero: 2,
+    nomeTurno: '2° Turno (Serale)',
+    oraInizioBase: '20:00',
+    oraFineBase: '23:00',
+    operatoreId: 'staff-3',
+    operatoreNome: 'Davide Ferri',
+    note: 'Chiusura fine settimana.',
   },
 ];

@@ -257,4 +257,34 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Abilita Supabase Realtime per sincronizzazione istantanea delle prenotazioni tra tutti gli utenti
 ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
 
+-- ==============================================================================
+-- 10. TABELLA TURNI OPERATORI DI PRESIDIO SALA (LUN-VEN 17-20 / 20-23 DINAMICI)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.shifts (
+  id TEXT PRIMARY KEY,
+  data TEXT NOT NULL, -- YYYY-MM-DD
+  turno_numero INTEGER NOT NULL DEFAULT 1, -- 1 = Primo Turno, 2 = Secondo Turno
+  nome_turno TEXT NOT NULL DEFAULT 'Primo Turno',
+  ora_inizio_base TEXT NOT NULL DEFAULT '17:00',
+  ora_fine_base TEXT NOT NULL DEFAULT '20:00',
+  ora_inizio_effettiva TEXT,
+  ora_fine_effettiva TEXT,
+  operatore_id TEXT DEFAULT '',
+  operatore_nome TEXT DEFAULT '',
+  note TEXT DEFAULT '',
+  is_custom_hours BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_shifts_data ON public.shifts(data);
+CREATE INDEX IF NOT EXISTS idx_shifts_operatore ON public.shifts(operatore_id);
+
+ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access shifts" ON public.shifts;
+CREATE POLICY "Public access shifts" ON public.shifts FOR ALL USING (true) WITH CHECK (true);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.shifts;
+
+
 

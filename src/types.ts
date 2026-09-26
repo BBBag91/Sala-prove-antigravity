@@ -10,6 +10,43 @@ export interface AuthUser {
 
 export type StaffRole = 'operatore' | 'insegnante' | 'entrambi';
 
+// Turni di presidio sala prove (Lun-Ven: 1° 17:00-20:00, 2° 20:00-23:00 con adattamento dinamico)
+export interface WorkShift {
+  id: string;
+  data: string; // YYYY-MM-DD
+  turnoNumero: 1 | 2;
+  nomeTurno: string;
+  oraInizioBase: string; // "17:00" | "20:00"
+  oraFineBase: string; // "20:00" | "23:00"
+  oraInizioEffettiva?: string;
+  oraFineEffettiva?: string;
+  operatoreId?: string;
+  operatoreNome?: string;
+  note?: string;
+  isCustomHours?: boolean;
+}
+
+export interface DailyShiftComputed {
+  id: string;
+  data: string;
+  turnoNumero: 1 | 2;
+  nomeTurno: string;
+  oraInizioBase: string;
+  oraFineBase: string;
+  oraInizio: string; // Dinamica o base
+  oraFine: string; // Dinamica o base
+  durataMinuti: number;
+  durataOre: number;
+  minutiExtra: number;
+  isAdapted: boolean;
+  adaptationReason?: string;
+  operatoreId?: string;
+  operatoreNome?: string;
+  operatoreBadgeColor?: string;
+  note?: string;
+  isCustomHours?: boolean;
+}
+
 export interface PrimaryWorkShift {
   id: string;
   giornoSettimana: number; // 0 = Domenica, 1 = Lunedì, ..., 6 = Sabato

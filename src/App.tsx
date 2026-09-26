@@ -18,11 +18,13 @@ import {
   RefreshCw,
   Menu,
   X,
+  CalendarClock,
 } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginView } from './components/LoginView';
 import { CalendarDashboardView } from './components/CalendarDashboardView';
+import { ShiftsView } from './components/ShiftsView';
 import { BookingsView } from './components/BookingsView';
 import { StaffView } from './components/StaffView';
 import { ClientsView } from './components/ClientsView';
@@ -31,7 +33,7 @@ import { FinanceView } from './components/FinanceView';
 import { AnagraficaView } from './components/AnagraficaView';
 import { UserManagementModal } from './components/UserManagementModal';
 
-type TabType = 'calendar' | 'bookings' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica';
+type TabType = 'calendar' | 'turni' | 'bookings' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica';
 
 interface NavSectionItem {
   id: TabType;
@@ -132,8 +134,16 @@ const AppContent: React.FC = () => {
       badge: bookings.length,
     },
     {
+      id: 'turni',
+      label: 'Turni Presidio Sala',
+      shortLabel: 'Turni Sala',
+      description: 'Pianificazione Lun-Ven (17-20 / 20-23) con adattamento dinamico automatico',
+      icon: <CalendarClock className="w-4 h-4 text-yellow-400" />,
+      badge: 10,
+    },
+    {
       id: 'staff',
-      label: 'Operatori & Turni',
+      label: 'Anagrafica Personale',
       shortLabel: 'Operatori',
       description: 'Staff, fasce orarie 24h, turni primari e assegnazione intelligente',
       icon: <Users className="w-4 h-4 text-yellow-400" />,
@@ -781,11 +791,12 @@ const AppContent: React.FC = () => {
         {activeTab === 'calendar' && <CalendarDashboardView />}
         {isAdmin && (
           <>
+            {activeTab === 'turni' && <ShiftsView />}
             {activeTab === 'anagrafica' && (
               <AnagraficaView onNavigateTab={(tab) => setActiveTab(tab)} />
             )}
             {activeTab === 'bookings' && <BookingsView />}
-            {activeTab === 'staff' && <StaffView />}
+            {activeTab === 'staff' && <StaffView onNavigateToTurni={() => setActiveTab('turni')} />}
             {activeTab === 'clients' && <ClientsView />}
             {activeTab === 'rooms' && (
               <RoomsView onNavigateToAnagrafica={() => setActiveTab('anagrafica')} />
