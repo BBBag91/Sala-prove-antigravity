@@ -98,10 +98,8 @@ export const CalendarDashboardView: React.FC = () => {
 
   // Active anchor date for calendar navigation
   const [currentDate, setCurrentDate] = useState<Date>(today);
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 640) return 'day';
-    return 'week';
-  });
+  // Default a 7 giorni ('week') su qualsiasi dispositivo (incluso smartphone)
+  const [viewMode, setViewMode] = useState<ViewMode>('week');
 
   // Dynamic zoom: height of one hour in pixels
   // 36px: Panoramica (entire 9:00 - 23:00 fits in ~500px, no scrolling needed!)
