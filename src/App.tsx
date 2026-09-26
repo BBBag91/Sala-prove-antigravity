@@ -14,6 +14,7 @@ import {
   LogOut,
   Shield,
   User,
+  UserPlus,
   RefreshCw,
   Menu,
   X,
@@ -28,6 +29,7 @@ import { ClientsView } from './components/ClientsView';
 import { RoomsView } from './components/RoomsView';
 import { FinanceView } from './components/FinanceView';
 import { AnagraficaView } from './components/AnagraficaView';
+import { UserManagementModal } from './components/UserManagementModal';
 
 type TabType = 'calendar' | 'bookings' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica';
 
@@ -46,7 +48,10 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const { resetToDemoData, studioInfo, bookings, staff, clients, expenses } = useApp();
 
   // Route Guard: Utente standard può accedere solo al Calendario
@@ -62,15 +67,19 @@ const AppContent: React.FC = () => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsMenuOpen(false);
+        setIsUserMenuOpen(false);
         setIsMobileMenuOpen(false);
       }
     };
 
-    if (isMenuOpen || isMobileMenuOpen) {
+    if (isMenuOpen || isUserMenuOpen || isMobileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleKeyDown);
     }
@@ -78,7 +87,7 @@ const AppContent: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isMenuOpen, isMobileMenuOpen]);
+  }, [isMenuOpen, isUserMenuOpen, isMobileMenuOpen]);
 
   // Close mobile menu on desktop resize
   useEffect(() => {
@@ -158,231 +167,299 @@ const AppContent: React.FC = () => {
   const activeDropdownSection = dropdownSections.find((item) => item.id === activeTab);
 
   return (
-    <div className="min-h-screen bg-black text-yellow-50 flex flex-col antialiased selection:bg-yellow-400 selection:text-black">      {/* Top Header */}
-      <header className="bg-neutral-950/95 border-b border-yellow-500/30 sticky top-0 z-40 shadow-lg shadow-black/80 backdrop-blur">
+    <div className="min-h-screen bg-black text-yellow-50 flex flex-col antialiased selection:bg-yellow-400 selection:text-black">      {/* Top Header */}      <header className="bg-neutral-950/95 border-b border-yellow-500/30 sticky top-0 z-40 shadow-lg shadow-black/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="flex items-center h-14 justify-between gap-2 sm:gap-3">
+          <div className="flex items-center h-14 justify-between gap-3">
 
-            {/* ── Logo / Brand ── */}
-            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-bold shadow-md shadow-yellow-500/30 shrink-0">
-                <Music2 className="w-4 h-4 text-black stroke-[2.5]" />
+            {/* ── Left: Brand & Desktop Navigation ── */}
+            <div className="flex items-center gap-3 lg:gap-4 shrink-0">
+              {/* Logo / Brand */}
+              <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-bold shadow-md shadow-yellow-500/30 shrink-0">
+                  <Music2 className="w-4 h-4 text-black stroke-[2.5]" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
+                    <span>SALA PROVE</span>
+                    <span className="text-yellow-400 font-bold truncate">• {studioInfo.nome}</span>
+                  </h1>
+                  <p className="text-[10px] text-yellow-400/60 leading-tight truncate hidden xl:block">
+                    {studioInfo.sottotitolo || 'Associazione Culturale Musicale • Centro Prove & Registrazione'}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white leading-tight flex items-center gap-1.5 truncate">
-                  <span>SALA PROVE</span>
-                  <span className="text-yellow-400 font-bold truncate">• {studioInfo.nome}</span>
-                </h1>
-                <p className="text-[10px] text-yellow-400/60 leading-tight truncate hidden sm:block">
-                  {studioInfo.sottotitolo || 'Associazione Culturale Musicale • Centro Prove & Registrazione'}
-                </p>
-              </div>
-            </div>
 
-            {/* ── Desktop Navigation (hidden on mobile, visible on md and up) ── */}
-            <nav className="hidden md:flex items-center gap-1.5 min-w-0">
-              <div className="w-px h-6 bg-yellow-500/20 mr-1 shrink-0" />
+              {/* Vertical separator */}
+              <div className="hidden md:block w-px h-6 bg-yellow-500/20 shrink-0" />
 
-              {/* Calendario tab */}
-              <button
-                onClick={() => {
-                  setActiveTab('calendar');
-                  setIsMenuOpen(false);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
-                  activeTab === 'calendar'
-                    ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
-                    : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
-                }`}
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Calendario</span>
-              </button>
-
-              {/* ── ADMIN ONLY: Conti del Mese & Bollette Tab ── */}
-              {isAdmin && (
+              {/* Desktop Navigation Tabs */}
+              <nav className="hidden md:flex items-center gap-1.5 shrink-0">
+                {/* Calendario tab */}
                 <button
                   onClick={() => {
-                    setActiveTab('finance');
+                    setActiveTab('calendar');
                     setIsMenuOpen(false);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
-                    activeTab === 'finance'
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    activeTab === 'calendar'
                       ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
                       : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
                   }`}
-                  title="Gestione conti del mese, uscite e bollette"
                 >
-                  <Receipt className="w-3.5 h-3.5" />
-                  <span>Conti &amp; Bollette</span>
-                  {expenses.length > 0 && (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                      activeTab === 'finance' ? 'bg-black text-yellow-400' : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
-                    }`}>
-                      {expenses.length}
-                    </span>
-                  )}
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Calendario</span>
                 </button>
-              )}
 
-              {/* ── ADMIN ONLY: Dropdown Sezioni Gestionali ── */}
-              {isAdmin && (
-                <div className="relative shrink-0" ref={menuRef}>
+                {/* ADMIN ONLY: Conti del Mese & Bollette Tab */}
+                {isAdmin && (
                   <button
-                    onClick={() => setIsMenuOpen((prev) => !prev)}
-                    aria-expanded={isMenuOpen}
-                    aria-haspopup="true"
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      activeTab !== 'calendar' && activeTab !== 'finance'
+                    onClick={() => {
+                      setActiveTab('finance');
+                      setIsMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      activeTab === 'finance'
                         ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
-                        : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-yellow-500/30'
+                        : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
                     }`}
+                    title="Gestione conti del mese, uscite e bollette"
                   >
-                    {activeDropdownSection && activeTab !== 'finance' ? (
-                      <>
-                        {activeDropdownSection.icon}
-                        <span>{activeDropdownSection.shortLabel}</span>
-                        {activeDropdownSection.badge !== undefined && (
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                            activeTab !== 'calendar'
-                              ? 'bg-black text-yellow-400'
-                              : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
-                          }`}>
-                            {activeDropdownSection.badge}
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <Layers className="w-3.5 h-3.5" />
-                        <span>Altre Sezioni</span>
-                      </>
+                    <Receipt className="w-3.5 h-3.5" />
+                    <span>Conti &amp; Bollette</span>
+                    {expenses.length > 0 && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                        activeTab === 'finance' ? 'bg-black text-yellow-400' : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
+                      }`}>
+                        {expenses.length}
+                      </span>
                     )}
-                    <ChevronDown
-                      className={`w-3 h-3 transition-transform duration-200 ml-0.5 ${
-                        isMenuOpen ? 'rotate-180 text-yellow-400' : 'text-yellow-500/70'
-                      }`}
-                    />
                   </button>
+                )}
 
-                  {/* Dropdown panel */}
-                  {isMenuOpen && (
-                    <div className="absolute left-0 top-full mt-1.5 w-96 bg-neutral-950 rounded-xl shadow-2xl border border-yellow-500/40 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                      <div className="px-3.5 py-2 border-b border-yellow-500/20 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-yellow-400 uppercase tracking-wider">
-                          <Layers className="w-3.5 h-3.5 text-yellow-400" />
-                          <span>Sezioni Amministrative</span>
+                {/* ADMIN ONLY: Dropdown Sezioni Gestionali */}
+                {isAdmin && (
+                  <div className="relative shrink-0" ref={menuRef}>
+                    <button
+                      onClick={() => setIsMenuOpen((prev) => !prev)}
+                      aria-expanded={isMenuOpen}
+                      aria-haspopup="true"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        activeTab !== 'calendar' && activeTab !== 'finance'
+                          ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                          : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-yellow-500/30'
+                      }`}
+                    >
+                      {activeDropdownSection && activeTab !== 'finance' ? (
+                        <>
+                          {activeDropdownSection.icon}
+                          <span>{activeDropdownSection.shortLabel}</span>
+                          {activeDropdownSection.badge !== undefined && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                              activeTab !== 'calendar'
+                                ? 'bg-black text-yellow-400'
+                                : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
+                            }`}>
+                              {activeDropdownSection.badge}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Layers className="w-3.5 h-3.5" />
+                          <span>Altre Sezioni</span>
+                        </>
+                      )}
+                      <ChevronDown
+                        className={`w-3 h-3 transition-transform duration-200 ml-0.5 ${
+                          isMenuOpen ? 'rotate-180 text-yellow-400' : 'text-yellow-500/70'
+                        }`}
+                      />
+                    </button>
+
+                    {/* Dropdown panel */}
+                    {isMenuOpen && (
+                      <div className="absolute left-0 top-full mt-1.5 w-80 bg-neutral-950 rounded-xl shadow-2xl border border-yellow-500/40 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="px-3.5 py-2 border-b border-yellow-500/20 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-yellow-400 uppercase tracking-wider">
+                            <Layers className="w-3.5 h-3.5 text-yellow-400" />
+                            <span>Sezioni Amministrative</span>
+                          </div>
+                          <span className="text-[10px] text-yellow-500/60">{dropdownSections.length} sezioni</span>
                         </div>
-                        <span className="text-[10px] text-yellow-500/60">{dropdownSections.length} sezioni</span>
-                      </div>
 
-                      <div className="p-1.5 space-y-0.5 max-h-[70vh] overflow-y-auto">
-                        {dropdownSections.map((item) => {
-                          const isItemActive = activeTab === item.id;
-                          return (
-                            <button
-                              key={item.id}
-                              onClick={() => {
-                                setActiveTab(item.id);
-                                setIsMenuOpen(false);
-                              }}
-                              className={`w-full text-left px-2.5 py-2 rounded-lg flex items-start gap-3 transition-colors ${
-                                isItemActive
-                                  ? 'bg-yellow-400/15 border border-yellow-500/40 text-yellow-300'
-                                  : 'hover:bg-neutral-900 border border-transparent text-neutral-300 hover:text-yellow-300'
-                              }`}
-                            >
-                              <div
-                                className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
-                                  isItemActive ? 'bg-yellow-400 text-black' : 'bg-neutral-900 text-yellow-400 border border-yellow-500/20'
+                        <div className="p-1.5 space-y-0.5 max-h-[70vh] overflow-y-auto">
+                          {dropdownSections.map((item) => {
+                            const isItemActive = activeTab === item.id;
+                            return (
+                              <button
+                                key={item.id}
+                                onClick={() => {
+                                  setActiveTab(item.id);
+                                  setIsMenuOpen(false);
+                                }}
+                                className={`w-full text-left px-2.5 py-2 rounded-lg flex items-start gap-3 transition-colors ${
+                                  isItemActive
+                                    ? 'bg-yellow-400/15 border border-yellow-500/40 text-yellow-300'
+                                    : 'hover:bg-neutral-900 border border-transparent text-neutral-300 hover:text-yellow-300'
                                 }`}
                               >
-                                {item.icon}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className={`text-xs font-semibold truncate ${
-                                    isItemActive ? 'text-yellow-400 font-bold' : 'text-neutral-200'
-                                  }`}>
-                                    {item.label}
-                                  </span>
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    {item.badge !== undefined && (
-                                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                                        isItemActive ? 'bg-yellow-400 text-black' : 'bg-neutral-900 text-yellow-400 border border-yellow-500/30'
-                                      }`}>
-                                        {item.badge}
-                                      </span>
-                                    )}
-                                    {isItemActive && <Check className="w-3 h-3 text-yellow-400 stroke-[3]" />}
-                                  </div>
+                                <div
+                                  className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
+                                    isItemActive ? 'bg-yellow-400 text-black' : 'bg-neutral-900 text-yellow-400 border border-yellow-500/20'
+                                  }`}
+                                >
+                                  {item.icon}
                                 </div>
-                                <p className="text-[10px] text-yellow-500/60 line-clamp-1 mt-0.5">{item.description}</p>
-                              </div>
-                            </button>
-                          );
-                        })}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className={`text-xs font-semibold truncate ${
+                                      isItemActive ? 'text-yellow-400 font-bold' : 'text-neutral-200'
+                                    }`}>
+                                      {item.label}
+                                    </span>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {item.badge !== undefined && (
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                          isItemActive ? 'bg-yellow-400 text-black' : 'bg-neutral-900 text-yellow-400 border border-yellow-500/30'
+                                        }`}>
+                                          {item.badge}
+                                        </span>
+                                      )}
+                                      {isItemActive && <Check className="w-3 h-3 text-yellow-400 stroke-[3]" />}
+                                    </div>
+                                  </div>
+                                  <p className="text-[10px] text-yellow-500/60 line-clamp-1 mt-0.5">{item.description}</p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </nav>
+            </div>
+
+            {/* ── Right: User Profile & Actions (Uncluttered, Elegant & Never Overlapping) ── */}
+            <div className="hidden md:flex items-center gap-2 shrink-0">
+              {/* Profile Dropdown Menu */}
+              <div className="relative shrink-0" ref={userMenuRef}>
+                <button
+                  onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                    isUserMenuOpen
+                      ? 'bg-yellow-400/20 border-yellow-400 text-yellow-300'
+                      : isAdmin
+                      ? 'bg-neutral-900/90 border-yellow-500/35 hover:border-yellow-400 text-yellow-300'
+                      : 'bg-neutral-900 border-neutral-700 hover:border-neutral-500 text-neutral-200'
+                  }`}
+                  title={`Profilo: ${user.nome} (${user.email})`}
+                >
+                  <div className="w-5 h-5 rounded-full bg-yellow-400/20 flex items-center justify-center text-[11px]">
+                    {isAdmin ? '👑' : '👤'}
+                  </div>
+                  <span className="font-semibold text-white truncate max-w-[130px]">
+                    {user.nome || (isAdmin ? 'Admin' : 'Utente')}
+                  </span>
+                  <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                    isAdmin ? 'bg-yellow-400/20 text-yellow-300' : 'bg-neutral-800 text-neutral-300'
+                  }`}>
+                    {isAdmin ? 'Admin' : 'Utente'}
+                  </span>
+                  <ChevronDown className={`w-3 h-3 text-neutral-400 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180 text-yellow-400' : ''}`} />
+                </button>
+
+                {/* Profile Dropdown Panel */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-72 bg-neutral-950 rounded-xl shadow-2xl border border-yellow-500/40 p-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 space-y-1">
+                    {/* User header info */}
+                    <div className="px-3 py-2.5 rounded-lg bg-neutral-900/80 border border-neutral-800">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-yellow-400/20 text-yellow-400 flex items-center justify-center font-bold text-sm">
+                          {isAdmin ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-white truncate">{user.nome}</p>
+                          <p className="text-[11px] text-neutral-400 font-mono truncate">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-neutral-800 flex items-center justify-between text-[10px]">
+                        <span className="text-neutral-400">Ruolo Account:</span>
+                        <span className={`font-bold uppercase px-1.5 py-0.5 rounded ${
+                          isAdmin ? 'bg-yellow-400/20 text-yellow-300' : 'bg-neutral-800 text-neutral-300'
+                        }`}>
+                          {isAdmin ? 'Amministratore' : 'Utente Standard'}
+                        </span>
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-            </nav>
 
-            {/* ── Desktop User Profile & Actions (hidden on mobile, visible on md and up) ── */}
-            <div className="hidden md:flex items-center gap-1.5 sm:gap-2 shrink-0">
-              {/* Role badge */}
-              <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors select-none ${
-                  isAdmin
-                    ? 'bg-yellow-400/15 border-yellow-500/40 text-yellow-300'
-                    : 'bg-neutral-900 border-neutral-700 text-neutral-300'
-                }`}
-                title={`Profilo: ${user.nome} (${user.email})`}
-              >
-                {isAdmin ? (
-                  <>
-                    <Shield className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-                    <span>Admin</span>
-                  </>
-                ) : (
-                  <>
-                    <User className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-                    <span>Utente</span>
-                  </>
+                    {/* Admin actions */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setIsUserManagementOpen(true);
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-neutral-200 hover:text-yellow-300 hover:bg-neutral-900 transition-colors cursor-pointer"
+                      >
+                        <UserPlus className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                        <span>Gestione Account &amp; Nuovi Utenti</span>
+                      </button>
+                    )}
+
+                    {/* Role switcher for quick test */}
+                    <button
+                      onClick={() => {
+                        switchRole();
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-neutral-200 hover:text-yellow-300 hover:bg-neutral-900 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                      <span>{isAdmin ? 'Simula Utente Standard' : 'Simula Amministratore'}</span>
+                    </button>
+
+                    {/* Reset demo data */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          handleResetDemo();
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-neutral-400 hover:text-yellow-300 hover:bg-neutral-900 transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-yellow-500/80 shrink-0" />
+                        <span>Ripristina Dati Demo</span>
+                      </button>
+                    )}
+
+                    {/* Divider */}
+                    <div className="h-px bg-neutral-800 my-1" />
+
+                    {/* Logout */}
+                    <button
+                      onClick={() => {
+                        logout();
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5 shrink-0" />
+                      <span>Disconnetti dalla sessione</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
-              {/* 1-Click Role Switcher */}
-              <button
-                onClick={switchRole}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-yellow-300 text-xs font-semibold border border-yellow-500/20 transition-all cursor-pointer"
-                title={`Passa a profilo ${isAdmin ? 'Utente Standard' : 'Amministratore'}`}
-              >
-                <RefreshCw className="w-3 h-3 text-yellow-400" />
-                <span className="hidden xl:inline">{isAdmin ? 'Simula Utente' : 'Simula Admin'}</span>
-              </button>
-
-              {/* Demo Data Reset (Admin only) */}
-              {isAdmin && (
-                <button
-                  onClick={handleResetDemo}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-neutral-900 hover:bg-yellow-400 text-yellow-400 hover:text-black text-xs font-bold border border-yellow-500/30 hover:border-yellow-400 transition-all shadow-sm group"
-                  title="Ripristina dati realistici dimostrativi"
-                >
-                  <RotateCcw className="w-3 h-3 text-yellow-400 group-hover:text-black transition-colors" />
-                  <span className="hidden xl:inline">Demo</span>
-                </button>
-              )}
-
-              {/* Logout Button */}
+              {/* Quick Logout Button */}
               <button
                 onClick={logout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs font-bold border border-rose-500/30 transition-all shadow-sm cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs font-bold border border-rose-500/30 transition-all shadow-sm cursor-pointer shrink-0"
                 title="Disconnetti dalla sessione"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>Esci</span>
+                <span className="hidden sm:inline">Esci</span>
               </button>
             </div>
 
@@ -649,6 +726,22 @@ const AppContent: React.FC = () => {
                       </button>
                     );
                   })}
+
+                  <button
+                    onClick={() => {
+                      setIsUserManagementOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold text-yellow-300 bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-500/30 transition-all mt-2"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <UserPlus className="w-4 h-4 text-yellow-400" />
+                      <span>Gestione Utenti Supabase</span>
+                    </div>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-400 text-black">
+                      Admin
+                    </span>
+                  </button>
                 </>
               )}
             </div>
@@ -731,6 +824,14 @@ const AppContent: React.FC = () => {
           </p>
         </div>
       </footer>
+
+      {/* Modal Gestione Utenti (Admin only) */}
+      {isAdmin && (
+        <UserManagementModal
+          isOpen={isUserManagementOpen}
+          onClose={() => setIsUserManagementOpen(false)}
+        />
+      )}
     </div>
   );
 };

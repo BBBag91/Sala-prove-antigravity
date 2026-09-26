@@ -6,6 +6,7 @@ import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISO
 import { checkOperatorAvailability } from '../utils/scheduler';
 import { RecurrenceModal } from './RecurrenceModal';
 import { SmartTimePicker } from './SmartTimePicker';
+import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -48,9 +49,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     conteggioOccorrenze: 4,
   });
   const [operatoreAssegnatoId, setOperatoreAssegnatoId] = useState('');
-  const [tariffaBase, setTariffaBase] = useState(36);
-  const [sconto, setSconto] = useState(0);
-  const [tariffaTotale, setTariffaTotale] = useState(36);
+  const [tariffaBase, setTariffaBase] = useState<string | number>(36);
+  const [sconto, setSconto] = useState<string | number>(0);
+  const [tariffaTotale, setTariffaTotale] = useState<string | number>(36);
   const [customTariffa, setCustomTariffa] = useState(false);
   const [statoPagamento, setStatoPagamento] = useState<PaymentStatus>('da_saldare');
   const [metodoPagamento, setMetodoPagamento] = useState<PaymentMethod>('pos');
@@ -296,17 +297,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   }, [salaId, tipo, oraInizio, oraFine, customTariffa, rooms, sconto]);
 
-  const handleScontoChange = (val: number) => {
-    const disc = Math.max(0, val);
-    setSconto(disc);
-    setTariffaTotale(Math.max(0, tariffaBase - disc));
+  const handleScontoChange = (val: string | number) => {
+    setSconto(val);
+    const disc = val === '' ? 0 : Math.max(0, Number(val));
+    const base = tariffaBase === '' ? 0 : Number(tariffaBase);
+    setTariffaTotale(Math.max(0, base - disc));
   };
 
-  const handleTariffaBaseChange = (val: number) => {
-    const base = Math.max(0, val);
-    setTariffaBase(base);
+  const handleTariffaBaseChange = (val: string | number) => {
+    setTariffaBase(val);
     setCustomTariffa(true);
-    setTariffaTotale(Math.max(0, base - (Number(sconto) || 0)));
+    const base = val === '' ? 0 : Math.max(0, Number(val));
+    const disc = sconto === '' ? 0 : Number(sconto);
+    setTariffaTotale(Math.max(0, base - disc));
   };
 
   if (!isOpen) return null;
@@ -836,11 +839,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    min="0"
-                    step="1"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={tariffaBase}
-                    onChange={(e) => handleTariffaBaseChange(Number(e.target.value))}
+                    onFocus={handleNumericFocus}
+                    onClick={handleNumericClick}
+                    onBlur={handleNumericBlur}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d*$/.test(val)) {
+                        handleTariffaBaseChange(val);
+                      }
+                    }}
+                    placeholder=""
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
                   />
                   <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
@@ -851,7 +863,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
                   <span>Sconto (€)</span>
-                  {sconto > 0 && (
+                  {Number(sconto) > 0 && (
                     <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
                       -{sconto}€
                     </span>
@@ -859,12 +871,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={sconto === 0 ? '' : sconto}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={sconto === 0 || sconto === '0' ? '' : sconto}
                     placeholder="0"
-                    onChange={(e) => handleScontoChange(Number(e.target.value))}
+                    onFocus={handleNumericFocus}
+                    onClick={handleNumericClick}
+                    onBlur={handleNumericBlur}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d*$/.test(val)) {
+                        handleScontoChange(val);
+                      }
+                    }}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
                   />
                   <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
@@ -878,14 +898,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    min="0"
-                    step="1"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={tariffaTotale}
+                    onFocus={handleNumericFocus}
+                    onClick={handleNumericClick}
+                    onBlur={handleNumericBlur}
                     onChange={(e) => {
-                      setCustomTariffa(true);
-                      setTariffaTotale(Number(e.target.value));
+                      const val = e.target.value;
+                      if (val === '' || /^\d*$/.test(val)) {
+                        setCustomTariffa(true);
+                        setTariffaTotale(val);
+                      }
                     }}
+                    placeholder=""
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
                   />
                   <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>

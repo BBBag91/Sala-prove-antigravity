@@ -20,6 +20,7 @@ import {
   Maximize2,
   Clock,
   Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -79,7 +80,7 @@ type ViewMode = 'day' | '3days' | 'week';
 
 // -- Component ------------------------------------------------------------------
 export const CalendarDashboardView: React.FC = () => {
-  const { rooms, staff, bookings, clients, runAutoAssignment, deleteBooking } = useApp();
+  const { rooms, staff, bookings, clients, runAutoAssignment, deleteBooking, refreshFromCloud, isAutoRefreshing } = useApp();
   const { isAdmin } = useAuth();
 
   const today = new Date();
@@ -403,6 +404,19 @@ export const CalendarDashboardView: React.FC = () => {
                 <span className="hidden md:inline">Panoramica</span>
               </button>
             </div>
+
+            {/* Auto-Sync & Manual Refresh Button */}
+            <button
+              onClick={() => refreshFromCloud()}
+              disabled={isAutoRefreshing}
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-yellow-500/30 bg-[#141414] hover:bg-yellow-400/10 text-yellow-400 text-[11px] sm:text-xs font-bold transition-all disabled:opacity-60 cursor-pointer"
+              title="Sincronizza ora con Supabase (Auto-refresh attivo ogni 5 min e in tempo reale)"
+            >
+              <RefreshCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isAutoRefreshing ? 'animate-spin text-yellow-300' : ''}`} />
+              <span className="hidden lg:inline text-[10px] text-yellow-400/80 font-normal">
+                {isAutoRefreshing ? 'Sincronizzazione...' : 'Auto-sync (5m)'}
+              </span>
+            </button>
 
             {/* New Booking Button */}
             <button

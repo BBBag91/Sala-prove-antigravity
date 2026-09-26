@@ -15,6 +15,7 @@ import {
   generateRecurrenceDates,
   parseISODate,
 } from '../utils/dateUtils';
+import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
 
 interface RecurrenceModalProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ export const RecurrenceModal: React.FC<RecurrenceModalProps> = ({
   const [frequenza, setFrequenza] = useState<RecurrenceFrequency>(
     initialConfig.frequenza === 'nessuna' ? 'settimanale' : initialConfig.frequenza
   );
-  const [intervallo, setIntervallo] = useState<number>(initialConfig.intervallo || 1);
+  const [intervallo, setIntervallo] = useState<string | number>(initialConfig.intervallo || 1);
   const [giorniSettimana, setGiorniSettimana] = useState<number[]>(() => {
     if (initialConfig.giorniSettimana && initialConfig.giorniSettimana.length > 0) {
       return initialConfig.giorniSettimana;
@@ -55,7 +56,7 @@ export const RecurrenceModal: React.FC<RecurrenceModalProps> = ({
     return [defaultDayIndex];
   });
   const [tipoFine, setTipoFine] = useState<RecurrenceEndType>(initialConfig.tipoFine || 'per_sempre');
-  const [conteggioOccorrenze, setConteggioOccorrenze] = useState<number>(
+  const [conteggioOccorrenze, setConteggioOccorrenze] = useState<string | number>(
     initialConfig.conteggioOccorrenze || 4
   );
 
@@ -85,11 +86,16 @@ export const RecurrenceModal: React.FC<RecurrenceModalProps> = ({
   const currentConfig: RecurrenceConfig = {
     attiva: frequenza !== 'nessuna',
     frequenza,
-    intervallo,
+    intervallo: intervallo === '' ? 1 : Math.max(1, Number(intervallo)),
     giorniSettimana,
     tipoFine,
     dataFine: tipoFine === 'fino_al' ? dataFine : undefined,
-    conteggioOccorrenze: tipoFine === 'conteggio' ? conteggioOccorrenze : undefined,
+    conteggioOccorrenze:
+      tipoFine === 'conteggio' || tipoFine === 'per'
+        ? conteggioOccorrenze === ''
+          ? 4
+          : Math.max(1, Number(conteggioOccorrenze))
+        : undefined,
   };
 
   const previewDates = generateRecurrenceDates(startDate, currentConfig);
@@ -258,17 +264,25 @@ export const RecurrenceModal: React.FC<RecurrenceModalProps> = ({
               <span>Ogni</span>
               <div className="flex items-center bg-neutral-900 border border-yellow-500/30 rounded-lg px-2 py-0.5">
                 <input
-                  type="number"
-                  min={1}
-                  max={12}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={intervallo}
-                  onChange={(e) => setIntervallo(Math.max(1, Number(e.target.value) || 1))}
+                  onFocus={handleNumericFocus}
+                  onClick={handleNumericClick}
+                  onBlur={handleNumericBlur}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*$/.test(val)) {
+                      setIntervallo(val);
+                    }
+                  }}
                   className="w-10 bg-transparent text-center font-bold text-yellow-300 text-base focus:outline-none"
                 />
               </div>
               <span>
                 {frequenza === 'settimanale'
-                  ? intervallo === 1
+                  ? (intervallo === 1 || intervallo === '1')
                     ? 'settimana'
                     : 'settimane'
                   : frequenza === 'giornaliera'
@@ -365,13 +379,19 @@ export const RecurrenceModal: React.FC<RecurrenceModalProps> = ({
                 <div className="flex items-center gap-1.5 text-xs text-neutral-300">
                   <div className="flex items-center bg-neutral-900 border border-yellow-500/30 rounded-lg px-2 py-1">
                     <input
-                      type="number"
-                      min={1}
-                      max={52}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={conteggioOccorrenze}
-                      onChange={(e) =>
-                        setConteggioOccorrenze(Math.max(1, Number(e.target.value) || 1))
-                      }
+                      onFocus={handleNumericFocus}
+                      onClick={handleNumericClick}
+                      onBlur={handleNumericBlur}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          setConteggioOccorrenze(val);
+                        }
+                      }}
                       className="w-10 bg-transparent text-center font-bold text-yellow-300 text-sm focus:outline-none"
                     />
                   </div>

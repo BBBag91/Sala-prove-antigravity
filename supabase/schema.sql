@@ -176,3 +176,85 @@ CREATE POLICY "Public access expenses" ON public.expenses FOR ALL USING (true) W
 
 DROP POLICY IF EXISTS "Public access incomes" ON public.incomes;
 CREATE POLICY "Public access incomes" ON public.incomes FOR ALL USING (true) WITH CHECK (true);
+
+-- 8. Tabella Profili Utente (collegata a Supabase Auth)
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  nome TEXT DEFAULT '',
+  ruolo TEXT NOT NULL DEFAULT 'user', -- 'admin' | 'user'
+  avatar TEXT DEFAULT '👤',
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access profiles" ON public.profiles;
+CREATE POLICY "Public access profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+
+-- Funzione trigger per inserire automaticamente il profilo alla creazione dell'utente in auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, nome, ruolo)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'nome', split_part(new.email, '@', 1)),
+    COALESCE(new.raw_user_meta_data->>'role', new.raw_user_meta_data->>'ruolo', 'user')
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET
+    email = EXCLUDED.email,
+    nome = COALESCE(EXCLUDED.nome, public.profiles.nome),
+    ruolo = COALESCE(EXCLUDED.ruolo, public.profiles.ruolo),
+    updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ==============================================================================
+-- 9. AUTO-CONFERMA EMAIL PER ACCESSO DIRETTO (NON RICHIEDE VERIFICA VIA MAIL)
+-- ==============================================================================
+
+-- Conferma immediatamente tutti gli utenti esistenti in auth.users
+UPDATE auth.users
+SET email_confirmed_at = now()
+WHERE email_confirmed_at IS NULL;
+
+-- Trigger per auto-confermare all'istante ogni futuro utente registrato
+CREATE OR REPLACE FUNCTION public.auto_confirm_user_email()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.email_confirmed_at IS NULL THEN
+    NEW.email_confirmed_at := now();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_auto_confirm ON auth.users;
+CREATE TRIGGER on_auth_user_auto_confirm
+  BEFORE INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.auto_confirm_user_email();
+
+-- Funzione RPC richiamabile da client per confermare istantaneamente qualsiasi email
+CREATE OR REPLACE FUNCTION public.confirm_user_email(user_email text)
+RETURNS boolean AS $$
+BEGIN
+  UPDATE auth.users
+  SET email_confirmed_at = now()
+  WHERE lower(email) = lower(user_email);
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Abilita Supabase Realtime per sincronizzazione istantanea delle prenotazioni tra tutti gli utenti
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+
+

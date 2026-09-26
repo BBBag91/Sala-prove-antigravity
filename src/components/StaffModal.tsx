@@ -3,6 +3,7 @@ import { X, UserCheck, Plus, Trash2, Clock, Briefcase, CheckCircle2, Shield } fr
 import { useApp } from '../context/AppContext';
 import { PrimaryWorkShift, StaffMember, StaffRole } from '../types';
 import { GIORNI_CALENDARIO } from '../utils/dateUtils';
+import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
 
 interface StaffModalProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
   const [materieInsegnamento, setMaterieInsegnamento] = useState('');
   const [coloreBadge, setColoreBadge] = useState('#f59e0b');
   const [attivo, setAttivo] = useState(true);
-  const [tariffaOrariaRimborso, setTariffaOrariaRimborso] = useState(10);
+  const [tariffaOrariaRimborso, setTariffaOrariaRimborso] = useState<string | number>(10);
   const [note, setNote] = useState('');
 
   // Turni lavoro primario
@@ -116,7 +117,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
         materieInsegnamento: ruolo !== 'operatore' ? materieInsegnamento : undefined,
         coloreBadge,
         attivo,
-        tariffaOrariaRimborso: Number(tariffaOrariaRimborso),
+        tariffaOrariaRimborso: tariffaOrariaRimborso === '' ? 0 : Number(String(tariffaOrariaRimborso).replace(',', '.')),
         note,
         turniLavoroPrimario,
       });
@@ -130,7 +131,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
         materieInsegnamento: ruolo !== 'operatore' ? materieInsegnamento : undefined,
         coloreBadge,
         attivo,
-        tariffaOrariaRimborso: Number(tariffaOrariaRimborso),
+        tariffaOrariaRimborso: tariffaOrariaRimborso === '' ? 0 : Number(String(tariffaOrariaRimborso).replace(',', '.')),
         note,
         turniLavoroPrimario,
       });
@@ -306,11 +307,19 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  min="0"
-                  step="0.5"
+                  type="text"
+                  inputMode="decimal"
                   value={tariffaOrariaRimborso}
-                  onChange={(e) => setTariffaOrariaRimborso(Number(e.target.value))}
+                  onFocus={handleNumericFocus}
+                  onClick={handleNumericClick}
+                  onBlur={handleNumericBlur}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*([.,]\d*)?$/.test(val)) {
+                      setTariffaOrariaRimborso(val);
+                    }
+                  }}
+                  placeholder="0"
                   className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-800"
                 />
                 <span className="absolute right-3 top-1.5 text-xs text-slate-400">€/h</span>

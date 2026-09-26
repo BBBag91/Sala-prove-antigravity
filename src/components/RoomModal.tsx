@@ -3,6 +3,8 @@ import { X, DoorOpen, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Room } from '../types';
 
+import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
+
 interface RoomModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,9 +28,9 @@ export const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, roomToEdi
   const [nome, setNome] = useState('');
   const [descrizione, setDescrizione] = useState('');
   const [colore, setColore] = useState('#ef4444');
-  const [tariffaOraria, setTariffaOraria] = useState(18);
-  const [tariffaLezione, setTariffaLezione] = useState(25);
-  const [capienza, setCapienza] = useState(7);
+  const [tariffaOraria, setTariffaOraria] = useState<string | number>(18);
+  const [tariffaLezione, setTariffaLezione] = useState<string | number>(25);
+  const [capienza, setCapienza] = useState<string | number>(7);
   const [dotazione, setDotazione] = useState<string[]>([]);
   const [newGearItem, setNewGearItem] = useState('');
   const [stato, setStato] = useState<'disponibile' | 'manutenzione'>('disponibile');
@@ -84,9 +86,9 @@ export const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, roomToEdi
         nome: nome.trim(),
         descrizione,
         colore,
-        tariffaOraria: Number(tariffaOraria),
-        tariffaLezione: Number(tariffaLezione),
-        capienza: Number(capienza),
+        tariffaOraria: tariffaOraria === '' ? 0 : Number(tariffaOraria),
+        tariffaLezione: tariffaLezione === '' ? 0 : Number(tariffaLezione),
+        capienza: capienza === '' ? 1 : Number(capienza),
         dotazione,
         stato,
       });
@@ -95,9 +97,9 @@ export const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, roomToEdi
         nome: nome.trim(),
         descrizione,
         colore,
-        tariffaOraria: Number(tariffaOraria),
-        tariffaLezione: Number(tariffaLezione),
-        capienza: Number(capienza),
+        tariffaOraria: tariffaOraria === '' ? 0 : Number(tariffaOraria),
+        tariffaLezione: tariffaLezione === '' ? 0 : Number(tariffaLezione),
+        capienza: capienza === '' ? 1 : Number(capienza),
         dotazione,
         stato,
       });
@@ -208,11 +210,21 @@ export const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, roomToEdi
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   required
                   value={tariffaOraria}
-                  onChange={(e) => setTariffaOraria(Number(e.target.value))}
+                  onFocus={handleNumericFocus}
+                  onClick={handleNumericClick}
+                  onBlur={handleNumericBlur}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*$/.test(val)) {
+                      setTariffaOraria(val);
+                    }
+                  }}
+                  placeholder=""
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-bold text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 />
                 <span className="absolute right-3 top-2 text-xs text-slate-400">€/h</span>
@@ -224,10 +236,20 @@ export const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, roomToEdi
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={tariffaLezione}
-                  onChange={(e) => setTariffaLezione(Number(e.target.value))}
+                  onFocus={handleNumericFocus}
+                  onClick={handleNumericClick}
+                  onBlur={handleNumericBlur}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*$/.test(val)) {
+                      setTariffaLezione(val);
+                    }
+                  }}
+                  placeholder=""
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-bold text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 />
                 <span className="absolute right-3 top-2 text-xs text-slate-400">€/h</span>
@@ -238,10 +260,20 @@ export const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, roomToEdi
                 Capienza Max (persone)
               </label>
               <input
-                type="number"
-                min="1"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={capienza}
-                onChange={(e) => setCapienza(Number(e.target.value))}
+                onFocus={handleNumericFocus}
+                onClick={handleNumericClick}
+                onBlur={handleNumericBlur}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || /^\d*$/.test(val)) {
+                    setCapienza(val);
+                  }
+                }}
+                placeholder=""
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-bold text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
               />
             </div>

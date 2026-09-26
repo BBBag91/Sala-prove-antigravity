@@ -3,6 +3,7 @@ import { X, UserCheck, ShieldCheck, Music, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
 import { formatDateToISO } from '../utils/dateUtils';
+import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [numeroTessera, setNumeroTessera] = useState('');
   const [dataTesseramento, setDataTesseramento] = useState(formatDateToISO(new Date()));
   const [dataScadenzaTesseramento, setDataScadenzaTesseramento] = useState('');
-  const [quotaTesseramento, setQuotaTesseramento] = useState(15);
+  const [quotaTesseramento, setQuotaTesseramento] = useState<string | number>(15);
   const [descrizioneStrumentazione, setDescrizioneStrumentazione] = useState('');
   const [gruppoBand, setGruppoBand] = useState('');
   const [note, setNote] = useState('');
@@ -101,7 +102,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         numeroTessera,
         dataTesseramento,
         dataScadenzaTesseramento,
-        quotaTesseramento: Number(quotaTesseramento),
+        quotaTesseramento: quotaTesseramento === '' ? 0 : Number(quotaTesseramento),
         descrizioneStrumentazione,
         gruppoBand: gruppoBand.trim() || undefined,
         note: note.trim() || undefined,
@@ -121,7 +122,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         numeroTessera,
         dataTesseramento,
         dataScadenzaTesseramento,
-        quotaTesseramento: Number(quotaTesseramento),
+        quotaTesseramento: quotaTesseramento === '' ? 0 : Number(quotaTesseramento),
         descrizioneStrumentazione,
         gruppoBand: gruppoBand.trim() || undefined,
         note: note.trim() || undefined,
@@ -344,10 +345,20 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Quota Tessera (€)</label>
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={quotaTesseramento}
-                  onChange={(e) => setQuotaTesseramento(Number(e.target.value))}
+                  onFocus={handleNumericFocus}
+                  onClick={handleNumericClick}
+                  onBlur={handleNumericBlur}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*$/.test(val)) {
+                      setQuotaTesseramento(val);
+                    }
+                  }}
+                  placeholder="0"
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 />
               </div>

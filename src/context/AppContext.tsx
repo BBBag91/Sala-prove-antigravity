@@ -3,7 +3,7 @@ import { DEFAULT_STUDIO_INFO, INITIAL_BOOKINGS, INITIAL_CLIENTS, INITIAL_EXPENSE
 import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig } from '../types';
 import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates } from '../utils/dateUtils';
 import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
-import { isSupabaseConfigured, setSupabaseCredentials, getSupabaseUrl, getSupabaseKey } from '../lib/supabase';
+import { isSupabaseConfigured, setSupabaseCredentials, getSupabaseUrl, getSupabaseKey, supabase } from '../lib/supabase';
 import { supabaseService } from '../services/supabaseService';
 
 interface AppContextType {
@@ -20,6 +20,8 @@ interface AppContextType {
   isSupabaseConfigured: boolean;
   isCloudConnected: boolean;
   isLoadingCloud: boolean;
+  isAutoRefreshing: boolean;
+  lastCloudRefresh: Date | null;
   syncLocalToCloud: () => Promise<boolean>;
   refreshFromCloud: () => Promise<void>;
   reconnectSupabase: (url?: string, key?: string) => Promise<boolean>;
@@ -139,6 +141,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isCloudConnected, setIsCloudConnected] = useState(false);
   const [isLoadingCloud, setIsLoadingCloud] = useState(false);
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
+  const [lastCloudRefresh, setLastCloudRefresh] = useState<Date | null>(null);
   const configured = isSupabaseConfigured();
 
   // Initial load directly from Supabase Cloud database
@@ -191,18 +195,75 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const refreshFromCloud = async (): Promise<void> => {
-    const remote = await supabaseService.fetchAll();
-    if (remote) {
-      if (remote.rooms.length > 0) setRooms(remote.rooms);
-      if (remote.staff.length > 0) setStaff(remote.staff);
-      if (remote.clients.length > 0) setClients(remote.clients);
-      if (remote.bookings.length > 0) setBookings(remote.bookings);
-      if (remote.expenses.length > 0) setExpenses(remote.expenses);
-      if (remote.incomes.length > 0) setIncomes(remote.incomes);
-      if (remote.studioInfo) setStudioInfo(remote.studioInfo);
-      setIsCloudConnected(true);
+    setIsAutoRefreshing(true);
+    try {
+      const remote = await supabaseService.fetchAll();
+      if (remote) {
+        if (remote.rooms.length > 0) setRooms(remote.rooms);
+        if (remote.staff.length > 0) setStaff(remote.staff);
+        if (remote.clients.length > 0) setClients(remote.clients);
+        if (remote.bookings) setBookings(remote.bookings);
+        if (remote.expenses.length > 0) setExpenses(remote.expenses);
+        if (remote.incomes.length > 0) setIncomes(remote.incomes);
+        if (remote.studioInfo) setStudioInfo(remote.studioInfo);
+        setIsCloudConnected(true);
+        setLastCloudRefresh(new Date());
+      }
+    } catch (err) {
+      console.warn('[AppContext] Errore refreshFromCloud:', err);
+    } finally {
+      setIsAutoRefreshing(false);
     }
   };
+
+  // Auto-refresh ogni 5 minuti (300.000 ms) + su riattivazione scheda browser (focus / visibilitychange)
+  useEffect(() => {
+    const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
+    const intervalId = setInterval(() => {
+      console.log('[AppContext] Auto-refresh calendario programmato ogni 5 minuti...');
+      refreshFromCloud();
+    }, FIVE_MINUTES_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshFromCloud();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, []);
+
+  // Supabase Realtime: aggiornamento automatico istantaneo appena un utente aggiunge/modifica una prenotazione
+  useEffect(() => {
+    if (!configured || !supabase) return;
+
+    try {
+      const channel = supabase
+        .channel('realtime:bookings-sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'bookings' },
+          (payload) => {
+            console.log('[Supabase Realtime] Modifica prenotazioni rilevata da altro client:', payload);
+            refreshFromCloud();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (err) {
+      console.warn('[AppContext] Realtime non attivo:', err);
+    }
+  }, [configured]);
 
   const reconnectSupabase = async (newUrl?: string, newKey?: string): Promise<boolean> => {
     if (newUrl && newKey) {
@@ -563,6 +624,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isSupabaseConfigured: configured,
         isCloudConnected,
         isLoadingCloud,
+        isAutoRefreshing,
+        lastCloudRefresh,
         syncLocalToCloud,
         refreshFromCloud,
         reconnectSupabase,

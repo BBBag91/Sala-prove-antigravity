@@ -3,6 +3,7 @@ import { X, Receipt, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Expense, ExpenseCategory } from '../types';
 import { formatDateToISO } from '../utils/dateUtils';
+import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -72,7 +73,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
         data,
         categoria,
         descrizione: descrizione.trim(),
-        importo: Number(importo),
+        importo: Number(String(importo).replace(',', '.')) || 0,
         metodoPagamento,
         fornitore: fornitore.trim() || undefined,
         numeroFatturaRicevuta: numeroFatturaRicevuta.trim() || undefined,
@@ -84,7 +85,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
         data,
         categoria,
         descrizione: descrizione.trim(),
-        importo: Number(importo),
+        importo: Number(String(importo).replace(',', '.')) || 0,
         metodoPagamento,
         fornitore: fornitore.trim() || undefined,
         numeroFatturaRicevuta: numeroFatturaRicevuta.trim() || undefined,
@@ -165,12 +166,19 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   required
                   value={importo}
-                  onChange={(e) => setImporto(e.target.value)}
+                  onFocus={handleNumericFocus}
+                  onClick={handleNumericClick}
+                  onBlur={handleNumericBlur}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*([.,]\d*)?$/.test(val)) {
+                      setImporto(val);
+                    }
+                  }}
                   placeholder="0.00"
                   className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white font-bold text-base text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 />
