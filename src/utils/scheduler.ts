@@ -37,12 +37,44 @@ export function isOperatorFreeFromPrimaryWork(
     return { isFree: false, conflictReason: 'Operatore disattivato' };
   }
 
-  // Determine day of week
+  // 1. Priorità: Verifica eccezione/calendario mensile specifico per questa data (se configurato)
+  if (operator.indisponibilitaDate && operator.indisponibilitaDate.length > 0) {
+    const dateEntry = operator.indisponibilitaDate.find((d) => d.data === dateStr);
+    if (dateEntry) {
+      // Spunta di indisponibilità totale (ferie, riposo, impegni, malattia)
+      if (dateEntry.indisponibileTotale) {
+        return {
+          isFree: false,
+          conflictReason: dateEntry.motivo
+            ? `Indisponibile: ${dateEntry.motivo}`
+            : 'Indisponibilità totale (Ferie / Riposo / Impegno)',
+        };
+      }
+      // Turno primario con orario specifico per questa data
+      if (dateEntry.oraInizio && dateEntry.oraFine) {
+        if (doTimesOverlap(startTime, endTime, dateEntry.oraInizio, dateEntry.oraFine)) {
+          return {
+            isFree: false,
+            conflictReason: `In turno lavoro primario (${dateEntry.oraInizio} - ${dateEntry.oraFine}${
+              dateEntry.motivo ? ` - ${dateEntry.motivo}` : ''
+            })`,
+          };
+        } else {
+          // Ha orario primario specifico in questa data e non si sovrappone al turno sala -> Operatore libero!
+          return { isFree: true };
+        }
+      } else {
+        // Giorno registrato senza ore e senza spunta di indisponibilità totale (giorno libero esplicito)
+        return { isFree: true };
+      }
+    }
+  }
+
+  // 2. Fallback: Orari settimanali standard ricorsivi
   const dateObj = parseISODate(dateStr);
   const dayOfWeek = dateObj.getDay(); // 0 = Domenica, 1 = Lunedì...
 
-  // Find any primary work shifts for this day of week
-  const primaryShifts = operator.turniLavoroPrimario.filter(
+  const primaryShifts = (operator.turniLavoroPrimario || []).filter(
     (shift) => shift.giornoSettimana === dayOfWeek
   );
 

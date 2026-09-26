@@ -97,6 +97,9 @@ export const INITIAL_STAFF: StaffMember[] = [
       { id: 'p-4', giornoSettimana: 4, oraInizio: '08:30', oraFine: '16:30', descrizione: 'Lavoro primario Azienda IT' },
       { id: 'p-5', giornoSettimana: 5, oraInizio: '08:30', oraFine: '16:30', descrizione: 'Lavoro primario Azienda IT' },
     ],
+    indisponibilitaDate: [
+      { data: '2026-09-29', indisponibileTotale: false, oraInizio: '14:00', oraFine: '22:00', motivo: 'Turno Pomeridiano Straordinario' },
+    ],
   },
   {
     id: 'staff-2',
@@ -117,6 +120,7 @@ export const INITIAL_STAFF: StaffMember[] = [
       { id: 'p-8', giornoSettimana: 2, oraInizio: '08:00', oraFine: '13:00', descrizione: 'Lavoro primario Docenza' },
       { id: 'p-9', giornoSettimana: 4, oraInizio: '08:00', oraFine: '13:00', descrizione: 'Lavoro primario Docenza' },
     ],
+    indisponibilitaDate: [],
   },
   {
     id: 'staff-3',
@@ -136,6 +140,10 @@ export const INITIAL_STAFF: StaffMember[] = [
       { id: 'p-12', giornoSettimana: 3, oraInizio: '09:00', oraFine: '17:30', descrizione: 'Lavoro primario Studio Grafico' },
       { id: 'p-13', giornoSettimana: 4, oraInizio: '09:00', oraFine: '17:30', descrizione: 'Lavoro primario Studio Grafico' },
       { id: 'p-14', giornoSettimana: 5, oraInizio: '09:00', oraFine: '17:30', descrizione: 'Lavoro primario Studio Grafico' },
+    ],
+    indisponibilitaDate: [
+      { data: '2026-09-28', indisponibileTotale: true, motivo: 'Ferie / Riposo' },
+      { data: '2026-09-29', indisponibileTotale: true, motivo: 'Ferie / Riposo' },
     ],
   },
 ];

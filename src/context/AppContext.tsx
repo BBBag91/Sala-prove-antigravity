@@ -3,7 +3,7 @@ import { DEFAULT_STUDIO_INFO, INITIAL_BOOKINGS, INITIAL_CLIENTS, INITIAL_EXPENSE
 import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig, WorkShift } from '../types';
 import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates, timeToMinutes } from '../utils/dateUtils';
 import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
-import { computeDailyShifts, autoAssignWeeklyShifts } from '../utils/shiftUtils';
+import { computeDailyShifts, autoAssignWeeklyShifts, autoAssignMonthlyShifts } from '../utils/shiftUtils';
 import { isSupabaseConfigured, setSupabaseCredentials, getSupabaseUrl, getSupabaseKey, supabase } from '../lib/supabase';
 import { supabaseService } from '../services/supabaseService';
 
@@ -46,6 +46,7 @@ interface AppContextType {
   updateShift: (shift: WorkShift) => void;
   deleteShift: (id: string) => void;
   autoAssignWeeklyShiftsAction: (weekDates: string[]) => { assignedCount: number; unassignedCount: number };
+  autoAssignMonthlyShiftsAction: (monthStr: string, forceReassign?: boolean) => { assignedCount: number; unassignedCount: number };
 
   // Client actions
   addClient: (client: Omit<Client, 'id'>) => void;
@@ -477,6 +478,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { assignedCount: result.assignedCount, unassignedCount: result.unassignedCount };
   };
 
+  const autoAssignMonthlyShiftsAction = (monthStr: string, forceReassign?: boolean) => {
+    const result = autoAssignMonthlyShifts(monthStr, shifts, bookings, staff, forceReassign);
+    setShifts(result.updatedShifts);
+    supabaseService.upsertMultipleShifts(result.updatedShifts);
+    return { assignedCount: result.assignedCount, unassignedCount: result.unassignedCount };
+  };
+
   // Client CRUD
   const addClient = (clientData: Omit<Client, 'id'>) => {
     const newClient: Client = {
@@ -741,6 +749,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateShift,
         deleteShift,
         autoAssignWeeklyShiftsAction,
+        autoAssignMonthlyShiftsAction,
         isSupabaseConfigured: configured,
         isCloudConnected,
         isLoadingCloud,

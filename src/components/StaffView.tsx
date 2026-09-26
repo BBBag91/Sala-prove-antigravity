@@ -12,6 +12,8 @@ import {
   Sparkles,
   Printer,
   FileSpreadsheet,
+  Palmtree,
+  CalendarCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { StaffMember } from '../types';
@@ -19,6 +21,7 @@ import { GIORNI_CALENDARIO } from '../utils/dateUtils';
 import { getOperatorAccumulatedHours } from '../utils/scheduler';
 import { StaffModal } from './StaffModal';
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
+import { OperatorMonthlyScheduleModal } from './OperatorMonthlyScheduleModal';
 
 interface StaffViewProps {
   onNavigateToTurni?: () => void;
@@ -31,6 +34,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
   const [staffToEdit, setStaffToEdit] = useState<StaffMember | null>(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedOperatorForSchedule, setSelectedOperatorForSchedule] = useState<string | null>(null);
+  const [selectedOperatorForMonthlyCalendar, setSelectedOperatorForMonthlyCalendar] = useState<StaffMember | null>(null);
 
   const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(
     2,
@@ -207,41 +211,81 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
               </div>
 
               {/* Turni Lavoro Primario & Disponibilità Residua 24h */}
-              <div className="space-y-2 p-3.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-slate-900 flex items-center gap-1.5">
-                    <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
-                    Turni Lavoro Primario (Indisponibilità)
-                  </span>
-                  <span className="text-[10px] font-medium text-slate-500">
-                    Disponibile = 24h - Lavoro
-                  </span>
-                </div>
+              {(() => {
+                const memberMonthExceptions = (member.indisponibilitaDate || []).filter((d) =>
+                  d.data.startsWith(currentMonthStr)
+                );
+                const countVacationMonth = memberMonthExceptions.filter((d) => d.indisponibileTotale).length;
+                const countCustomHoursMonth = memberMonthExceptions.filter((d) => !d.indisponibileTotale && d.oraInizio).length;
 
-                {member.turniLavoroPrimario.length === 0 ? (
-                  <p className="text-slate-500 italic py-1">
-                    Nessun turno di lavoro primario registrato. Libero 24h su 24 per presidio sala.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
-                    {member.turniLavoroPrimario.map((shift) => {
-                      const day = GIORNI_CALENDARIO.find((g) => g.index === shift.giornoSettimana);
-                      return (
-                        <div
-                          key={shift.id}
-                          className="flex items-center justify-between p-2 bg-white rounded-md border border-slate-200 shadow-2xs"
-                        >
-                          <span className="font-semibold text-slate-900">{day?.short || 'Giorno'}</span>
-                          <span className="font-mono font-medium text-slate-700 flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-slate-400" />
-                            {shift.oraInizio} - {shift.oraFine}
-                          </span>
+                return (
+                  <div className="space-y-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-semibold text-slate-900 flex items-center gap-1.5">
+                        <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
+                        Turni Lavoro Primario & Indisponibilità
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOperatorForMonthlyCalendar(member)}
+                        className="px-2.5 py-1 rounded-md bg-yellow-400 hover:bg-yellow-300 text-black text-[11px] font-black flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                        title={`Apri calendario mensile completo per ${member.nome}`}
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-black" />
+                        <span>Calendario Mese & Ferie</span>
+                      </button>
+                    </div>
+
+                    {/* Badge calendario mensile attivo se ci sono eccezioni nel mese corrente */}
+                    {memberMonthExceptions.length > 0 && (
+                      <div className="p-2 rounded-md bg-yellow-400/10 border border-yellow-500/30 flex items-center justify-between text-[11px] text-yellow-300 gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-yellow-200">Mese Attivo:</span>
+                          {countVacationMonth > 0 && (
+                            <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold flex items-center gap-1">
+                              <Palmtree className="w-3 h-3" />
+                              {countVacationMonth} gg Ferie/Riposo
+                            </span>
+                          )}
+                          {countCustomHoursMonth > 0 && (
+                            <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {countCustomHoursMonth} turni spec.
+                            </span>
+                          )}
                         </div>
-                      );
-                    })}
+                        <span className="text-[10px] text-neutral-400 italic">
+                          Priorità su autoassegnazione
+                        </span>
+                      </div>
+                    )}
+
+                    {member.turniLavoroPrimario.length === 0 ? (
+                      <p className="text-slate-500 italic py-1">
+                        Nessun turno di lavoro primario fisso settimanale. (Disponibilità gestita da calendario mensile o libero 24h).
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                        {member.turniLavoroPrimario.map((shift) => {
+                          const day = GIORNI_CALENDARIO.find((g) => g.index === shift.giornoSettimana);
+                          return (
+                            <div
+                              key={shift.id}
+                              className="flex items-center justify-between p-2 bg-white rounded-md border border-slate-200 shadow-2xs"
+                            >
+                              <span className="font-semibold text-slate-900">{day?.short || 'Giorno'}</span>
+                              <span className="font-mono font-medium text-slate-700 flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                {shift.oraInizio} - {shift.oraFine}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* Monthly Stats & Actions */}
               <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs gap-2 flex-wrap">
@@ -280,6 +324,12 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
         isOpen={isScheduleModalOpen}
         onClose={() => setIsScheduleModalOpen(false)}
         initialOperatorId={selectedOperatorForSchedule}
+      />
+
+      <OperatorMonthlyScheduleModal
+        isOpen={!!selectedOperatorForMonthlyCalendar}
+        onClose={() => setSelectedOperatorForMonthlyCalendar(null)}
+        operator={selectedOperatorForMonthlyCalendar}
       />
     </div>
   );

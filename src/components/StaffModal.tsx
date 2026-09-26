@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { X, UserCheck, Plus, Trash2, Clock, Briefcase, CheckCircle2, Shield } from 'lucide-react';
+import { X, UserCheck, Plus, Trash2, Clock, Briefcase, CheckCircle2, Shield, Calendar } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PrimaryWorkShift, StaffMember, StaffRole } from '../types';
 import { GIORNI_CALENDARIO } from '../utils/dateUtils';
 import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
+import { OperatorMonthlyScheduleModal } from './OperatorMonthlyScheduleModal';
 
 interface StaffModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ const BADGE_COLORS = [
 
 export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffToEdit }) => {
   const { addStaff, updateStaff } = useApp();
+  const [isMonthlyModalOpen, setIsMonthlyModalOpen] = useState(false);
 
   const [nome, setNome] = useState('');
   const [cognome, setCognome] = useState('');
@@ -336,13 +338,25 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
                   Turni Lavoro Primario
                 </h3>
               </div>
-              <button
-                type="button"
-                onClick={handleAddStandardWorkWeek}
-                className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-md transition-colors"
-              >
-                + Imposta rapido Lun-Ven 08:30-17:00
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleAddStandardWorkWeek}
+                  className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-md transition-colors"
+                >
+                  + Imposta rapido Lun-Ven 08:30-17:00
+                </button>
+                {staffToEdit && (
+                  <button
+                    type="button"
+                    onClick={() => setIsMonthlyModalOpen(true)}
+                    className="text-[11px] font-bold text-black bg-yellow-400 hover:bg-yellow-300 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 shadow-2xs"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Calendario Mensile & Ferie</span>
+                  </button>
+                )}
+              </div>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed">
               Inserisci gli orari in cui l'operatore è impegnato nel suo lavoro principale.
@@ -497,6 +511,14 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
           </div>
         </form>
       </div>
+
+      {staffToEdit && (
+        <OperatorMonthlyScheduleModal
+          isOpen={isMonthlyModalOpen}
+          onClose={() => setIsMonthlyModalOpen(false)}
+          operator={staffToEdit}
+        />
+      )}
     </div>
   );
 };

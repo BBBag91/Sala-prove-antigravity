@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS public.staff (
   telefono TEXT DEFAULT '',
   materie_insegnamento TEXT DEFAULT '',
   turni_lavoro_primario JSONB DEFAULT '[]'::jsonb,
+  indisponibilita_date JSONB DEFAULT '[]'::jsonb,
   colore_badge TEXT DEFAULT '#eab308',
   attivo BOOLEAN DEFAULT true,
   tariffa_oraria_rimborso NUMERIC(10, 2) DEFAULT 10.00,
@@ -51,6 +52,8 @@ CREATE TABLE IF NOT EXISTS public.staff (
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE public.staff ADD COLUMN IF NOT EXISTS indisponibilita_date JSONB DEFAULT '[]'::jsonb;
 
 -- 4. Tabella Clienti & Tesserati
 CREATE TABLE IF NOT EXISTS public.clients (

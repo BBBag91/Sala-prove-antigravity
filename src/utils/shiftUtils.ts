@@ -196,32 +196,70 @@ export function checkOperatorShiftAvailability(
   };
 }
 
+export interface AutoAssignSummary {
+  updatedShifts: WorkShift[];
+  assignedCount: number;
+  unassignedCount: number;
+  monthlyHoursByOperator: Record<string, number>;
+}
+
 /**
- * Algoritmo intelligente per l'assegnazione automatica degli operatori ai turni della settimana
- * Bilancia il monte ore complessivo e rispetta le incompatibilità con il lavoro primario.
+ * Algoritmo intelligente (Smart Scheduling) per l'autoassegnazione dei turni di presidio sala.
+ *
+ * REGOLE:
+ * 1. Esclude rigorosamente gli operatori incompatibili (spunta indisponibilità totale per ferie/riposo,
+ *    oppure turni di lavoro primario sovrapposti per quella data/orario).
+ * 2. Distribuzione equa del monte ore mensile: seleziona gli operatori idonei con il minor numero di ore
+ *    assegnate nel mese di riferimento, bilanciando in modo uniforme il carico di lavoro.
+ * 3. Prevenzione affaticamento: se più operatori con ore simili sono disponibili, preferisce chi non è già
+ *    stato assegnato all'altro turno nella stessa giornata.
  */
-export function autoAssignWeeklyShifts(
-  weekDates: string[], // es. i 5 giorni da Lunedì a Venerdì
+export function autoAssignShifts(
+  targetDates: string[],
   currentShifts: WorkShift[],
   allBookings: Booking[],
-  staffList: StaffMember[]
-): { updatedShifts: WorkShift[]; assignedCount: number; unassignedCount: number } {
-  const eligibleOps = staffList.filter((s) => s.attivo && (s.ruolo === 'operatore' || s.ruolo === 'entrambi'));
+  staffList: StaffMember[],
+  forceReassign: boolean = false
+): AutoAssignSummary {
+  const eligibleOps = staffList.filter(
+    (s) => s.attivo && (s.ruolo === 'operatore' || s.ruolo === 'entrambi')
+  );
+
   if (eligibleOps.length === 0) {
-    return { updatedShifts: currentShifts, assignedCount: 0, unassignedCount: weekDates.length * 2 };
+    return {
+      updatedShifts: currentShifts,
+      assignedCount: 0,
+      unassignedCount: targetDates.filter(isWeekdayDate).length * 2,
+      monthlyHoursByOperator: {},
+    };
   }
 
-  // Mappa di ore accumulate per operatore
-  const hoursTracker: Record<string, number> = {};
-  eligibleOps.forEach((op) => {
-    hoursTracker[op.id] = 0;
+  // Identifica i mesi coinvolti (es. "2026-09")
+  const targetMonths = Array.from(new Set(targetDates.map((d) => d.slice(0, 7))));
+
+  // Tracker ore mensili per ciascun mese ed operatore
+  const monthlyHoursTracker: Record<string, Record<string, number>> = {};
+  targetMonths.forEach((m) => {
+    monthlyHoursTracker[m] = {};
+    eligibleOps.forEach((op) => {
+      monthlyHoursTracker[m][op.id] = 0;
+    });
   });
 
-  // Somma ore dei turni già salvati al di fuori della settimana target o già fissati
+  // Somma le ore già assegnate in quei mesi (escludendo i turni che andremo a riassegnare)
   currentShifts.forEach((s) => {
-    if (s.operatoreId && hoursTracker[s.operatoreId] !== undefined) {
-      const dur = 3; // 3 ore standard
-      hoursTracker[s.operatoreId] += dur;
+    const m = s.data.slice(0, 7);
+    if (!monthlyHoursTracker[m]) return;
+    if (!s.operatoreId || !monthlyHoursTracker[m][s.operatoreId] !== undefined) return;
+
+    const isTargetSlot = targetDates.includes(s.data);
+    if (!isTargetSlot || (!forceReassign && s.operatoreId)) {
+      // Calcola durata turno
+      const sStart = timeToMinutes(s.oraInizioEffettiva || s.oraInizioBase);
+      let sEnd = timeToMinutes(s.oraFineEffettiva || s.oraFineBase);
+      if (sEnd <= sStart) sEnd += 24 * 60;
+      const durHours = Math.round(((sEnd - sStart) / 60) * 100) / 100;
+      monthlyHoursTracker[m][s.operatoreId] = (monthlyHoursTracker[m][s.operatoreId] || 0) + durHours;
     }
   });
 
@@ -229,19 +267,40 @@ export function autoAssignWeeklyShifts(
   let assignedCount = 0;
   let unassignedCount = 0;
 
-  for (const dateStr of weekDates) {
+  // Ordina date cronologicamente
+  const sortedDates = [...targetDates].sort();
+
+  for (const dateStr of sortedDates) {
+    if (!isWeekdayDate(dateStr)) continue; // Solo Lunedì - Venerdì
+
+    const m = dateStr.slice(0, 7);
     const dayBookings = allBookings.filter((b) => b.data === dateStr);
     const [computed1, computed2] = computeDailyShifts(dateStr, dayBookings, workingShifts, staffList);
 
-    // Assegna turno 1 e turno 2
+    // Assegna Turno 1 (17-20) e Turno 2 (20-23)
     for (const computed of [computed1, computed2]) {
-      // Se già assegnato e valido, continua
-      const existing = workingShifts.find((s) => s.data === dateStr && s.turnoNumero === computed.turnoNumero);
-      if (existing && existing.operatoreId) {
-        continue;
+      const existing = workingShifts.find(
+        (s) => s.data === dateStr && s.turnoNumero === computed.turnoNumero
+      );
+
+      // Se già assegnato e valido e non forziamo riassegnazione
+      if (!forceReassign && existing && existing.operatoreId) {
+        // Verifica se l'operatore attualmente assegnato è ancora disponibile
+        const currentOp = eligibleOps.find((op) => op.id === existing.operatoreId);
+        if (currentOp) {
+          const check = checkOperatorShiftAvailability(
+            currentOp,
+            dateStr,
+            computed.oraInizio,
+            computed.oraFine
+          );
+          if (check.isAvailable) {
+            continue; // Manteniamo l'assegnazione esistente
+          }
+        }
       }
 
-      // Trova candidati liberi da lavoro primario
+      // Trova candidati idonei e liberi da lavoro primario e indisponibilità totale
       const candidates = eligibleOps.filter((op) => {
         const avail = checkOperatorShiftAvailability(op, dateStr, computed.oraInizio, computed.oraFine);
         return avail.isAvailable;
@@ -252,12 +311,38 @@ export function autoAssignWeeklyShifts(
         continue;
       }
 
-      // Ordina per monte ore crescente (fairness / equità)
-      candidates.sort((a, b) => (hoursTracker[a.id] || 0) - (hoursTracker[b.id] || 0));
+      // Verifica chi è già assegnato all'altro turno della stessa giornata
+      const otherTurnoNum = computed.turnoNumero === 1 ? 2 : 1;
+      const otherShiftToday = workingShifts.find(
+        (s) => s.data === dateStr && s.turnoNumero === otherTurnoNum
+      );
+      const opAssignedOtherShiftToday = otherShiftToday?.operatoreId;
+
+      // Ordina per equità del carico mensile (monte ore mensile crescente)
+      // Con bonus per evitare doppio turno consecutivo nello stesso giorno se c'è alternativa
+      candidates.sort((a, b) => {
+        const hoursA = monthlyHoursTracker[m]?.[a.id] || 0;
+        const hoursB = monthlyHoursTracker[m]?.[b.id] || 0;
+
+        const isSameDayA = a.id === opAssignedOtherShiftToday ? 1.5 : 0;
+        const isSameDayB = b.id === opAssignedOtherShiftToday ? 1.5 : 0;
+
+        const scoreA = hoursA + isSameDayA;
+        const scoreB = hoursB + isSameDayB;
+
+        if (Math.abs(scoreA - scoreB) > 0.05) {
+          return scoreA - scoreB;
+        }
+
+        // Pareggio: preferisci chi ha fatto meno turni totali o tie-breaker stabile
+        return a.cognome.localeCompare(b.cognome);
+      });
+
       const chosen = candidates[0];
 
-      // Aggiorna hours tracker
-      hoursTracker[chosen.id] = (hoursTracker[chosen.id] || 0) + computed.durataOre;
+      // Aggiorna ore mensili dell'operatore scelto
+      monthlyHoursTracker[m][chosen.id] =
+        (monthlyHoursTracker[m][chosen.id] || 0) + computed.durataOre;
 
       // Crea o aggiorna il record del turno
       const newShiftRecord: WorkShift = {
@@ -275,11 +360,119 @@ export function autoAssignWeeklyShifts(
         isCustomHours: false,
       };
 
-      workingShifts = workingShifts.filter((s) => !(s.data === dateStr && s.turnoNumero === computed.turnoNumero));
+      workingShifts = workingShifts.filter(
+        (s) => !(s.data === dateStr && s.turnoNumero === computed.turnoNumero)
+      );
       workingShifts.push(newShiftRecord);
       assignedCount++;
     }
   }
 
-  return { updatedShifts: workingShifts, assignedCount, unassignedCount };
+  // Prepara mappa aggregata finale per il primo mese target
+  const mainMonth = targetMonths[0] || '';
+  const finalMonthlyHours = monthlyHoursTracker[mainMonth] || {};
+
+  return {
+    updatedShifts: workingShifts,
+    assignedCount,
+    unassignedCount,
+    monthlyHoursByOperator: finalMonthlyHours,
+  };
+}
+
+/**
+ * Auto-assegnazione per i 5 giorni feriali della settimana selezionata (Lunedì - Venerdì)
+ */
+export function autoAssignWeeklyShifts(
+  weekDates: string[],
+  currentShifts: WorkShift[],
+  allBookings: Booking[],
+  staffList: StaffMember[]
+): { updatedShifts: WorkShift[]; assignedCount: number; unassignedCount: number } {
+  const result = autoAssignShifts(weekDates, currentShifts, allBookings, staffList, false);
+  return {
+    updatedShifts: result.updatedShifts,
+    assignedCount: result.assignedCount,
+    unassignedCount: result.unassignedCount,
+  };
+}
+
+/**
+ * Auto-assegnazione per l'intero mese selezionato (tutti i Lun-Ven del mese)
+ * con perfetta distribuzione equa del carico di lavoro tra tutti gli operatori disponibili.
+ */
+export function autoAssignMonthlyShifts(
+  monthStr: string, // YYYY-MM
+  currentShifts: WorkShift[],
+  allBookings: Booking[],
+  staffList: StaffMember[],
+  forceReassign: boolean = false
+): AutoAssignSummary {
+  const [yearStr, mStr] = monthStr.split('-');
+  const year = Number(yearStr);
+  const monthIdx = Number(mStr) - 1;
+
+  // Calcola tutti i giorni del mese
+  const lastDay = new Date(year, monthIdx + 1, 0).getDate();
+  const monthWeekdayDates: string[] = [];
+
+  for (let day = 1; day <= lastDay; day++) {
+    const d = new Date(year, monthIdx, day);
+    const dayOfWeek = d.getDay();
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      const iso = `${year}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      monthWeekdayDates.push(iso);
+    }
+  }
+
+  return autoAssignShifts(monthWeekdayDates, currentShifts, allBookings, staffList, forceReassign);
+}
+
+/**
+ * Calcola il riepilogo del carico di lavoro e bilanciamento mensile per operatore
+ */
+export function getMonthlyWorkloadReport(
+  monthStr: string, // YYYY-MM
+  shifts: WorkShift[],
+  staffList: StaffMember[]
+): Array<{
+  operator: StaffMember;
+  shiftsCount: number;
+  totalHours: number;
+  percentage: number;
+}> {
+  const eligibleOps = staffList.filter(
+    (s) => s.attivo && (s.ruolo === 'operatore' || s.ruolo === 'entrambi')
+  );
+
+  const monthShifts = shifts.filter((s) => s.data.startsWith(monthStr) && s.operatoreId);
+  const hoursMap: Record<string, { count: number; hours: number }> = {};
+
+  eligibleOps.forEach((op) => {
+    hoursMap[op.id] = { count: 0, hours: 0 };
+  });
+
+  let totalMonthHours = 0;
+
+  monthShifts.forEach((s) => {
+    if (s.operatoreId && hoursMap[s.operatoreId]) {
+      hoursMap[s.operatoreId].count += 1;
+      const sStart = timeToMinutes(s.oraInizioEffettiva || s.oraInizioBase);
+      let sEnd = timeToMinutes(s.oraFineEffettiva || s.oraFineBase);
+      if (sEnd <= sStart) sEnd += 24 * 60;
+      const dur = Math.round(((sEnd - sStart) / 60) * 100) / 100;
+      hoursMap[s.operatoreId].hours += dur;
+      totalMonthHours += dur;
+    }
+  });
+
+  return eligibleOps.map((op) => {
+    const data = hoursMap[op.id] || { count: 0, hours: 0 };
+    return {
+      operator: op,
+      shiftsCount: data.count,
+      totalHours: Math.round(data.hours * 10) / 10,
+      percentage: totalMonthHours > 0 ? Math.round((data.hours / totalMonthHours) * 100) : 0,
+    };
+  });
 }

@@ -55,6 +55,16 @@ export interface PrimaryWorkShift {
   descrizione?: string; // es. "Azienda / Ufficio"
 }
 
+// Calendario flessibile mensile per lavoro primario e indisponibilità totale (ferie, riposo, turni variabili)
+export interface PrimaryWorkShiftDate {
+  id?: string;
+  data: string; // YYYY-MM-DD
+  indisponibileTotale: boolean; // Se true, l'operatore è totalmente indisponibile per l'intera giornata (ferie, riposo, impegni)
+  oraInizio?: string; // HH:mm (se lavora in orario specifico per quella data)
+  oraFine?: string; // HH:mm
+  motivo?: string; // es. "Ferie", "Riposo", "Turno Pomeridiano", "Turno Notturno"
+}
+
 export interface StaffMember {
   id: string;
   nome: string;
@@ -63,7 +73,8 @@ export interface StaffMember {
   email: string;
   telefono: string;
   materieInsegnamento?: string; // se insegnante
-  turniLavoroPrimario: PrimaryWorkShift[]; // Orari in cui è occupato nel lavoro primario
+  turniLavoroPrimario: PrimaryWorkShift[]; // Orari standard settimanali
+  indisponibilitaDate?: PrimaryWorkShiftDate[]; // Calendario mensile date-specific (turni variabili e indisponibilità totale)
   coloreBadge: string;
   attivo: boolean;
   tariffaOrariaRimborso?: number; // Rimborso orario per la sala prove (€/ora)

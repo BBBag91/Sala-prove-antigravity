@@ -28,8 +28,10 @@ import {
   BASE_SHIFT_2_END,
   computeDailyShifts,
   checkOperatorShiftAvailability,
+  getMonthlyWorkloadReport,
 } from '../utils/shiftUtils';
 import { ShiftQuickModal } from './ShiftQuickModal';
+import { OperatorMonthlyScheduleModal } from './OperatorMonthlyScheduleModal';
 
 const GIORNI_LUN_VEN = [
   { index: 1, name: 'Lunedì', short: 'Lun' },
@@ -49,13 +51,22 @@ function getMonday(d: Date): Date {
 }
 
 export const ShiftsView: React.FC = () => {
-  const { staff, bookings, shifts, assignOperatorToShift, autoAssignWeeklyShiftsAction, updateShift } = useApp();
+  const {
+    staff,
+    bookings,
+    shifts,
+    assignOperatorToShift,
+    autoAssignWeeklyShiftsAction,
+    autoAssignMonthlyShiftsAction,
+    updateShift,
+  } = useApp();
   const { isAdmin } = useAuth();
 
   const [currentMonday, setCurrentMonday] = useState<Date>(() => getMonday(new Date()));
   const [selectedShiftForEdit, setSelectedShiftForEdit] = useState<DailyShiftComputed | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [selectedOpForMonthlySchedule, setSelectedOpForMonthlySchedule] = useState<StaffMember | null>(null);
 
   // Calcola i 5 giorni della settimana selezionata (Lunedì - Venerdì)
   const weekDays = [0, 1, 2, 3, 4].map((offset) => {
@@ -95,6 +106,17 @@ export const ShiftsView: React.FC = () => {
       `Assegnazione completata! ${res.assignedCount} turni coperti con successo.`
     );
     setTimeout(() => setFeedbackMessage(null), 4000);
+  };
+
+  const currentMonthKey = `${currentMonday.getFullYear()}-${String(currentMonday.getMonth() + 1).padStart(2, '0')}`;
+
+  // Esegui auto-assegnazione intelligente per l'intero mese con bilanciamento equo
+  const handleAutoAssignMonth = () => {
+    const res = autoAssignMonthlyShiftsAction(currentMonthKey, false);
+    setFeedbackMessage(
+      `Auto-assegnazione mese di ${MESI_ITALIANI[currentMonday.getMonth()]} ${currentMonday.getFullYear()} completata! ${res.assignedCount} turni distribuiti equamente.`
+    );
+    setTimeout(() => setFeedbackMessage(null), 5000);
   };
 
   // Copia turni dalla settimana precedente
@@ -212,6 +234,16 @@ export const ShiftsView: React.FC = () => {
                 >
                   <Wand2 className="w-4 h-4 stroke-[2.5]" />
                   <span>Auto-Assegna Settimana</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAutoAssignMonth}
+                  className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/40 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title={`Auto-assegna tutti i turni del mese di ${MESI_ITALIANI[currentMonday.getMonth()]} con distribuzione equa del monte ore`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>Auto-Assegna Intero Mese</span>
                 </button>
 
                 <button
@@ -515,90 +547,124 @@ export const ShiftsView: React.FC = () => {
         })}
       </div>
 
-      {/* Tabella Riepilogo Monte Ore Operatori della Settimana */}
-      <div className="bg-[#0e0e0e] rounded-2xl p-4 sm:p-5 border border-yellow-500/20 shadow-xl space-y-3">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-yellow-400" />
-            <h3 className="font-bold text-yellow-100 text-sm">
-              Monte Ore Turni Personale &ndash; Settimana Corrente
-            </h3>
-          </div>
-          <span className="text-[11px] text-neutral-400 italic">
-            Calcolo automatico inclusivo dei minuti di adattamento dinamico
-          </span>
-        </div>
+      {/* Tabella Riepilogo Bilanciamento Equo Ore & Carico di Lavoro Mensile */}
+      {(() => {
+        const monthlyReport = getMonthlyWorkloadReport(currentMonthKey, shifts, staff);
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-yellow-500/20 text-neutral-400">
-                <th className="py-2 px-3 font-semibold">Operatore</th>
-                <th className="py-2 px-3 font-semibold text-center">N° Turni Assegnati</th>
-                <th className="py-2 px-3 font-semibold text-center">Ore Base</th>
-                <th className="py-2 px-3 font-semibold text-center">Minuti Extra Dinamici</th>
-                <th className="py-2 px-3 font-semibold text-center">Totale Ore Lavorate</th>
-                <th className="py-2 px-3 font-semibold text-right">Compenso Stimato</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-900">
-              {activeStaff.map((op) => {
-                const stats = operatorWeekStats[op.id] || {
-                  shiftsCount: 0,
-                  baseHours: 0,
-                  extraHours: 0,
-                  totalHours: 0,
-                };
-                const totalComp = (op.tariffaOrariaRimborso || 10) * stats.totalHours;
+        return (
+          <div className="bg-[#0e0e0e] rounded-2xl p-4 sm:p-5 border border-yellow-500/20 shadow-xl space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-yellow-400" />
+                <h3 className="font-bold text-yellow-100 text-sm sm:text-base">
+                  Distribuzione Equa Ore Mensili ({MESI_ITALIANI[currentMonday.getMonth()]}{' '}
+                  {currentMonday.getFullYear()})
+                </h3>
+              </div>
+              <span className="text-[11px] text-yellow-300/80 italic bg-yellow-400/10 px-2.5 py-1 rounded-md border border-yellow-500/20">
+                Bilanciamento intelligente del carico ore tra operatori idonei
+              </span>
+            </div>
 
-                return (
-                  <tr key={op.id} className="hover:bg-neutral-950 transition-colors">
-                    <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs text-black shrink-0"
-                          style={{ backgroundColor: op.coloreBadge }}
-                        >
-                          {op.nome[0]}
-                        </div>
-                        <div>
-                          <span className="font-semibold text-yellow-100">
-                            {op.nome} {op.cognome}
-                          </span>
-                          <span className="text-[10px] text-neutral-400 block">
-                            Tariffa: €{op.tariffaOrariaRimborso || 10}/h
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-bold text-yellow-300">
-                      {stats.shiftsCount} turni
-                    </td>
-                    <td className="py-2.5 px-3 text-center text-neutral-300 font-mono">
-                      {stats.baseHours}h
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-mono">
-                      {stats.extraHours > 0 ? (
-                        <span className="text-amber-400 font-semibold">
-                          +{Math.round(stats.extraHours * 60)} min
-                        </span>
-                      ) : (
-                        <span className="text-neutral-500">0 min</span>
-                      )}
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-black text-yellow-400 font-mono text-sm">
-                      {Math.round(stats.totalHours * 10) / 10}h
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-bold text-emerald-400 font-mono">
-                      €{Math.round(totalComp * 100) / 100}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-yellow-500/20 text-neutral-400">
+                    <th className="py-2.5 px-3 font-semibold">Operatore</th>
+                    <th className="py-2.5 px-3 font-semibold text-center">Ferie / Indisp. Mese</th>
+                    <th className="py-2.5 px-3 font-semibold text-center">Turni Assegnati Mese</th>
+                    <th className="py-2.5 px-3 font-semibold text-center">Totale Ore Lavorate</th>
+                    <th className="py-2.5 px-3 font-semibold text-center min-w-[140px]">Bilanciamento / Quota</th>
+                    <th className="py-2.5 px-3 font-semibold text-right">Calendario Personale</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody className="divide-y divide-neutral-900">
+                  {monthlyReport.map(({ operator: op, shiftsCount, totalHours, percentage }) => {
+                    const monthExceptions = (op.indisponibilitaDate || []).filter((d) =>
+                      d.data.startsWith(currentMonthKey)
+                    );
+                    const vacationDays = monthExceptions.filter((d) => d.indisponibileTotale).length;
+                    const customWorkDays = monthExceptions.filter(
+                      (d) => !d.indisponibileTotale && d.oraInizio
+                    ).length;
+
+                    return (
+                      <tr key={op.id} className="hover:bg-neutral-950 transition-colors">
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-black shrink-0"
+                              style={{ backgroundColor: op.coloreBadge }}
+                            >
+                              {op.nome[0]}
+                            </div>
+                            <div>
+                              <span className="font-semibold text-yellow-100 block">
+                                {op.nome} {op.cognome}
+                              </span>
+                              <span className="text-[10px] text-neutral-400 block">
+                                {op.ruolo === 'entrambi' ? 'Operatore & Insegnante' : 'Operatore di Sala'}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-2.5 px-3 text-center">
+                          {vacationDays > 0 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-bold">
+                              🏖️ {vacationDays} gg Ferie
+                            </span>
+                          ) : customWorkDays > 0 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">
+                              💼 {customWorkDays} turni spec.
+                            </span>
+                          ) : (
+                            <span className="text-neutral-500 text-[11px]">Sempre disp.</span>
+                          )}
+                        </td>
+
+                        <td className="py-2.5 px-3 text-center font-bold text-yellow-300">
+                          {shiftsCount} turni
+                        </td>
+
+                        <td className="py-2.5 px-3 text-center font-mono font-black text-yellow-400 text-sm">
+                          {totalHours}h
+                        </td>
+
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-neutral-900 rounded-full h-2 overflow-hidden border border-yellow-500/20">
+                              <div
+                                className="bg-yellow-400 h-full rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, percentage)}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-mono text-yellow-300 font-bold w-9 text-right">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="py-2.5 px-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOpForMonthlySchedule(op)}
+                            className="px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/30 text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            title={`Gestisci orari primari e ferie di ${op.nome}`}
+                          >
+                            <Calendar className="w-3.5 h-3.5 text-yellow-400" />
+                            <span>Calendario & Ferie</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Quick Edit Modal */}
       <ShiftQuickModal
@@ -608,6 +674,13 @@ export const ShiftsView: React.FC = () => {
           setSelectedShiftForEdit(null);
         }}
         shiftComputed={selectedShiftForEdit}
+      />
+
+      {/* Operator Monthly Schedule Modal */}
+      <OperatorMonthlyScheduleModal
+        isOpen={!!selectedOpForMonthlySchedule}
+        onClose={() => setSelectedOpForMonthlySchedule(null)}
+        operator={selectedOpForMonthlySchedule}
       />
     </div>
   );
