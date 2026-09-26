@@ -26,7 +26,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const { clients, rooms, staff, bookings, addBooking, updateBooking, deleteBooking } = useApp();
 
   const [clienteId, setClienteId] = useState('');
-  const [isManualClient, setIsManualClient] = useState(false);
+  const [isManualClient, setIsManualClient] = useState(true);
   const [manualClientName, setManualClientName] = useState('');
   const [salaId, setSalaId] = useState('');
   const [tipo, setTipo] = useState<BookingType>('prove');
@@ -125,9 +125,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       const defaultDate = initialDate || formatDateToISO(new Date());
       const dIndex = parseISODate(defaultDate).getDay();
       const defaultTipo = initialType || 'prove';
-      setIsManualClient(false);
+      setIsManualClient(true);
       setManualClientName('');
-      setClienteId(clients[0]?.id || '');
+      setClienteId('');
       setSalaId(initialRoomId || rooms[0]?.id || '');
       setTipo(defaultTipo);
       setInsegnanteId('');
@@ -521,14 +521,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     if (next && !manualClientName && selectedClient) {
                       setManualClientName(`${selectedClient.nome} ${selectedClient.cognome}${selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''}`);
                     }
+                    if (!next && !clienteId && clients.length > 0) {
+                      setClienteId(clients[0].id);
+                    }
                   }}
                   className="text-[11px] font-bold text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-1 cursor-pointer bg-neutral-900 px-2 py-0.5 rounded border border-yellow-500/30"
-                  title={isManualClient ? 'Torna alla selezione da anagrafica tesserati' : 'Inserisci manualmente band o cliente non tesserato'}
+                  title={isManualClient ? 'Passa alla selezione da anagrafica tesserati' : 'Inserisci manualmente band o cliente'}
                 >
                   {isManualClient ? (
                     <>
                       <Users className="w-3 h-3" />
-                      <span>Scegli da tesserati</span>
+                      <span>Scegli da anagrafica</span>
                     </>
                   ) : (
                     <>
@@ -551,13 +554,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     autoFocus
                   />
                   <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                    <span className="text-yellow-400/80">✨ Prenotazione libera (non tesserato / ospite)</span>
+                    <span className="text-yellow-400/80">✨ Inserimento manuale (predefinito)</span>
                     <button
                       type="button"
-                      onClick={() => setIsManualClient(false)}
-                      className="text-yellow-400 hover:underline cursor-pointer"
+                      onClick={() => {
+                        setIsManualClient(false);
+                        if (!clienteId && clients.length > 0) {
+                          setClienteId(clients[0].id);
+                        }
+                      }}
+                      className="text-yellow-400 hover:underline cursor-pointer flex items-center gap-1"
                     >
-                      Torna alla lista
+                      <Users className="w-3 h-3" />
+                      <span>Scegli da lista tesserati</span>
                     </button>
                   </div>
                 </div>
