@@ -5,6 +5,7 @@ import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig } 
 import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime } from '../utils/dateUtils';
 import { checkOperatorAvailability } from '../utils/scheduler';
 import { RecurrenceModal } from './RecurrenceModal';
+import { SmartTimePicker } from './SmartTimePicker';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -646,51 +647,29 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           )}
 
-          {/* Data & Orari */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Data *
-              </label>
-              <input
-                type="date"
-                required
-                value={data}
-                onChange={(e) => handleDateChange(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                <Clock className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Ora Inizio *
-              </label>
-              <input
-                type="time"
-                required
-                value={oraInizio}
-                onChange={(e) => handleOraInizioChange(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                <Clock className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Ora Fine *
-              </label>
-              <input
-                type="time"
-                required
-                value={oraFine}
-                onChange={(e) => setOraFine(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-              />
-            </div>
+          {/* Data Prenotazione */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+              <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Data Prenotazione *
+            </label>
+            <input
+              type="date"
+              required
+              value={data}
+              onChange={(e) => handleDateChange(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+            />
           </div>
-          <div className="text-xs text-slate-500 px-1 flex items-center justify-between">
-            <span>Durata sessione: <strong className="text-slate-800">{durationHours} {durationHours === 1 ? 'ora' : 'ore'}</strong></span>
-            {durationHours <= 0 && (
-              <span className="text-rose-500 font-medium">L'orario di fine deve essere successivo all'inizio</span>
-            )}
-          </div>
+
+          {/* Selezione Orari Smart con Menù a Scorrimento (Rotella stile iOS) */}
+          <SmartTimePicker
+            startTime={oraInizio}
+            endTime={oraFine}
+            onStartTimeChange={handleOraInizioChange}
+            onEndTimeChange={setOraFine}
+            durationHours={durationHours}
+            bookingType={tipo}
+          />
 
           {/* Ripetizione Settimanale Fissa */}
           {!bookingToEdit && (
