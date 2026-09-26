@@ -389,19 +389,35 @@ export const supabaseService = {
   }) {
     if (!supabase) throw new Error('Client Supabase non configurato');
 
-    const results = await Promise.allSettled([
+    const [
+      studioRes,
+      roomsRes,
+      staffRes,
+      clientsRes,
+      bookingsRes,
+      expensesRes,
+      incomesRes,
+    ] = await Promise.all([
       supabase.from('studio_info').upsert(mapStudioInfoToDb(data.studioInfo)),
       supabase.from('rooms').upsert(data.rooms.map(mapRoomToDb)),
       supabase.from('staff').upsert(data.staff.map(mapStaffToDb)),
       supabase.from('clients').upsert(data.clients.map(mapClientToDb)),
-      supabase.from('bookings').upsert(data.bookings.map(mapBookingToDb)),
-      supabase.from('expenses').upsert(data.expenses.map(mapExpenseToDb)),
-      supabase.from('incomes').upsert(data.incomes.map(mapIncomeToDb)),
+      data.bookings.length > 0 ? supabase.from('bookings').upsert(data.bookings.map(mapBookingToDb)) : Promise.resolve({ error: null }),
+      data.expenses.length > 0 ? supabase.from('expenses').upsert(data.expenses.map(mapExpenseToDb)) : Promise.resolve({ error: null }),
+      data.incomes.length > 0 ? supabase.from('incomes').upsert(data.incomes.map(mapIncomeToDb)) : Promise.resolve({ error: null }),
     ]);
 
-    const errors = results.filter((r) => r.status === 'rejected');
+    const errors: string[] = [];
+    if (studioRes.error) errors.push(`studio_info: ${studioRes.error.message}`);
+    if (roomsRes.error) errors.push(`rooms: ${roomsRes.error.message}`);
+    if (staffRes.error) errors.push(`staff: ${staffRes.error.message}`);
+    if (clientsRes.error) errors.push(`clients: ${clientsRes.error.message}`);
+    if (bookingsRes.error) errors.push(`bookings: ${bookingsRes.error.message}`);
+    if (expensesRes.error) errors.push(`expenses: ${expensesRes.error.message}`);
+    if (incomesRes.error) errors.push(`incomes: ${incomesRes.error.message}`);
+
     if (errors.length > 0) {
-      throw new Error(`Si sono verificati ${errors.length} errori durante il caricamento.`);
+      throw new Error(`Si sono verificati errori durante il caricamento: ${errors.join('; ')}`);
     }
 
     return true;

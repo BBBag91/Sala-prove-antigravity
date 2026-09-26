@@ -3,7 +3,7 @@ import { DEFAULT_STUDIO_INFO, INITIAL_BOOKINGS, INITIAL_CLIENTS, INITIAL_EXPENSE
 import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig } from '../types';
 import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates } from '../utils/dateUtils';
 import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { isSupabaseConfigured, setSupabaseCredentials, getSupabaseUrl, getSupabaseKey } from '../lib/supabase';
 import { supabaseService } from '../services/supabaseService';
 
 interface AppContextType {
@@ -22,6 +22,7 @@ interface AppContextType {
   isLoadingCloud: boolean;
   syncLocalToCloud: () => Promise<boolean>;
   refreshFromCloud: () => Promise<void>;
+  reconnectSupabase: (url?: string, key?: string) => Promise<boolean>;
 
   // Studio actions
   updateStudioInfo: (info: Partial<StudioInfo>) => void;
@@ -220,6 +221,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (remote.incomes.length > 0) setIncomes(remote.incomes);
       if (remote.studioInfo) setStudioInfo(remote.studioInfo);
       setIsCloudConnected(true);
+    }
+  };
+
+  const reconnectSupabase = async (newUrl?: string, newKey?: string): Promise<boolean> => {
+    if (newUrl && newKey) {
+      setSupabaseCredentials(newUrl, newKey);
+    }
+    const isConf = isSupabaseConfigured();
+    if (!isConf) {
+      setIsCloudConnected(false);
+      return false;
+    }
+    setIsLoadingCloud(true);
+    try {
+      const test = await supabaseService.testConnection();
+      if (!test.ok) {
+        setIsCloudConnected(false);
+        return false;
+      }
+      await refreshFromCloud();
+      setIsCloudConnected(true);
+      return true;
+    } catch {
+      setIsCloudConnected(false);
+      return false;
+    } finally {
+      setIsLoadingCloud(false);
     }
   };
 
@@ -557,6 +585,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isLoadingCloud,
         syncLocalToCloud,
         refreshFromCloud,
+        reconnectSupabase,
         addRoom,
         updateRoom,
         deleteRoom,
