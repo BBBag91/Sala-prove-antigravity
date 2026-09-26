@@ -728,7 +728,7 @@ export const CalendarDashboardView: React.FC = () => {
                       const widthPct = 100 / cols;
                       const leftPct = col * widthPct;
                       const hasOperator = !!b.operatoreAssegnatoId;
-                      const shortName = b.clienteNome.length > 8 && (cols > 1 || viewMode === 'week') ? b.clienteNome.split(' ')[0] : b.clienteNome;
+                      const displayName = b.clienteNome || 'Prenotazione';
                       const startShort = b.oraInizio.endsWith(':00') ? b.oraInizio.slice(0, 2) : b.oraInizio;
                       const endShort = b.oraFine.endsWith(':00') ? b.oraFine.slice(0, 2) : b.oraFine;
 
@@ -757,7 +757,7 @@ export const CalendarDashboardView: React.FC = () => {
                                 }`}
                                 style={{ color: colors.text }}
                               >
-                                {shortName}
+                                {displayName}
                               </span>
                               {b.tipo === 'lezione' && (
                                 <span
