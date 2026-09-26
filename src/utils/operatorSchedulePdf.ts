@@ -125,6 +125,266 @@ export function generateSingleOperatorSchedulePDF(
 }
 
 /**
+ * Generate Ultra-Schematic 1-PAGE Master Summary PDF for all operators.
+ * Strictly guarantees maximum ONE single page (1 pagina al massimo).
+ */
+export function generateMasterSummarySinglePagePDF(
+  reports: OperatorScheduleReportData[],
+  periodLabel: string,
+  studioInfo?: StudioInfo
+): void {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 12;
+  const contentWidth = pageWidth - margin * 2; // 186mm
+  let y = 12;
+
+  const studioName = studioInfo?.nome || 'Sound Studio';
+  const studioSub = studioInfo?.sottotitolo || 'Gestionale Sala Prove Musicale';
+  const contacts = [
+    studioInfo?.indirizzo ? `Sede: ${studioInfo.indirizzo}` : '',
+    studioInfo?.telefono ? `Tel: ${studioInfo.telefono}` : '',
+    studioInfo?.email ? `Email: ${studioInfo.email}` : '',
+  ]
+    .filter(Boolean)
+    .join(' • ');
+
+  // 1. Studio Header Box (18mm)
+  doc.setFillColor(248, 250, 252);
+  doc.rect(margin, y, contentWidth, 18, 'F');
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.3);
+  doc.rect(margin, y, contentWidth, 18, 'S');
+
+  // Yellow accent vertical bar
+  doc.setFillColor(234, 179, 8); // Gold Yellow
+  doc.rect(margin, y, 3, 18, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`SALA PROVE • ${studioName.toUpperCase()}`, margin + 5, y + 6);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(studioSub, margin + 5, y + 10.5);
+  if (contacts) {
+    doc.text(contacts, margin + 5, y + 15);
+  }
+
+  // Right Side Header Badge
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(180, 83, 9); // Amber 700
+  doc.text('DOCUMENTO SINTETICO AMMINISTRAZIONE', pageWidth - margin - 4, y + 6, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Emissione: ${new Date().toLocaleDateString('it-IT')}`, pageWidth - margin - 4, y + 11, { align: 'right' });
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text('PAGINA 1 DI 1 (SCHEDA UNICA)', pageWidth - margin - 4, y + 15.5, { align: 'right' });
+
+  y += 22;
+
+  // 2. Document Title & Period
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(15, 23, 42);
+  doc.text('PROSPETTO TABELLARE SINTETICO OPERATORI', margin, y);
+
+  y += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Periodo di riferimento: ${periodLabel} • Resoconto generale ore, presidi e compensi`, margin, y);
+
+  y += 7;
+
+  // 3. KPI Summary Boxes (13mm high)
+  const totalAllHours = reports.reduce((s, r) => s + r.totalHours, 0);
+  const totalAllAppointments = reports.reduce((s, r) => s + r.totalAppointments, 0);
+  const totalAllCompensation = reports.reduce((s, r) => s + r.totalCompensation, 0);
+
+  const colW = contentWidth / 4;
+  const boxH = 13;
+
+  const stats = [
+    { label: 'OPERATORI ATTIVI', value: `${reports.length}` },
+    { label: 'TOTALE APPUNTAMENTI', value: `${totalAllAppointments}` },
+    { label: 'ORE TOTALI PRESIDIO/LEZ.', value: `${totalAllHours.toFixed(1)} h` },
+    { label: 'MONTE COMPENSI', value: `€ ${totalAllCompensation.toFixed(2)}` },
+  ];
+
+  stats.forEach((st, i) => {
+    const bx = margin + i * colW;
+    doc.setFillColor(248, 250, 252);
+    doc.rect(bx, y, colW - 2, boxH, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.2);
+    doc.rect(bx, y, colW - 2, boxH, 'S');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6);
+    doc.setTextColor(100, 116, 139);
+    doc.text(st.label, bx + 3, y + 4.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text(st.value, bx + 3, y + 10.5);
+  });
+
+  y += boxH + 7;
+
+  // 4. Schematic Table Header (7mm)
+  doc.setFillColor(30, 41, 59); // Slate 800
+  doc.rect(margin, y, contentWidth, 7, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(255, 255, 255);
+
+  doc.text('OPERATORE / INCARICATO', margin + 3, y + 4.8);
+  doc.text('RUOLO', margin + 55, y + 4.8);
+  doc.text('GIORNI', margin + 95, y + 4.8);
+  doc.text('APPUNTAMENTI', margin + 115, y + 4.8);
+  doc.text('ORE TOTALI', margin + 145, y + 4.8);
+  doc.text('COMPENSO STIMATO', margin + 183, y + 4.8, { align: 'right' });
+
+  y += 7;
+
+  // 5. Table Rows
+  const rowH = 7.5;
+  reports.forEach((rep, index) => {
+    const isEven = index % 2 === 0;
+    doc.setFillColor(isEven ? 255 : 248, isEven ? 255 : 250, isEven ? 255 : 252);
+    doc.rect(margin, y, contentWidth, rowH, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.15);
+    doc.line(margin, y + rowH, margin + contentWidth, y + rowH);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${rep.operator.cognome} ${rep.operator.nome}`, margin + 3, y + 5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    const roleStr =
+      rep.operator.ruolo === 'entrambi'
+        ? 'Operatore & Docente'
+        : rep.operator.ruolo === 'operatore'
+        ? 'Operatore Sala'
+        : 'Insegnante';
+    doc.text(roleStr, margin + 55, y + 5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${rep.totalWorkingDays} gg`, margin + 95, y + 5);
+    doc.text(`${rep.totalAppointments}`, margin + 115, y + 5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${rep.totalHours} h`, margin + 145, y + 5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(16, 185, 129); // Emerald 600
+    doc.text(
+      rep.totalCompensation > 0 ? `€ ${rep.totalCompensation.toFixed(2)}` : '€ 0.00',
+      margin + 183,
+      y + 5,
+      { align: 'right' }
+    );
+
+    y += rowH;
+  });
+
+  // 6. Totals Row
+  doc.setFillColor(241, 245, 249); // Slate 100
+  doc.rect(margin, y, contentWidth, 8, 'F');
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.3);
+  doc.rect(margin, y, contentWidth, 8, 'S');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(15, 23, 42);
+  doc.text('TOTALE GENERALE', margin + 3, y + 5.2);
+
+  doc.text(`${totalAllAppointments}`, margin + 115, y + 5.2);
+  doc.text(`${totalAllHours.toFixed(1)} h`, margin + 145, y + 5.2);
+  doc.setTextColor(5, 150, 105); // Emerald 700
+  doc.text(`€ ${totalAllCompensation.toFixed(2)}`, margin + 183, y + 5.2, { align: 'right' });
+
+  y += 14;
+
+  // 7. Official Signatures and Convalidation Box
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.2);
+  doc.line(margin, y, margin + contentWidth, y);
+  y += 4;
+
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text(
+    'Prospetto riepilogativo per uso interno amministrativo. Rilevato automaticamente dal gestionale sala prove.',
+    margin,
+    y + 2
+  );
+
+  y += 8;
+
+  // Two signature columns
+  const sigColW = contentWidth / 2;
+
+  // Left: Firma Operatore
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Luogo e Data: ${studioInfo?.citta || 'In sede'}, ${new Date().toLocaleDateString('it-IT')}`, margin, y);
+  y += 10;
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, margin + 65, y);
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('Firma Operatore / Ricevuta', margin, y + 3.5);
+
+  // Right: Firma Direzione
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Per la Direzione: ${studioName}`, margin + sigColW, y - 10);
+  doc.line(margin + sigColW, y, margin + sigColW + 65, y);
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('Firma Responsabile / Timbro Struttura', margin + sigColW, y + 3.5);
+
+  // 8. Footer (at bottom of page, strictly page 1 of 1)
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text(
+    `Documento Ufficiale Amministrazione • Prospetto Schematica 1 Pagina • Periodo: ${periodLabel}`,
+    margin,
+    pageHeight - 6
+  );
+  doc.text('Pagina 1 di 1', pageWidth - margin, pageHeight - 6, { align: 'right' });
+
+  const cleanPeriod = periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
+  doc.save(`Tabella_Riepilogo_Operatori_${cleanPeriod}.pdf`);
+}
+
+/**
  * Generate PDF for All Operators (Complete Catalog / Master Report)
  */
 export function generateAllOperatorsScheduleCatalogPDF(

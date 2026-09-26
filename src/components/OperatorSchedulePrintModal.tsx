@@ -21,6 +21,7 @@ import {
   getOperatorAppointmentsData,
   generateSingleOperatorSchedulePDF,
   generateAllOperatorsScheduleCatalogPDF,
+  generateMasterSummarySinglePagePDF,
   OperatorScheduleReportData,
 } from '../utils/operatorSchedulePdf';
 
@@ -28,6 +29,7 @@ interface OperatorSchedulePrintModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialOperatorId?: string | null;
+  onOpenMonthlyShiftsPdf?: () => void;
 }
 
 type PeriodFilterType =
@@ -43,12 +45,14 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
   isOpen,
   onClose,
   initialOperatorId,
+  onOpenMonthlyShiftsPdf,
 }) => {
   const { staff, bookings, studioInfo } = useApp();
 
   const [selectedOperatorId, setSelectedOperatorId] = useState<string>(
     initialOperatorId || 'all'
   );
+  const [layoutMode, setLayoutMode] = useState<'schematic_table' | 'detailed_cards'>('schematic_table');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilterType>('current_month');
   const [activityFilter, setActivityFilter] = useState<'all' | 'prove' | 'lezione'>('all');
 
@@ -158,7 +162,11 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
     setIsExporting(true);
     try {
       if (selectedOperatorId === 'all') {
-        generateAllOperatorsScheduleCatalogPDF(allReports, periodLabel, studioInfo);
+        if (layoutMode === 'schematic_table') {
+          generateMasterSummarySinglePagePDF(allReports, periodLabel, studioInfo);
+        } else {
+          generateAllOperatorsScheduleCatalogPDF(allReports, periodLabel, studioInfo);
+        }
       } else if (activeReport) {
         generateSingleOperatorSchedulePDF(activeReport, studioInfo);
       }
@@ -290,16 +298,67 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
             </div>
           )}
 
+          {/* Quick link banner to monthly shifts calendar if callback provided */}
+          {onOpenMonthlyShiftsPdf && (
+            <div className="p-2.5 px-3 bg-yellow-400/10 border border-yellow-500/30 rounded-lg flex items-center justify-between gap-2 text-xs print:hidden">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-yellow-400 shrink-0" />
+                <span className="text-yellow-200">
+                  Vuoi il <strong>tabellone orario turni Lun-Ven</strong> (1° Turno 17-20 e 2° Turno 20-23 del mese)?
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenMonthlyShiftsPdf();
+                }}
+                className="px-2.5 py-1 rounded-md bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-[11px] whitespace-nowrap cursor-pointer transition-colors shadow-xs"
+              >
+                Apri Tabella Turni Mese (1 Pagina Landscape) →
+              </button>
+            </div>
+          )}
+
           {/* Actions & Metrics row */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
-            {/* Quick Summary Pill */}
-            <div className="flex items-center gap-2 text-xs">
-              <span className="font-semibold text-slate-700">Riepilogo selezione:</span>
+            {/* Quick Summary Pill & Layout Mode Selector */}
+            <div className="flex items-center gap-3 flex-wrap text-xs">
+              {selectedOperatorId === 'all' && (
+                <div className="flex items-center bg-slate-200/80 p-0.5 rounded-lg border border-slate-300">
+                  <button
+                    type="button"
+                    onClick={() => setLayoutMode('schematic_table')}
+                    className={`px-3 py-1.5 rounded-md font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                      layoutMode === 'schematic_table'
+                        ? 'bg-yellow-400 text-black shadow-xs font-black'
+                        : 'text-slate-700 hover:text-slate-900'
+                    }`}
+                    title="Layout compatto e schematico su una singola pagina"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Tabella Schematica</span>
+                    <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-black/15 text-black font-bold">1 Pagina Max</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLayoutMode('detailed_cards')}
+                    className={`px-3 py-1.5 rounded-md font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                      layoutMode === 'detailed_cards'
+                        ? 'bg-yellow-400 text-black shadow-xs font-black'
+                        : 'text-slate-700 hover:text-slate-900'
+                    }`}
+                    title="Stampa le schede analitiche complete con tutti gli appuntamenti di ciascun operatore"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Dettagliato (Multi-foglio)</span>
+                  </button>
+                </div>
+              )}
+
               {selectedOperatorId === 'all' ? (
-                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200/80 px-2.5 py-1 rounded-md font-bold">
-                  {staff.length} Operatori •{' '}
-                  {allReports.reduce((s, r) => s + r.totalAppointments, 0)} Appuntamenti Totali (
-                  {allReports.reduce((s, r) => s + r.totalHours, 0).toFixed(1)} ore)
+                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200/80 px-2.5 py-1 rounded-md font-bold hidden sm:inline-flex">
+                  {staff.length} Operatori • {allReports.reduce((s, r) => s + r.totalAppointments, 0)} Appuntamenti Totali ({allReports.reduce((s, r) => s + r.totalHours, 0).toFixed(1)}h)
                 </span>
               ) : activeReport ? (
                 <span className="bg-indigo-50 text-indigo-700 border border-indigo-200/80 px-2.5 py-1 rounded-md font-bold">
@@ -314,21 +373,33 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
             <div className="flex items-center gap-2 ml-auto">
               <button
                 onClick={handlePrint}
-                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer border border-slate-300"
                 title="Stampa documento direttamente con stampante"
               >
-                <Printer className="w-4 h-4 text-slate-600" />
-                <span>Stampa</span>
+                <Printer className="w-4 h-4 text-slate-700" />
+                <span>
+                  {selectedOperatorId === 'all' && layoutMode === 'schematic_table'
+                    ? 'Stampa Subito (1 Foglio)'
+                    : 'Stampa'}
+                </span>
               </button>
 
               <button
                 onClick={handleDownloadPDF}
                 disabled={isExporting}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 text-black font-black text-xs rounded-lg shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
                 title="Scarica documento in formato PDF A4 vettoriale"
               >
                 <Download className="w-4 h-4" />
-                <span>{isExporting ? 'Generazione PDF...' : selectedOperatorId === 'all' ? 'Scarica Catalogo PDF' : 'Scarica PDF'}</span>
+                <span>
+                  {isExporting
+                    ? 'Generazione PDF...'
+                    : selectedOperatorId === 'all'
+                    ? layoutMode === 'schematic_table'
+                      ? 'Scarica PDF (1 Pagina)'
+                      : 'Scarica Catalogo PDF'
+                    : 'Scarica PDF'}
+                </span>
               </button>
             </div>
           </div>
@@ -340,58 +411,74 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
             {selectedOperatorId === 'all' ? (
               // ALL OPERATORS CATALOG PREVIEW
               <div className="space-y-8 print:space-y-0">
-                {/* 1. Master Table Page */}
-                <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 print:shadow-none print:border-none print:p-6 print:break-after-page">
-                  {/* Studio Header */}
-                  <div className="border border-slate-200 bg-slate-50/80 rounded-lg p-4 mb-6">
-                    <h3 className="text-base font-extrabold text-indigo-600 tracking-tight uppercase">
-                      SALA PROVE • {studioInfo.nome}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-normal">
-                      {studioInfo.sottotitolo || 'Gestionale Sala Prove Musicale'}
-                    </p>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      {[
-                        studioInfo.indirizzo ? `Sede: ${studioInfo.indirizzo}` : '',
-                        studioInfo.telefono ? `Tel: ${studioInfo.telefono}` : '',
-                        studioInfo.email ? `Email: ${studioInfo.email}` : '',
-                        studioInfo.codiceFiscalePiva ? `C.F./P.IVA: ${studioInfo.codiceFiscalePiva}` : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' • ')}
-                    </p>
-                  </div>
-
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                      CATALOGO GENERALE APPUNTAMENTI OPERATORI
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Periodo di riferimento: <strong className="text-slate-800">{periodLabel}</strong>
-                    </p>
-                  </div>
-
-                  {/* Summary Metric Tiles */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Operatori</span>
-                      <span className="text-base font-bold text-slate-900">{staff.length}</span>
+                {/* 1. Master Table Page (Formattata per 1 Foglio Singolo) */}
+                <div
+                  className={`bg-white p-5 sm:p-7 rounded-xl shadow-md border border-slate-200 print:shadow-none print:border-none print:p-4 ${
+                    layoutMode === 'detailed_cards'
+                      ? 'print:break-after-page'
+                      : 'print:break-inside-avoid print:page-break-inside-avoid'
+                  }`}
+                >
+                  {/* Studio Header (Compatto) */}
+                  <div className="border border-slate-200 bg-slate-50/80 rounded-lg p-3 mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-extrabold text-indigo-600 tracking-tight uppercase flex items-center gap-1.5">
+                        <Building2 className="w-4 h-4" />
+                        <span>SALA PROVE • {studioInfo.nome}</span>
+                      </h3>
+                      <p className="text-[11px] text-slate-500 font-normal">
+                        {studioInfo.sottotitolo || 'Gestionale Sala Prove Musicale'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {[
+                          studioInfo.indirizzo ? `Sede: ${studioInfo.indirizzo}` : '',
+                          studioInfo.telefono ? `Tel: ${studioInfo.telefono}` : '',
+                          studioInfo.email ? `Email: ${studioInfo.email}` : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' • ')}
+                      </p>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+
+                    <div className="text-right text-[10px] text-slate-500">
+                      <span className="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded block mb-1">
+                        PROSPETTO AMMINISTRAZIONE
+                      </span>
+                      <span>Emissione: {new Date().toLocaleDateString('it-IT')}</span>
+                      <span className="block font-bold text-slate-800">PAGINA 1 DI 1</span>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                      PROSPETTO TABELLARE SINTETICO OPERATORI & PRESIDI
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Periodo di riferimento: <strong className="text-slate-800">{periodLabel}</strong> &bull; Resoconto generale presidi, lezioni e carichi
+                    </p>
+                  </div>
+
+                  {/* Summary Metric Tiles (Compatti) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Operatori Attivi</span>
+                      <span className="text-base font-black text-slate-900">{staff.length}</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
                       <span className="text-[10px] font-bold uppercase text-slate-400 block">Appuntamenti</span>
-                      <span className="text-base font-bold text-slate-900">
+                      <span className="text-base font-black text-slate-900">
                         {allReports.reduce((s, r) => s + r.totalAppointments, 0)}
                       </span>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
                       <span className="text-[10px] font-bold uppercase text-slate-400 block">Ore Totali</span>
-                      <span className="text-base font-bold text-indigo-600">
+                      <span className="text-base font-black text-indigo-600">
                         {allReports.reduce((s, r) => s + r.totalHours, 0).toFixed(1)} h
                       </span>
                     </div>
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
                       <span className="text-[10px] font-bold uppercase text-emerald-600 block">Monte Compensi</span>
-                      <span className="text-base font-bold font-mono text-emerald-800">
+                      <span className="text-base font-black font-mono text-emerald-800">
                         € {allReports.reduce((s, r) => s + r.totalCompensation, 0).toFixed(2)}
                       </span>
                     </div>
@@ -401,58 +488,105 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
                   <div className="border border-slate-200 rounded-lg overflow-hidden">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-indigo-600 text-white font-bold text-[11px]">
-                          <th className="py-2.5 px-3">Operatore</th>
-                          <th className="py-2.5 px-3">Ruolo</th>
-                          <th className="py-2.5 px-2 text-center">Giorni</th>
-                          <th className="py-2.5 px-2 text-center">Appuntamenti</th>
-                          <th className="py-2.5 px-2 text-center">Ore</th>
-                          <th className="py-2.5 px-3 text-right">Compenso</th>
+                        <tr className="bg-indigo-600 text-white font-bold text-[10.5px]">
+                          <th className="py-2 px-3">Operatore / Incaricato</th>
+                          <th className="py-2 px-3">Ruolo</th>
+                          <th className="py-2 px-2 text-center">Giorni</th>
+                          <th className="py-2 px-2 text-center">Appuntamenti</th>
+                          <th className="py-2 px-2 text-center">Ore Totali</th>
+                          <th className="py-2 px-3 text-right">Compenso Stimato</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-slate-700">
                         {allReports.map((r, i) => (
                           <tr key={r.operator.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
-                            <td className="py-2.5 px-3 font-semibold text-slate-900">
+                            <td className="py-2 px-3 font-bold text-slate-900">
                               {r.operator.cognome} {r.operator.nome}
                             </td>
-                            <td className="py-2.5 px-3 text-[11px] text-slate-500">
+                            <td className="py-2 px-3 text-[11px] text-slate-500">
                               {r.operator.ruolo === 'entrambi'
                                 ? 'Operatore & Docente'
                                 : r.operator.ruolo === 'operatore'
-                                ? 'Operatore'
+                                ? 'Operatore Sala'
                                 : 'Insegnante'}
                             </td>
-                            <td className="py-2.5 px-2 text-center font-mono">{r.totalWorkingDays}</td>
-                            <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-800">
+                            <td className="py-2 px-2 text-center font-mono text-slate-700">{r.totalWorkingDays} gg</td>
+                            <td className="py-2 px-2 text-center font-mono font-bold text-slate-800">
                               {r.totalAppointments}
                             </td>
-                            <td className="py-2.5 px-2 text-center font-mono font-bold text-indigo-700">
+                            <td className="py-2 px-2 text-center font-mono font-black text-indigo-700">
                               {r.totalHours}h
                             </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">
-                              € {r.totalCompensation.toFixed(2)}
+                            <td className="py-2 px-3 text-right font-mono font-bold text-emerald-700">
+                              {r.totalCompensation > 0 ? `€ ${r.totalCompensation.toFixed(2)}` : '€ 0.00'}
                             </td>
                           </tr>
                         ))}
                       </tbody>
+                      <tfoot>
+                        <tr className="bg-slate-100 font-black border-t-2 border-slate-300 text-slate-900 text-xs">
+                          <td colSpan={2} className="py-2.5 px-3 uppercase tracking-wider text-[11px]">
+                            TOTALE GENERALE
+                          </td>
+                          <td className="py-2.5 px-2 text-center font-mono text-slate-600">-</td>
+                          <td className="py-2.5 px-2 text-center font-mono font-black">
+                            {allReports.reduce((s, r) => s + r.totalAppointments, 0)}
+                          </td>
+                          <td className="py-2.5 px-2 text-center font-mono font-black text-indigo-700">
+                            {allReports.reduce((s, r) => s + r.totalHours, 0).toFixed(1)}h
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700">
+                            € {allReports.reduce((s, r) => s + r.totalCompensation, 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
 
-                  <p className="text-[11px] text-slate-400 italic mt-4 text-center">
-                    * Segue il dettaglio analitico giorno per giorno per ciascun operatore.
-                  </p>
+                  {/* Signatures & Official Validation Box on the single page */}
+                  <div className="pt-4 mt-4 border-t border-slate-200 text-xs text-slate-600 grid grid-cols-2 gap-8 print:pt-3 print:mt-3">
+                    <div className="space-y-4">
+                      <p className="text-[11px] text-slate-500">
+                        Luogo e Data: <strong className="text-slate-800">{studioInfo.citta || 'In sede'}, {formatDateItalian(new Date().toISOString().split('T')[0], false)}</strong>
+                      </p>
+                      <div>
+                        <div className="border-b border-slate-300 w-44 mb-1"></div>
+                        <span className="text-[10px] text-slate-400">Firma Operatore / Incaricato</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 text-right flex flex-col items-end">
+                      <p className="text-[11px] text-slate-500">
+                        Per la Direzione: <strong className="text-slate-800">{studioInfo.nome}</strong>
+                      </p>
+                      <div className="w-full flex flex-col items-end">
+                        <div className="border-b border-slate-300 w-44 mb-1"></div>
+                        <span className="text-[10px] text-slate-400">Firma Responsabile / Timbro Struttura</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {layoutMode === 'detailed_cards' ? (
+                    <p className="text-[11px] text-slate-400 italic mt-4 text-center">
+                      * Segue il dettaglio analitico giorno per giorno per ciascun operatore.
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 text-center mt-3">
+                      Documento Ufficiale ad uso interno Amministrazione &bull; Scheda Sintetica 1 Pagina Max
+                    </p>
+                  )}
                 </div>
 
-                {/* Individual Pages for each operator in catalog */}
-                {allReports.map((report) => (
-                  <OperatorScheduleCard
-                    key={report.operator.id}
-                    report={report}
-                    studioInfo={studioInfo}
-                    periodLabel={periodLabel}
-                  />
-                ))}
+                {/* Individual Pages for each operator in catalog (SOLO in modalità dettagliata!) */}
+                {layoutMode === 'detailed_cards' &&
+                  allReports.map((report) => (
+                    <OperatorScheduleCard
+                      key={report.operator.id}
+                      report={report}
+                      studioInfo={studioInfo}
+                      periodLabel={periodLabel}
+                    />
+                  ))}
               </div>
             ) : (
               // SINGLE OPERATOR PREVIEW

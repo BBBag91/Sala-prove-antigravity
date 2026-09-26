@@ -99,8 +99,14 @@ const COLOR_PALETTE = [
 
 type ViewMode = 'day' | '3days' | 'week';
 
+interface CalendarDashboardViewProps {
+  onNavigateToTurni?: () => void;
+}
+
 // -- Component ------------------------------------------------------------------
-export const CalendarDashboardView: React.FC = () => {
+export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
+  onNavigateToTurni,
+}) => {
   const { rooms, staff, bookings, clients, runAutoAssignment, deleteBooking, refreshFromCloud, isAutoRefreshing, shifts } = useApp();
   const { isAdmin } = useAuth();
 
@@ -407,7 +413,7 @@ export const CalendarDashboardView: React.FC = () => {
   })();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 print:hidden">
 
       {/* -- Toolbar -- */}
       <div className="bg-[#0e0e0e] rounded-xl border border-yellow-500/25 shadow-sm overflow-hidden">
@@ -594,10 +600,24 @@ export const CalendarDashboardView: React.FC = () => {
               </span>
             </button>
 
+            {/* Schema Turni Settimanale Quick Link */}
+            {onNavigateToTurni && (
+              <button
+                type="button"
+                onClick={onNavigateToTurni}
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-yellow-500/40 bg-yellow-400/15 hover:bg-yellow-400 hover:text-black text-yellow-300 text-[11px] sm:text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-2xs"
+                title="Apri lo schema riepilogativo settimanale dei turni (tabella e lista)"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Schema Turni Settimana</span>
+                <span className="sm:hidden">Turni</span>
+              </button>
+            )}
+
             {/* New Booking Button */}
             <button
               onClick={() => { setSelectedDateForBooking(formatDateToISO(today)); setBookingToEdit(null); setIsBookingModalOpen(true); }}
-              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-black font-bold text-[11px] sm:text-xs rounded-lg shadow-sm transition-all whitespace-nowrap ml-auto sm:ml-0"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-black font-bold text-[11px] sm:text-xs rounded-lg shadow-sm transition-all whitespace-nowrap ml-auto sm:ml-0 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
               <span className="hidden sm:inline">Nuova Prenotazione</span>

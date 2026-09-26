@@ -281,6 +281,10 @@
     display: none !important;
   }
 
+  .print\:block {
+    display: block !important;
+  }
+
   .print\:break-after-page {
     break-after: page !important;
     page-break-after: always !important;

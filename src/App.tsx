@@ -56,9 +56,9 @@ const AppContent: React.FC = () => {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { resetToDemoData, studioInfo, bookings, staff, clients, expenses } = useApp();
 
-  // Route Guard: Utente standard può accedere solo al Calendario
+  // Route Guard: Utente standard può accedere al Calendario e allo Schema Turni
   useEffect(() => {
-    if (isUser && activeTab !== 'calendar') {
+    if (isUser && activeTab !== 'calendar' && activeTab !== 'turni') {
       setActiveTab('calendar');
     }
   }, [isUser, activeTab]);
@@ -218,6 +218,23 @@ const AppContent: React.FC = () => {
                 >
                   <LayoutDashboard className="w-3.5 h-3.5" />
                   <span>Calendario</span>
+                </button>
+
+                {/* Schema Turni Settimana Tab (In primo piano per accesso immediato) */}
+                <button
+                  onClick={() => {
+                    setActiveTab('turni');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    activeTab === 'turni'
+                      ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                      : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
+                  }`}
+                  title="Schema riepilogativo settimanale dei turni di presidio"
+                >
+                  <CalendarClock className="w-3.5 h-3.5" />
+                  <span>Schema Turni</span>
                 </button>
 
                 {/* ADMIN ONLY: Conti del Mese & Bollette Tab */}
@@ -678,6 +695,25 @@ const AppContent: React.FC = () => {
                 {activeTab === 'calendar' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
               </button>
 
+              {/* Schema Turni Settimana */}
+              <button
+                onClick={() => {
+                  setActiveTab('turni');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  activeTab === 'turni'
+                    ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
+                    : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <CalendarClock className="w-4 h-4" />
+                  <span>Schema Turni Settimana</span>
+                </div>
+                {activeTab === 'turni' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </button>
+
               {isAdmin && (
                 <>
                   <button
@@ -788,10 +824,12 @@ const AppContent: React.FC = () => {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-6 flex-1 w-full">
-        {activeTab === 'calendar' && <CalendarDashboardView />}
+        {activeTab === 'calendar' && (
+          <CalendarDashboardView onNavigateToTurni={() => setActiveTab('turni')} />
+        )}
+        {activeTab === 'turni' && <ShiftsView />}
         {isAdmin && (
           <>
-            {activeTab === 'turni' && <ShiftsView />}
             {activeTab === 'anagrafica' && (
               <AnagraficaView onNavigateTab={(tab) => setActiveTab(tab)} />
             )}
@@ -804,7 +842,7 @@ const AppContent: React.FC = () => {
             {activeTab === 'finance' && <FinanceView />}
           </>
         )}
-        {!isAdmin && activeTab !== 'calendar' && (
+        {!isAdmin && activeTab !== 'calendar' && activeTab !== 'turni' && (
           <div className="bg-neutral-950 border border-rose-500/30 rounded-2xl p-8 text-center space-y-3 my-8">
             <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
               <Shield className="w-6 h-6" />

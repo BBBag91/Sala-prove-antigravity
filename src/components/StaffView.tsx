@@ -16,12 +16,14 @@ import {
   CalendarCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { StaffMember } from '../types';
 import { GIORNI_CALENDARIO } from '../utils/dateUtils';
 import { getOperatorAccumulatedHours } from '../utils/scheduler';
 import { StaffModal } from './StaffModal';
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
 import { OperatorMonthlyScheduleModal } from './OperatorMonthlyScheduleModal';
+import { MonthlyShiftsPdfModal } from './MonthlyShiftsPdfModal';
 
 interface StaffViewProps {
   onNavigateToTurni?: () => void;
@@ -29,10 +31,12 @@ interface StaffViewProps {
 
 export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
   const { staff, bookings, deleteStaff } = useApp();
+  const { isAdmin } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [staffToEdit, setStaffToEdit] = useState<StaffMember | null>(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isMonthlyPdfModalOpen, setIsMonthlyPdfModalOpen] = useState(false);
   const [selectedOperatorForSchedule, setSelectedOperatorForSchedule] = useState<string | null>(null);
   const [selectedOperatorForMonthlyCalendar, setSelectedOperatorForMonthlyCalendar] = useState<StaffMember | null>(null);
 
@@ -83,6 +87,18 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
             >
               <Clock className="w-4 h-4" />
               <span>Pannello Turni Presidio</span>
+            </button>
+          )}
+
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsMonthlyPdfModalOpen(true)}
+              className="px-3.5 py-2 bg-yellow-400/20 hover:bg-yellow-400/30 text-yellow-300 font-bold text-xs rounded-lg border border-yellow-500/40 shadow-2xs transition-colors flex items-center gap-2 cursor-pointer"
+              title="Esporta o stampa la tabella schematica turni del mese (1 pagina orizzontale)"
+            >
+              <Printer className="w-4 h-4 text-yellow-400" />
+              <span>Stampa PDF Mese (1 Pagina)</span>
             </button>
           )}
 
@@ -324,6 +340,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
         isOpen={isScheduleModalOpen}
         onClose={() => setIsScheduleModalOpen(false)}
         initialOperatorId={selectedOperatorForSchedule}
+        onOpenMonthlyShiftsPdf={isAdmin ? () => setIsMonthlyPdfModalOpen(true) : undefined}
       />
 
       <OperatorMonthlyScheduleModal
@@ -331,6 +348,13 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
         onClose={() => setSelectedOperatorForMonthlyCalendar(null)}
         operator={selectedOperatorForMonthlyCalendar}
       />
+
+      {isAdmin && (
+        <MonthlyShiftsPdfModal
+          isOpen={isMonthlyPdfModalOpen}
+          onClose={() => setIsMonthlyPdfModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
