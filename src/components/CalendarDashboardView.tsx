@@ -1240,27 +1240,27 @@ export const CalendarDashboardView: React.FC = () => {
                           }}
                           className="absolute z-[1] pointer-events-none border-l-[3px] transition-all bg-gradient-to-b from-amber-500/[0.08] via-amber-500/[0.03] to-transparent overflow-hidden"
                         >
-                          {/* Header compatto del turno nello sfondo */}
+                          {/* Header compatto del turno nello sfondo (Visibilità ottimizzata per smartphone) */}
                           <div
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedShiftForEdit(s1Col);
                               setIsShiftModalOpen(true);
                             }}
-                            className="pointer-events-auto flex items-center justify-between px-1.5 py-0.5 bg-neutral-950/85 backdrop-blur-2xs border-b border-amber-500/20 hover:bg-neutral-900 transition-colors cursor-pointer group/hdr1 select-none"
-                            title={`1° Turno (${s1Col.oraInizio} - ${s1Col.oraFine}): ${s1Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`}
+                            className="pointer-events-auto flex items-center justify-between px-1 sm:px-1.5 py-0.5 bg-neutral-950/95 border-b border-amber-500/40 hover:bg-neutral-900 transition-colors cursor-pointer group/hdr1 select-none shadow-sm"
+                            title={`1° Turno Presidio (${s1Col.oraInizio} - ${s1Col.oraFine}): ${s1Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`}
                           >
-                            <div className="flex items-center gap-1 min-w-0">
+                            <div className="flex items-center gap-1 min-w-0 flex-1 truncate">
                               <span
-                                className="w-2 h-2 rounded-full shrink-0 shadow-xs ring-1 ring-black/60"
+                                className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full shrink-0 shadow-xs ring-1 ring-black/70"
                                 style={{ backgroundColor: s1Col.operatoreBadgeColor || (s1Col.operatoreId ? '#f59e0b' : '#ef4444') }}
                               />
-                              <span className="text-[8.5px] sm:text-[9.5px] font-bold text-yellow-300 group-hover/hdr1:text-yellow-100 truncate flex items-center gap-0.5">
-                                <Shield className="w-2.5 h-2.5 text-yellow-400 shrink-0" />
-                                T1: {s1Col.operatoreNome ? s1Col.operatoreNome : '⚠️ Da Assegnare'}
+                              <span className="text-[9.5px] sm:text-[10.5px] font-black text-yellow-300 group-hover/hdr1:text-yellow-100 truncate tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                                <span className="opacity-75 font-mono text-[8px] mr-0.5">T1:</span>
+                                {s1Col.operatoreNome ? s1Col.operatoreNome.split(' ')[0] : '⚠️ Non Assegn.'}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1 shrink-0">
+                            <div className="hidden sm:flex items-center gap-1 shrink-0 ml-1">
                               <span className="text-[8px] sm:text-[8.5px] font-mono text-yellow-400/80">
                                 {s1Col.oraInizio.slice(0, 5)}-{s1Col.oraFine.slice(0, 5)}
                               </span>
@@ -1275,14 +1275,35 @@ export const CalendarDashboardView: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Watermark discreto nello sfondo */}
-                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-20 select-none overflow-hidden p-2 mt-4">
-                            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-yellow-400/70 font-mono text-center">
-                              🛡️ PRESIDIO T1 &bull; {s1Col.operatoreNome ? s1Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
-                            </span>
-                            <span className="text-[8px] font-mono text-yellow-500/60 mt-0.5">
-                              {s1Col.oraInizio} &rarr; {s1Col.oraFine}
-                            </span>
+                          {/* Badge Operatore ben visibile al centro del turno (Stile front-end scuro/oro ad alto contrasto) */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none p-1 z-[1]">
+                            <div className="flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-neutral-950/85 border border-amber-500/40 backdrop-blur-xs shadow-md shadow-black/90 max-w-[94%]">
+                              <div className="flex items-center gap-1 justify-center mb-0.5">
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"
+                                  style={{ backgroundColor: s1Col.operatoreBadgeColor || '#f59e0b' }}
+                                />
+                                <span className="text-[7.5px] font-black uppercase tracking-wider text-amber-400/90 font-mono">
+                                  Turno 1
+                                </span>
+                              </div>
+                              <span className="text-[10.5px] sm:text-xs font-black text-yellow-100 tracking-tight leading-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                {s1Col.operatoreNome ? s1Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
+                              </span>
+                              {s1Col.operatoreNome && s1Col.operatoreNome.split(' ').length > 1 && (
+                                <span className="text-[8.5px] font-bold text-yellow-200/70 leading-none truncate max-w-full hidden sm:block">
+                                  {s1Col.operatoreNome.split(' ').slice(1).join(' ')}
+                                </span>
+                              )}
+                              <span className="text-[8px] font-mono font-bold text-yellow-400/80 mt-1 leading-none bg-black/70 px-1 py-0.5 rounded border border-yellow-500/25">
+                                {s1Col.oraInizio.slice(0, 5)} - {s1Col.oraFine.slice(0, 5)}
+                              </span>
+                              {s1Col.isAdapted && (
+                                <span className="text-[7px] font-bold text-amber-300 bg-amber-500/25 px-1 py-0.2 rounded mt-1 border border-amber-500/40">
+                                  +{s1Col.minutiExtra}m extra
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -1297,27 +1318,27 @@ export const CalendarDashboardView: React.FC = () => {
                           }}
                           className="absolute z-[1] pointer-events-none border-l-[3px] transition-all bg-gradient-to-b from-yellow-500/[0.08] via-yellow-500/[0.03] to-transparent overflow-hidden"
                         >
-                          {/* Header compatto del turno nello sfondo */}
+                          {/* Header compatto del turno nello sfondo (Visibilità ottimizzata per smartphone) */}
                           <div
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedShiftForEdit(s2Col);
                               setIsShiftModalOpen(true);
                             }}
-                            className="pointer-events-auto flex items-center justify-between px-1.5 py-0.5 bg-neutral-950/85 backdrop-blur-2xs border-b border-yellow-500/20 hover:bg-neutral-900 transition-colors cursor-pointer group/hdr2 select-none"
-                            title={`2° Turno (${s2Col.oraInizio} - ${s2Col.oraFine}): ${s2Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`}
+                            className="pointer-events-auto flex items-center justify-between px-1 sm:px-1.5 py-0.5 bg-neutral-950/95 border-b border-yellow-500/40 hover:bg-neutral-900 transition-colors cursor-pointer group/hdr2 select-none shadow-sm"
+                            title={`2° Turno Presidio (${s2Col.oraInizio} - ${s2Col.oraFine}): ${s2Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`}
                           >
-                            <div className="flex items-center gap-1 min-w-0">
+                            <div className="flex items-center gap-1 min-w-0 flex-1 truncate">
                               <span
-                                className="w-2 h-2 rounded-full shrink-0 shadow-xs ring-1 ring-black/60"
+                                className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full shrink-0 shadow-xs ring-1 ring-black/70"
                                 style={{ backgroundColor: s2Col.operatoreBadgeColor || (s2Col.operatoreId ? '#eab308' : '#ef4444') }}
                               />
-                              <span className="text-[8.5px] sm:text-[9.5px] font-bold text-yellow-300 group-hover/hdr2:text-yellow-100 truncate flex items-center gap-0.5">
-                                <Shield className="w-2.5 h-2.5 text-yellow-400 shrink-0" />
-                                T2: {s2Col.operatoreNome ? s2Col.operatoreNome : '⚠️ Da Assegnare'}
+                              <span className="text-[9.5px] sm:text-[10.5px] font-black text-yellow-300 group-hover/hdr2:text-yellow-100 truncate tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                                <span className="opacity-75 font-mono text-[8px] mr-0.5">T2:</span>
+                                {s2Col.operatoreNome ? s2Col.operatoreNome.split(' ')[0] : '⚠️ Non Assegn.'}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1 shrink-0">
+                            <div className="hidden sm:flex items-center gap-1 shrink-0 ml-1">
                               <span className="text-[8px] sm:text-[8.5px] font-mono text-yellow-400/80">
                                 {s2Col.oraInizio.slice(0, 5)}-{s2Col.oraFine.slice(0, 5)}
                               </span>
@@ -1332,14 +1353,35 @@ export const CalendarDashboardView: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Watermark discreto nello sfondo */}
-                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-20 select-none overflow-hidden p-2 mt-4">
-                            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-yellow-400/70 font-mono text-center">
-                              🛡️ PRESIDIO T2 &bull; {s2Col.operatoreNome ? s2Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
-                            </span>
-                            <span className="text-[8px] font-mono text-yellow-500/60 mt-0.5">
-                              {s2Col.oraInizio} &rarr; {s2Col.oraFine}
-                            </span>
+                          {/* Badge Operatore ben visibile al centro del turno (Stile front-end scuro/oro ad alto contrasto) */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none p-1 z-[1]">
+                            <div className="flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-neutral-950/85 border border-yellow-500/40 backdrop-blur-xs shadow-md shadow-black/90 max-w-[94%]">
+                              <div className="flex items-center gap-1 justify-center mb-0.5">
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"
+                                  style={{ backgroundColor: s2Col.operatoreBadgeColor || '#eab308' }}
+                                />
+                                <span className="text-[7.5px] font-black uppercase tracking-wider text-yellow-400/90 font-mono">
+                                  Turno 2
+                                </span>
+                              </div>
+                              <span className="text-[10.5px] sm:text-xs font-black text-yellow-100 tracking-tight leading-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                {s2Col.operatoreNome ? s2Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
+                              </span>
+                              {s2Col.operatoreNome && s2Col.operatoreNome.split(' ').length > 1 && (
+                                <span className="text-[8.5px] font-bold text-yellow-200/70 leading-none truncate max-w-full hidden sm:block">
+                                  {s2Col.operatoreNome.split(' ').slice(1).join(' ')}
+                                </span>
+                              )}
+                              <span className="text-[8px] font-mono font-bold text-yellow-400/80 mt-1 leading-none bg-black/70 px-1 py-0.5 rounded border border-yellow-500/25">
+                                {s2Col.oraInizio.slice(0, 5)} - {s2Col.oraFine.slice(0, 5)}
+                              </span>
+                              {s2Col.isAdapted && (
+                                <span className="text-[7px] font-bold text-amber-300 bg-amber-500/25 px-1 py-0.2 rounded mt-1 border border-amber-500/40">
+                                  +{s2Col.minutiExtra}m extra
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </>
@@ -1349,10 +1391,10 @@ export const CalendarDashboardView: React.FC = () => {
                     {isWeekdayCol && s1Col && s2Col && (
                       <div
                         style={{ top: `${s2TopPx}px` }}
-                        className="absolute left-0 right-0 border-t-2 border-yellow-500/40 border-dashed z-[3] pointer-events-none flex items-center justify-end pr-1"
+                        className="absolute left-0 right-0 border-t border-yellow-500/40 border-dashed z-[3] pointer-events-none flex items-center justify-center"
                       >
-                        <span className="text-[7.5px] font-mono font-bold text-yellow-300 bg-neutral-950/95 px-1 py-0.2 rounded border border-yellow-500/30 shadow-xs">
-                          Cambio Turno {s1Col.oraFine}
+                        <span className="text-[7px] sm:text-[7.5px] font-mono font-bold text-yellow-300 bg-neutral-950/95 px-1.5 py-0.2 rounded border border-yellow-500/30 shadow-xs whitespace-nowrap">
+                          Cambio {s1Col.oraFine.slice(0, 5)}
                         </span>
                       </div>
                     )}
