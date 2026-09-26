@@ -16,6 +16,8 @@ import {
   User,
   RefreshCw,
   Database,
+  Menu,
+  X,
 } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -45,6 +47,7 @@ const AppContent: React.FC = () => {
   const { isSupabaseConfigured, isCloudConnected } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { resetToDemoData, studioInfo, bookings, staff, clients, expenses } = useApp();
@@ -56,7 +59,7 @@ const AppContent: React.FC = () => {
     }
   }, [isUser, activeTab]);
 
-  // Close dropdown menu when clicking outside or pressing Escape
+  // Close dropdown and mobile menu when clicking outside or pressing Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -66,10 +69,11 @@ const AppContent: React.FC = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsMenuOpen(false);
+        setIsMobileMenuOpen(false);
       }
     };
 
-    if (isMenuOpen) {
+    if (isMenuOpen || isMobileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleKeyDown);
     }
@@ -77,7 +81,18 @@ const AppContent: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isMenuOpen]);
+  }, [isMenuOpen, isMobileMenuOpen]);
+
+  // Close mobile menu on desktop resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Se non autenticato, mostra la schermata di login
   if (!isAuthenticated || !user) {
@@ -146,49 +161,45 @@ const AppContent: React.FC = () => {
   const activeDropdownSection = dropdownSections.find((item) => item.id === activeTab);
 
   return (
-    <div className="min-h-screen bg-black text-yellow-50 flex flex-col antialiased selection:bg-yellow-400 selection:text-black">
-      {/* Top Header — single compact row */}
+    <div className="min-h-screen bg-black text-yellow-50 flex flex-col antialiased selection:bg-yellow-400 selection:text-black">      {/* Top Header */}
       <header className="bg-neutral-950/95 border-b border-yellow-500/30 sticky top-0 z-40 shadow-lg shadow-black/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="flex items-center h-14 gap-2 sm:gap-3 justify-between">
+          <div className="flex items-center h-14 justify-between gap-2 sm:gap-3">
 
             {/* ── Logo / Brand ── */}
-            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-bold shadow-md shadow-yellow-500/30">
+            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-bold shadow-md shadow-yellow-500/30 shrink-0">
                 <Music2 className="w-4 h-4 text-black stroke-[2.5]" />
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-sm font-bold tracking-tight text-white leading-tight flex items-center gap-1">
+              <div className="min-w-0">
+                <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white leading-tight flex items-center gap-1.5 truncate">
                   <span>SALA PROVE</span>
-                  <span className="text-yellow-400 font-bold">• {studioInfo.nome}</span>
+                  <span className="text-yellow-400 font-bold truncate">• {studioInfo.nome}</span>
                 </h1>
-                <p className="text-[10px] text-yellow-400/60 leading-tight">
+                <p className="text-[10px] text-yellow-400/60 leading-tight truncate hidden sm:block">
                   {studioInfo.sottotitolo || 'Associazione Culturale Musicale • Centro Prove & Registrazione'}
                 </p>
               </div>
             </div>
 
-            {/* ── Divider ── */}
-            <div className="hidden sm:block w-px h-6 bg-yellow-500/20 shrink-0" />
+            {/* ── Desktop Navigation (hidden on mobile, visible on md and up) ── */}
+            <nav className="hidden md:flex items-center gap-1.5 min-w-0">
+              <div className="w-px h-6 bg-yellow-500/20 mr-1 shrink-0" />
 
-            {/* ── Navigation (center, grows) ── */}
-            <nav className="flex items-center gap-1.5 flex-1 min-w-0">
-
-              {/* Calendario tab (Visible to BOTH Admin and Standard User) */}
+              {/* Calendario tab */}
               <button
                 onClick={() => {
                   setActiveTab('calendar');
                   setIsMenuOpen(false);
                 }}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
                   activeTab === 'calendar'
                     ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
                     : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
                 }`}
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Calendario</span>
-                <span className="sm:hidden">Calendario</span>
+                <span>Calendario</span>
               </button>
 
               {/* ── ADMIN ONLY: Conti del Mese & Bollette Tab ── */}
@@ -198,7 +209,7 @@ const AppContent: React.FC = () => {
                     setActiveTab('finance');
                     setIsMenuOpen(false);
                   }}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
                     activeTab === 'finance'
                       ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
                       : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
@@ -206,8 +217,7 @@ const AppContent: React.FC = () => {
                   title="Gestione conti del mese, uscite e bollette"
                 >
                   <Receipt className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline">Conti &amp; Bollette</span>
-                  <span className="md:hidden">Conti</span>
+                  <span>Conti &amp; Bollette</span>
                   {expenses.length > 0 && (
                     <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
                       activeTab === 'finance' ? 'bg-black text-yellow-400' : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
@@ -225,7 +235,7 @@ const AppContent: React.FC = () => {
                     onClick={() => setIsMenuOpen((prev) => !prev)}
                     aria-expanded={isMenuOpen}
                     aria-haspopup="true"
-                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                       activeTab !== 'calendar' && activeTab !== 'finance'
                         ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
                         : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-yellow-500/30'
@@ -234,8 +244,7 @@ const AppContent: React.FC = () => {
                     {activeDropdownSection && activeTab !== 'finance' ? (
                       <>
                         {activeDropdownSection.icon}
-                        <span className="hidden sm:inline">{activeDropdownSection.shortLabel}</span>
-                        <span className="sm:hidden">{activeDropdownSection.shortLabel.split(' ')[0]}</span>
+                        <span>{activeDropdownSection.shortLabel}</span>
                         {activeDropdownSection.badge !== undefined && (
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                             activeTab !== 'calendar'
@@ -249,8 +258,7 @@ const AppContent: React.FC = () => {
                     ) : (
                       <>
                         <Layers className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Altre Sezioni</span>
-                        <span className="sm:hidden">Sezioni</span>
+                        <span>Altre Sezioni</span>
                       </>
                     )}
                     <ChevronDown
@@ -262,10 +270,10 @@ const AppContent: React.FC = () => {
 
                   {/* Dropdown panel */}
                   {isMenuOpen && (
-                    <div className="absolute left-0 top-full mt-1.5 w-[calc(100vw-24px)] max-w-sm sm:w-96 bg-neutral-950 rounded-xl shadow-2xl border border-yellow-500/40 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="absolute left-0 top-full mt-1.5 w-96 bg-neutral-950 rounded-xl shadow-2xl border border-yellow-500/40 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
                       <div className="px-3.5 py-2 border-b border-yellow-500/20 flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-yellow-400 uppercase tracking-wider">
-                          <Layers className="w-3 h-3 text-yellow-400" />
+                          <Layers className="w-3.5 h-3.5 text-yellow-400" />
                           <span>Sezioni Amministrative</span>
                         </div>
                         <span className="text-[10px] text-yellow-500/60">{dropdownSections.length} sezioni</span>
@@ -324,11 +332,11 @@ const AppContent: React.FC = () => {
               )}
             </nav>
 
-            {/* ── User Profile & Actions (right) ── */}
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* ── Desktop User Profile & Actions (hidden on mobile, visible on md and up) ── */}
+            <div className="hidden md:flex items-center gap-1.5 sm:gap-2 shrink-0">
               {/* Role badge */}
               <div
-                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors select-none ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors select-none ${
                   isAdmin
                     ? 'bg-yellow-400/15 border-yellow-500/40 text-yellow-300'
                     : 'bg-neutral-900 border-neutral-700 text-neutral-300'
@@ -338,22 +346,20 @@ const AppContent: React.FC = () => {
                 {isAdmin ? (
                   <>
                     <Shield className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-                    <span className="hidden md:inline">Admin</span>
-                    <span className="md:hidden">👑</span>
+                    <span>Admin</span>
                   </>
                 ) : (
                   <>
                     <User className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-                    <span className="hidden md:inline">Utente</span>
-                    <span className="md:hidden">👤</span>
+                    <span>Utente</span>
                   </>
                 )}
               </div>
 
-              {/* 1-Click Role Switcher for rapid test */}
+              {/* 1-Click Role Switcher */}
               <button
                 onClick={switchRole}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-yellow-300 text-xs font-semibold border border-yellow-500/20 transition-all cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-yellow-300 text-xs font-semibold border border-yellow-500/20 transition-all cursor-pointer"
                 title={`Passa a profilo ${isAdmin ? 'Utente Standard' : 'Amministratore'}`}
               >
                 <RefreshCw className="w-3 h-3 text-yellow-400" />
@@ -363,7 +369,7 @@ const AppContent: React.FC = () => {
               {/* Supabase Cloud Connection Status Button */}
               <button
                 onClick={() => setIsSupabaseModalOpen(true)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs ${
                   isSupabaseConfigured
                     ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
                     : 'bg-neutral-900 border-yellow-500/30 text-yellow-400 hover:bg-yellow-400/10'
@@ -383,24 +389,344 @@ const AppContent: React.FC = () => {
                   title="Ripristina dati realistici dimostrativi"
                 >
                   <RotateCcw className="w-3 h-3 text-yellow-400 group-hover:text-black transition-colors" />
-                  <span className="hidden lg:inline">Demo</span>
+                  <span className="hidden xl:inline">Demo</span>
                 </button>
               )}
 
               {/* Logout Button */}
               <button
                 onClick={logout}
-                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs font-bold border border-rose-500/30 transition-all shadow-sm cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs font-bold border border-rose-500/30 transition-all shadow-sm cursor-pointer"
                 title="Disconnetti dalla sessione"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Esci</span>
+                <span>Esci</span>
+              </button>
+            </div>
+
+            {/* ── Mobile Right Actions (Compact, Clean & Responsive) ── */}
+            <div className="flex md:hidden items-center gap-1.5 shrink-0">
+              {/* Cloud Supabase status icon */}
+              <button
+                onClick={() => setIsSupabaseModalOpen(true)}
+                className={`p-1.5 rounded-lg border text-xs transition-all ${
+                  isSupabaseConfigured
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                    : 'bg-neutral-900 border-yellow-500/30 text-yellow-400'
+                }`}
+                title={isSupabaseConfigured ? 'Cloud Supabase Connesso' : 'Collega Supabase'}
+              >
+                <Database className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Mobile Role badge */}
+              <div
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold border select-none ${
+                  isAdmin
+                    ? 'bg-yellow-400/15 border-yellow-500/40 text-yellow-300'
+                    : 'bg-neutral-900 border-neutral-700 text-neutral-300'
+                }`}
+              >
+                {isAdmin ? (
+                  <>
+                    <Shield className="w-3 h-3 text-yellow-400" />
+                    <span>Admin</span>
+                  </>
+                ) : (
+                  <>
+                    <User className="w-3 h-3 text-neutral-400" />
+                    <span>Utente</span>
+                  </>
+                )}
+              </div>
+
+              {/* Mobile Menu Toggle Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className={`p-1.5 rounded-lg border transition-all ${
+                  isMobileMenuOpen
+                    ? 'bg-yellow-400 text-black border-yellow-400 shadow-md shadow-yellow-500/30'
+                    : 'bg-neutral-900 text-yellow-400 border-yellow-500/30 hover:bg-neutral-800'
+                }`}
+                aria-label="Apri menu opzioni"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="w-4 h-4 stroke-[2.5]" />
+                ) : (
+                  <Menu className="w-4 h-4 stroke-[2.5]" />
+                )}
               </button>
             </div>
 
           </div>
+
+          {/* ── Mobile Horizontal Tab Strip (Fast 1-Tap Switching) ── */}
+          <div className="md:hidden py-1.5 border-t border-yellow-500/15 overflow-x-auto no-scrollbar flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                setActiveTab('calendar');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap ${
+                activeTab === 'calendar'
+                  ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                  : 'bg-neutral-900/80 text-yellow-100/70 border border-yellow-500/20'
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Calendario</span>
+            </button>
+
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => {
+                    setActiveTab('finance');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap ${
+                    activeTab === 'finance'
+                      ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                      : 'bg-neutral-900/80 text-yellow-100/70 border border-yellow-500/20'
+                  }`}
+                >
+                  <Receipt className="w-3.5 h-3.5" />
+                  <span>Conti &amp; Bollette</span>
+                  {expenses.length > 0 && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                      activeTab === 'finance' ? 'bg-black text-yellow-400' : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
+                    }`}>
+                      {expenses.length}
+                    </span>
+                  )}
+                </button>
+
+                {dropdownSections.filter((s) => s.id !== 'finance').map((section) => {
+                  const isActive = activeTab === section.id;
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => {
+                        setActiveTab(section.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap ${
+                        isActive
+                          ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                          : 'bg-neutral-900/80 text-yellow-100/70 border border-yellow-500/20'
+                      }`}
+                    >
+                      {section.icon}
+                      <span>{section.shortLabel}</span>
+                      {section.badge !== undefined && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                          isActive ? 'bg-black text-yellow-400' : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
+                        }`}>
+                          {section.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </div>
         </div>
       </header>
+
+      {/* ── Mobile Menu Drawer ── */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+
+          {/* Drawer content */}
+          <div className="fixed inset-y-0 right-0 max-w-xs w-full bg-neutral-950 border-l border-yellow-500/30 p-4 shadow-2xl flex flex-col z-50 overflow-y-auto animate-in slide-in-from-right duration-200">
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-yellow-500/20">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-bold">
+                  <Music2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-white leading-tight">SALA PROVE</h3>
+                  <p className="text-[10px] text-yellow-400/70 truncate max-w-[150px]">{studioInfo.nome}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-yellow-400 hover:bg-neutral-900 border border-yellow-500/20"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* User Profile Card */}
+            <div className="my-3 p-3 rounded-xl bg-neutral-900/90 border border-yellow-500/25 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-yellow-400/20 border border-yellow-500/30 flex items-center justify-center text-yellow-400 font-bold text-sm">
+                    {user.avatar || (isAdmin ? '👑' : '👤')}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">{user.nome}</h4>
+                    <p className="text-[10px] text-neutral-400 font-mono truncate max-w-[130px]">{user.email}</p>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  isAdmin ? 'bg-yellow-400/15 border-yellow-500/40 text-yellow-300' : 'bg-neutral-800 border-neutral-700 text-neutral-300'
+                }`}>
+                  {isAdmin ? 'ADMIN' : 'UTENTE'}
+                </span>
+              </div>
+
+              {/* Quick actions inside drawer */}
+              <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-neutral-800">
+                <button
+                  onClick={() => {
+                    switchRole();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-yellow-300 text-[11px] font-semibold border border-yellow-500/20 transition-colors"
+                >
+                  <RefreshCw className="w-3 h-3 text-yellow-400" />
+                  <span>{isAdmin ? 'Simula Utente' : 'Simula Admin'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsSupabaseModalOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-semibold border transition-colors ${
+                    isSupabaseConfigured
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                      : 'bg-neutral-800 border-yellow-500/20 text-yellow-400'
+                  }`}
+                >
+                  <Database className="w-3 h-3" />
+                  <span>{isSupabaseConfigured ? 'Supabase ✓' : 'Supabase'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Navigation List in Drawer */}
+            <div className="flex-1 space-y-1 py-1">
+              <p className="text-[10px] uppercase font-bold text-yellow-500/60 px-2 tracking-wider">Navigazione</p>
+
+              {/* Calendario */}
+              <button
+                onClick={() => {
+                  setActiveTab('calendar');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  activeTab === 'calendar'
+                    ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
+                    : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Calendario &amp; Prenotazioni</span>
+                </div>
+                {activeTab === 'calendar' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </button>
+
+              {isAdmin && (
+                <>
+                  <button
+                    onClick={() => {
+                      setActiveTab('finance');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-all ${
+                      activeTab === 'finance'
+                        ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
+                        : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Receipt className="w-4 h-4" />
+                      <span>Spese &amp; Conto Mensile</span>
+                    </div>
+                    {expenses.length > 0 && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                        activeTab === 'finance' ? 'bg-black text-yellow-400' : 'bg-neutral-800 text-yellow-300'
+                      }`}>
+                        {expenses.length}
+                      </span>
+                    )}
+                  </button>
+
+                  {dropdownSections.filter((s) => s.id !== 'finance').map((item) => {
+                    const isItemActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setActiveTab(item.id);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-all ${
+                          isItemActive
+                            ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
+                            : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {item.icon}
+                          <span>{item.label}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {item.badge !== undefined && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                              isItemActive ? 'bg-black text-yellow-400' : 'bg-neutral-800 text-yellow-300'
+                            }`}>
+                              {item.badge}
+                            </span>
+                          )}
+                          {isItemActive && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+
+            {/* Bottom Actions in Drawer */}
+            <div className="pt-3 border-t border-yellow-500/20 space-y-2 mt-auto">
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleResetDemo();
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-400 text-xs font-semibold border border-yellow-500/30 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Ripristina Dati Demo</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  logout();
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 text-xs font-bold border border-rose-500/30 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Disconnetti (Logout)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-6 flex-1 w-full">
