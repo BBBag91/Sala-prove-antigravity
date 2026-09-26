@@ -141,50 +141,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoadingCloud, setIsLoadingCloud] = useState(false);
   const configured = isSupabaseConfigured();
 
-  // Sync initial / fetch from Supabase if configured
+  // Initial load directly from Supabase Cloud database
   useEffect(() => {
-    if (!configured) return;
     setIsLoadingCloud(true);
     supabaseService.fetchAll()
       .then((remote) => {
         if (remote) {
-          const hasRemoteData =
-            remote.rooms.length > 0 ||
-            remote.staff.length > 0 ||
-            remote.clients.length > 0 ||
-            remote.bookings.length > 0;
-
-          if (hasRemoteData) {
-            if (remote.rooms.length > 0) setRooms(remote.rooms);
-            if (remote.staff.length > 0) setStaff(remote.staff);
-            if (remote.clients.length > 0) setClients(remote.clients);
-            if (remote.bookings.length > 0) setBookings(remote.bookings);
-            if (remote.expenses.length > 0) setExpenses(remote.expenses);
-            if (remote.incomes.length > 0) setIncomes(remote.incomes);
-            if (remote.studioInfo) setStudioInfo(remote.studioInfo);
-          } else {
-            // Primo avvio con database Supabase vuoto: popolamento automatico con i dati attuali
-            supabaseService.syncAllLocalDataToSupabase({
-              rooms,
-              staff,
-              clients,
-              bookings,
-              expenses,
-              incomes,
-              studioInfo,
-            }).catch((e) => console.warn('[AppContext] Errore popolamento iniziale Supabase:', e));
-          }
+          if (remote.rooms.length > 0) setRooms(remote.rooms);
+          if (remote.staff.length > 0) setStaff(remote.staff);
+          if (remote.clients.length > 0) setClients(remote.clients);
+          if (remote.bookings.length > 0) setBookings(remote.bookings);
+          if (remote.expenses.length > 0) setExpenses(remote.expenses);
+          if (remote.incomes.length > 0) setIncomes(remote.incomes);
+          if (remote.studioInfo) setStudioInfo(remote.studioInfo);
           setIsCloudConnected(true);
         }
       })
       .catch((err) => {
-        console.warn('[AppContext] Supabase offline o non ancora inizializzato:', err);
+        console.warn('[AppContext] Supabase offline:', err);
         setIsCloudConnected(false);
       })
       .finally(() => {
         setIsLoadingCloud(false);
       });
-  }, [configured]);
+  }, []);
 
   // Sync with localStorage (with safe write)
   useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.STUDIO, studioInfo); }, [studioInfo]);

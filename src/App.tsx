@@ -15,14 +15,12 @@ import {
   Shield,
   User,
   RefreshCw,
-  Database,
   Menu,
   X,
 } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginView } from './components/LoginView';
-import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { CalendarDashboardView } from './components/CalendarDashboardView';
 import { BookingsView } from './components/BookingsView';
 import { StaffView } from './components/StaffView';
@@ -44,11 +42,10 @@ interface NavSectionItem {
 
 const AppContent: React.FC = () => {
   const { user, isAuthenticated, isAdmin, isUser, switchRole, logout } = useAuth();
-  const { isSupabaseConfigured, isCloudConnected } = useApp();
+  const { isCloudConnected } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { resetToDemoData, studioInfo, bookings, staff, clients, expenses } = useApp();
 
@@ -366,21 +363,6 @@ const AppContent: React.FC = () => {
                 <span className="hidden xl:inline">{isAdmin ? 'Simula Utente' : 'Simula Admin'}</span>
               </button>
 
-              {/* Supabase Cloud Connection Status Button */}
-              <button
-                onClick={() => setIsSupabaseModalOpen(true)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs ${
-                  isSupabaseConfigured
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
-                    : 'bg-neutral-900 border-yellow-500/30 text-yellow-400 hover:bg-yellow-400/10'
-                }`}
-                title={isSupabaseConfigured ? 'Database Cloud Supabase Configurato' : 'Configura collegamento Supabase Cloud'}
-              >
-                <Database className={`w-3 h-3 ${isSupabaseConfigured ? 'text-emerald-400' : 'text-yellow-400'}`} />
-                <span className="hidden lg:inline">{isSupabaseConfigured ? 'Cloud Supabase' : 'Collega Supabase'}</span>
-                <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseConfigured ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              </button>
-
               {/* Demo Data Reset (Admin only) */}
               {isAdmin && (
                 <button
@@ -406,18 +388,6 @@ const AppContent: React.FC = () => {
 
             {/* ── Mobile Right Actions (Compact, Clean & Responsive) ── */}
             <div className="flex md:hidden items-center gap-1.5 shrink-0">
-              {/* Cloud Supabase status icon */}
-              <button
-                onClick={() => setIsSupabaseModalOpen(true)}
-                className={`p-1.5 rounded-lg border text-xs transition-all ${
-                  isSupabaseConfigured
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-                    : 'bg-neutral-900 border-yellow-500/30 text-yellow-400'
-                }`}
-                title={isSupabaseConfigured ? 'Cloud Supabase Connesso' : 'Collega Supabase'}
-              >
-                <Database className="w-3.5 h-3.5" />
-              </button>
 
               {/* Mobile Role badge */}
               <div
@@ -584,31 +554,16 @@ const AppContent: React.FC = () => {
               </div>
 
               {/* Quick actions inside drawer */}
-              <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-neutral-800">
+              <div className="pt-2 border-t border-neutral-800">
                 <button
                   onClick={() => {
                     switchRole();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-yellow-300 text-[11px] font-semibold border border-yellow-500/20 transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-yellow-300 text-xs font-semibold border border-yellow-500/20 transition-colors"
                 >
-                  <RefreshCw className="w-3 h-3 text-yellow-400" />
-                  <span>{isAdmin ? 'Simula Utente' : 'Simula Admin'}</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setIsSupabaseModalOpen(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-semibold border transition-colors ${
-                    isSupabaseConfigured
-                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-                      : 'bg-neutral-800 border-yellow-500/20 text-yellow-400'
-                  }`}
-                >
-                  <Database className="w-3 h-3" />
-                  <span>{isSupabaseConfigured ? 'Supabase ✓' : 'Supabase'}</span>
+                  <RefreshCw className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>{isAdmin ? 'Simula Utente Standard' : 'Simula Amministratore'}</span>
                 </button>
               </div>
             </div>
@@ -771,17 +726,11 @@ const AppContent: React.FC = () => {
             <strong className="text-yellow-400 font-bold">Gestione Sala Prove Musicale</strong> • <span className="text-neutral-300">Controllo Accessi RBAC attivo &bull; Profilo: <strong className="text-yellow-300 font-semibold">{user.nome} ({user.ruolo.toUpperCase()})</strong></span>
           </p>
           <p className="text-[11px] text-yellow-500/70 flex items-center gap-1.5 justify-center sm:justify-end">
-            <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseConfigured ? 'bg-emerald-400' : 'bg-neutral-500'}`} />
-            <span>{isSupabaseConfigured ? (isCloudConnected ? 'Cloud Supabase Connesso' : 'Supabase Configurato') : 'Archiviazione Locale'}</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${isCloudConnected ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-400'}`} />
+            <span>Database Cloud Connesso</span>
           </p>
         </div>
       </footer>
-
-      {/* Supabase Connection & Sync Modal */}
-      <SupabaseConfigModal
-        isOpen={isSupabaseModalOpen}
-        onClose={() => setIsSupabaseModalOpen(false)}
-      />
     </div>
   );
 };
