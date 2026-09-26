@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -66,12 +66,13 @@ function isoWeek(date: Date): number {
 const SHORT_DAYS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
 const COLOR_PALETTE = [
-  { bg: '#1e3a24', border: '#22c55e', text: '#86efac' }, // Green
-  { bg: '#3a2612', border: '#f59e0b', text: '#fde68a' }, // Amber / Gold
-  { bg: '#172554', border: '#3b82f6', text: '#93c5fd' }, // Blue
-  { bg: '#2e1065', border: '#a855f7', text: '#d8b4fe' }, // Purple
-  { bg: '#164e63', border: '#06b6d4', text: '#67e8f9' }, // Cyan
-  { bg: '#4c0519', border: '#f43f5e', text: '#fda4af' }, // Rose
+  { bg: '#15803d', border: '#166534', text: '#ffffff' }, // Verde smeraldo vivace
+  { bg: '#dc2626', border: '#b91c1c', text: '#ffffff' }, // Rosso cremisi
+  { bg: '#d97706', border: '#b45309', text: '#ffffff' }, // Ambra dorata
+  { bg: '#2563eb', border: '#1d4ed8', text: '#ffffff' }, // Blu reale
+  { bg: '#7c3aed', border: '#6d28d9', text: '#ffffff' }, // Viola intenso
+  { bg: '#0891b2', border: '#0e7490', text: '#ffffff' }, // Ciano oceano
+  { bg: '#475569', border: '#334155', text: '#ffffff' }, // Grigio ardesia
 ];
 
 type ViewMode = 'day' | '3days' | 'week';
@@ -83,6 +84,17 @@ export const CalendarDashboardView: React.FC = () => {
 
   const today = new Date();
   const todayStr = formatDateToISO(today);
+
+  // Responsive window tracking
+  const [windowWidth, setWindowWidth] = useState<number>(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1024
+  );
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  const isMobile = windowWidth < 640;
 
   // Active anchor date for calendar navigation
   const [currentDate, setCurrentDate] = useState<Date>(today);
@@ -233,8 +245,16 @@ export const CalendarDashboardView: React.FC = () => {
       .sort((a, b) => a.oraInizio.localeCompare(b.oraInizio));
   });
 
-  const ROOM_COLORS: Record<string, typeof COLOR_PALETTE[0]> = {};
-  rooms.forEach((r, i) => { ROOM_COLORS[r.id] = COLOR_PALETTE[i % COLOR_PALETTE.length]; });
+  const ROOM_COLORS: Record<string, { bg: string; border: string; text: string }> = {};
+  rooms.forEach((r, i) => {
+    const fallback = COLOR_PALETTE[i % COLOR_PALETTE.length];
+    const bg = r.colore && r.colore.startsWith('#') ? r.colore : fallback.bg;
+    ROOM_COLORS[r.id] = {
+      bg,
+      border: 'rgba(0, 0, 0, 0.3)',
+      text: '#ffffff',
+    };
+  });
 
   // Computed title text based on active view mode
   const titleText = (() => {
@@ -666,29 +686,72 @@ export const CalendarDashboardView: React.FC = () => {
                 const isToday = ds === todayStr;
                 const dayBks = bookingsByDay[ds] ?? [];
 
-                // Layout overlapping events
+                // Layout overlapping events using interval packing to optimize column widths
                 type BlockLayout = { booking: Booking; col: number; cols: number };
                 const layouts: BlockLayout[] = [];
                 if (dayBks.length > 0) {
-                  const sorted = [...dayBks].sort((a, b) => a.oraInizio.localeCompare(b.oraInizio));
+                  const sorted = [...dayBks].sort((a, b) => {
+                    const diff = a.oraInizio.localeCompare(b.oraInizio);
+                    if (diff !== 0) return diff;
+                    let aEnd = timeToMinutes(a.oraFine);
+                    let bEnd = timeToMinutes(b.oraFine);
+                    if (aEnd <= timeToMinutes(a.oraInizio)) aEnd += 24 * 60;
+                    if (bEnd <= timeToMinutes(b.oraInizio)) bEnd += 24 * 60;
+                    return bEnd - aEnd;
+                  });
+
                   type Group = Booking[];
                   const groups: Group[] = [];
-                  let current: Group = [sorted[0]];
-                  let maxEnd = timeToMinutes(sorted[0].oraFine);
-                  for (let i = 1; i < sorted.length; i++) {
-                    const b = sorted[i];
-                    if (timeToMinutes(b.oraInizio) < maxEnd) {
-                      current.push(b);
-                      maxEnd = Math.max(maxEnd, timeToMinutes(b.oraFine));
+                  let currentGroup: Group = [];
+                  let groupEnd = -1;
+
+                  for (const b of sorted) {
+                    const bStart = timeToMinutes(b.oraInizio);
+                    let bEnd = timeToMinutes(b.oraFine);
+                    if (bEnd <= bStart) bEnd += 24 * 60;
+
+                    if (currentGroup.length === 0) {
+                      currentGroup.push(b);
+                      groupEnd = bEnd;
+                    } else if (bStart < groupEnd) {
+                      currentGroup.push(b);
+                      groupEnd = Math.max(groupEnd, bEnd);
                     } else {
-                      groups.push(current);
-                      current = [b];
-                      maxEnd = timeToMinutes(b.oraFine);
+                      groups.push(currentGroup);
+                      currentGroup = [b];
+                      groupEnd = bEnd;
                     }
                   }
-                  groups.push(current);
+                  if (currentGroup.length > 0) groups.push(currentGroup);
+
                   groups.forEach(group => {
-                    group.forEach((bk, ci) => layouts.push({ booking: bk, col: ci, cols: group.length }));
+                    const colEnds: number[] = [];
+                    const assignments: { booking: Booking; col: number }[] = [];
+
+                    group.forEach(bk => {
+                      const bkStart = timeToMinutes(bk.oraInizio);
+                      let bkEnd = timeToMinutes(bk.oraFine);
+                      if (bkEnd <= bkStart) bkEnd += 24 * 60;
+
+                      let placedCol = -1;
+                      for (let c = 0; c < colEnds.length; c++) {
+                        if (colEnds[c] <= bkStart) {
+                          placedCol = c;
+                          colEnds[c] = bkEnd;
+                          break;
+                        }
+                      }
+                      if (placedCol === -1) {
+                        placedCol = colEnds.length;
+                        colEnds.push(bkEnd);
+                      }
+                      assignments.push({ booking: bk, col: placedCol });
+                    });
+
+                    const totalCols = Math.max(1, colEnds.length);
+                    assignments.forEach(({ booking, col }) => {
+                      layouts.push({ booking, col, cols: totalCols });
+                    });
                   });
                 }
 
@@ -716,6 +779,25 @@ export const CalendarDashboardView: React.FC = () => {
                       />
                     ))}
 
+                    {/* Current time horizontal indicator for today */}
+                    {isToday && (() => {
+                      const now = new Date();
+                      const currentMins = (now.getHours() - HOUR_START) * 60 + now.getMinutes();
+                      if (currentMins >= 0 && currentMins <= TOTAL_HOURS * 60) {
+                        const lineTopPx = (currentMins / 60) * cellHeight;
+                        return (
+                          <div
+                            className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
+                            style={{ top: `${lineTopPx}px` }}
+                          >
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1 shadow-md ring-2 ring-black" />
+                            <div className="h-[2px] w-full bg-red-500 shadow-sm" />
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
                     {/* Booking blocks */}
                     {layouts.map(({ booking: b, col, cols }) => {
                       const room = rooms.find(r => r.id === b.salaId);
@@ -724,7 +806,7 @@ export const CalendarDashboardView: React.FC = () => {
                       let endMins = timeToMinutes(b.oraFine) - HOUR_START * 60;
                       if (endMins <= startMins) endMins += 24 * 60;
                       const topPx = (startMins / 60) * cellHeight;
-                      const heightPx = Math.max(20, ((endMins - startMins) / 60) * cellHeight);
+                      const heightPx = Math.max(22, ((endMins - startMins) / 60) * cellHeight);
                       const widthPct = 100 / cols;
                       const leftPct = col * widthPct;
                       const hasOperator = !!b.operatoreAssegnatoId;
@@ -732,71 +814,124 @@ export const CalendarDashboardView: React.FC = () => {
                       const startShort = b.oraInizio.endsWith(':00') ? b.oraInizio.slice(0, 2) : b.oraInizio;
                       const endShort = b.oraFine.endsWith(':00') ? b.oraFine.slice(0, 2) : b.oraFine;
 
+                      // Detect narrow columns where vertical letter stacking is ideal (like in reference photo)
+                      const isNarrow = isMobile
+                        ? (viewMode === 'week' && cols >= 2) || (viewMode === '3days' && cols >= 3) || cols >= 4
+                        : (viewMode === 'week' && cols >= 4) || cols >= 6;
+
+                      // In narrow mode, prepare vertical letters
+                      const charHeight = 11;
+                      const maxChars = Math.max(2, Math.floor((heightPx - 6) / charHeight));
+                      const trimmedName = displayName.trim();
+                      let verticalLetters: string[] = [];
+                      if (trimmedName.length <= maxChars) {
+                        verticalLetters = trimmedName.split('');
+                      } else {
+                        const firstWord = trimmedName.split(/\s+/)[0];
+                        if (firstWord.length <= maxChars) {
+                          verticalLetters = firstWord.split('');
+                        } else {
+                          verticalLetters = trimmedName.slice(0, maxChars).split('');
+                        }
+                      }
+
                       return (
                         <div
                           key={b.id}
                           onClick={e => { e.stopPropagation(); setActiveBookingDetail(b); }}
-                          className="absolute rounded sm:rounded-md cursor-pointer overflow-hidden transition-all hover:brightness-115 hover:z-10 hover:shadow-lg select-none group border"
+                          className="absolute rounded-md sm:rounded-lg cursor-pointer overflow-hidden transition-all hover:brightness-110 hover:z-30 hover:shadow-xl select-none group border border-black/30 shadow-md"
                           style={{
                             top: `${topPx + 1}px`,
                             height: `${heightPx - 2}px`,
                             left: `${leftPct + 0.5}%`,
                             width: `${widthPct - 1}%`,
                             backgroundColor: colors.bg,
-                            borderColor: colors.border,
-                            borderLeftWidth: '2.5px',
-                            zIndex: 1,
+                            zIndex: 2,
                           }}
                           title={`${b.clienteNome} • ${b.oraInizio}-${b.oraFine} • ${b.salaNome}`}
                         >
-                          <div className="p-0.5 sm:p-1 h-full flex flex-col justify-between overflow-hidden gap-0.5 leading-tight">
-                            <div className="flex items-center justify-between gap-0.5 min-w-0">
-                              <span
-                                className={`font-bold truncate ${
-                                  viewMode === 'week' ? 'text-[8px] sm:text-[9px]' : cellHeight < 42 ? 'text-[9px]' : cellHeight > 70 ? 'text-xs' : 'text-[10px]'
-                                }`}
-                                style={{ color: colors.text }}
-                              >
-                                {displayName}
-                              </span>
+                          {isNarrow ? (
+                            <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden py-1 px-0.5 select-none relative">
+                              {/* Stacking characters vertically (Creed, Verti, Rap, etc.) */}
+                              <div className="flex flex-col items-center justify-center leading-[10.5px] tracking-tight">
+                                {verticalLetters.map((char, cIdx) => (
+                                  <span
+                                    key={cIdx}
+                                    className="text-[9px] sm:text-[10px] font-black text-white shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+                                  >
+                                    {char === ' ' ? '·' : char}
+                                  </span>
+                                ))}
+                              </div>
+
+                              {/* Micro lesson badge */}
                               {b.tipo === 'lezione' && (
-                                <span
-                                  className="shrink-0 text-[7px] sm:text-[8px] px-0.5 rounded bg-black/40 font-bold uppercase"
-                                  style={{ color: colors.text }}
-                                >
+                                <span className="absolute top-0.5 left-1/2 -translate-x-1/2 text-[6.5px] font-black bg-black/70 text-yellow-300 px-0.5 rounded leading-none">
                                   L
                                 </span>
                               )}
+
+                              {/* Unassigned operator alert */}
+                              {!hasOperator && (
+                                <div
+                                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-300 ring-1 ring-black/70 shadow-xs"
+                                  title="Nessun operatore assegnato"
+                                />
+                              )}
                             </div>
-
-                            {heightPx >= 20 && (
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-center px-1 py-0.5 overflow-hidden select-none relative">
+                              {/* Client / Band Name - bold and multi-line wrapped */}
                               <span
-                                className={`leading-tight truncate opacity-90 font-mono ${
-                                  viewMode === 'week' ? 'text-[7px] sm:text-[8px]' : cellHeight < 42 ? 'text-[8px]' : 'text-[9px]'
+                                className={`font-black text-white leading-tight break-words hyphens-auto drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] ${
+                                  viewMode === 'week'
+                                    ? 'text-[10px] sm:text-[11px]'
+                                    : cellHeight < 42
+                                    ? 'text-[11px]'
+                                    : 'text-xs sm:text-sm'
                                 }`}
-                                style={{ color: colors.text }}
+                                style={{
+                                  wordBreak: 'break-word',
+                                  overflowWrap: 'break-word',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: heightPx < 32 ? 1 : heightPx < 55 ? 2 : 3,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                }}
                               >
-                                {viewMode === 'week' ? `${startShort}-${endShort}` : `${b.oraInizio}-${b.oraFine}`}
+                                {displayName}
                               </span>
-                            )}
 
-                            {heightPx >= 46 && room && (
-                              <span
-                                className="text-[9px] leading-tight truncate opacity-75 mt-auto flex items-center gap-1"
-                                style={{ color: colors.text }}
-                              >
-                                <DoorOpen className="w-2.5 h-2.5 shrink-0" />
-                                <span className="truncate">{room.nome}</span>
-                              </span>
-                            )}
+                              {/* Time range */}
+                              {(viewMode !== 'week' || heightPx >= 50) && (
+                                <span className="text-[8px] sm:text-[9px] font-bold text-white/90 font-mono tracking-tight mt-0.5 leading-none shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">
+                                  {viewMode === 'week' ? `${startShort}-${endShort}` : `${b.oraInizio} - ${b.oraFine}`}
+                                </span>
+                              )}
 
-                            {!hasOperator && (
-                              <div
-                                className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-300 border border-amber-500 shadow-xs"
-                                title="Nessun operatore assegnato"
-                              />
-                            )}
-                          </div>
+                              {/* Room name */}
+                              {room && (viewMode === 'day' || (viewMode === '3days' && heightPx >= 65) || heightPx >= 85) && (
+                                <span className="text-[8px] sm:text-[9px] font-semibold text-white/80 truncate mt-0.5 leading-none shrink-0">
+                                  {room.nome}
+                                </span>
+                              )}
+
+                              {/* Lesson badge */}
+                              {b.tipo === 'lezione' && (
+                                <span className="absolute top-0.5 right-0.5 text-[7px] font-black px-1 py-0.2 rounded bg-black/50 text-yellow-300 tracking-wider uppercase leading-none">
+                                  {viewMode === 'week' ? 'L' : 'Lezione'}
+                                </span>
+                              )}
+
+                              {/* Unassigned operator alert */}
+                              {!hasOperator && (
+                                <div
+                                  className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-amber-300 ring-1 ring-black/50 shadow-xs"
+                                  title="Nessun operatore assegnato"
+                                />
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
