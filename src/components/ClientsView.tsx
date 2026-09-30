@@ -17,6 +17,7 @@ import {
   Mail,
   Printer,
   FileText,
+  Download,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
@@ -69,6 +70,81 @@ export const ClientsView: React.FC = () => {
     if (window.confirm(`Sei sicuro di voler eliminare il tesserato ${client.nome} ${client.cognome}?`)) {
       deleteClient(client.id);
     }
+  };
+
+  const handleExportExcel = () => {
+    const listToExport = filteredClients.length > 0 ? filteredClients : clients;
+    if (listToExport.length === 0) {
+      alert('Nessun tesserato presente da esportare.');
+      return;
+    }
+
+    const escapeCsv = (val?: string | number) => {
+      if (val === undefined || val === null || val === '') return '""';
+      return `"${String(val).replace(/"/g, '""')}"`;
+    };
+
+    const formatDateIT = (iso?: string) => {
+      if (!iso) return '';
+      const parts = iso.split('-');
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return iso;
+    };
+
+    const headers = [
+      'Classe tesseramento',
+      'Tipo tesseramento',
+      'Data Inizio',
+      'Data Fine',
+      'Discipline',
+      'Matricola',
+      'Nazione cittadinanza',
+      'Codice Fiscale',
+      'Cognome',
+      'Nome',
+      'Data di nascita',
+      'Sesso',
+      'Nazione nascita',
+      'Comune di nascita',
+      'Comune residenza',
+      'CAP residenza',
+      'Indirizzo residenza',
+    ];
+
+    const rows = listToExport.map((c) => {
+      return [
+        escapeCsv('Ordinario'),
+        escapeCsv('Socio Ordinario'),
+        escapeCsv(formatDateIT(c.dataTesseramento)),
+        escapeCsv(formatDateIT(c.dataScadenzaTesseramento)),
+        escapeCsv(c.descrizioneStrumentazione || 'Musica / Sala Prove'),
+        escapeCsv(c.numeroTessera || ''),
+        escapeCsv('Italia'),
+        escapeCsv((c.codiceFiscale || '').toUpperCase().trim()),
+        escapeCsv(c.cognome || ''),
+        escapeCsv(c.nome || ''),
+        escapeCsv(formatDateIT(c.dataNascita)),
+        escapeCsv(c.sesso || 'M'),
+        escapeCsv('Italia'),
+        escapeCsv(c.luogoNascita || ''),
+        escapeCsv(''),
+        escapeCsv(''),
+        escapeCsv(c.residenza || ''),
+      ].join(';');
+    });
+
+    const csvContent = `${headers.join(';')}\n${rows.join('\n')}`;
+    const filename = `registro_tesserati_${new Date().toISOString().split('T')[0]}.csv`;
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -136,6 +212,16 @@ export const ClientsView: React.FC = () => {
           >
             <Printer className="w-4 h-4 text-indigo-600" />
             <span className="hidden sm:inline">Stampa / PDF Tessere</span>
+          </button>
+
+          <button
+            onClick={handleExportExcel}
+            className="px-3.5 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
+            title="Scarica file Excel (.csv) del registro tesserati (17 colonne)"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Scarica Excel (17 col.)</span>
+            <span className="sm:hidden">Excel</span>
           </button>
 
           <button

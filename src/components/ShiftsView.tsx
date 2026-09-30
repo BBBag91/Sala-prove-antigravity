@@ -199,6 +199,60 @@ export const ShiftsView: React.FC = () => {
     handlePrintWeekly();
   };
 
+  // Esporta i turni della settimana in formato Excel CSV compatibile
+  const handleExportWeeklyShiftsExcel = () => {
+    const escapeCsv = (val?: string | number) => {
+      if (val === undefined || val === null || val === '') return '""';
+      return `"${String(val).replace(/"/g, '""')}"`;
+    };
+
+    const headers = [
+      'Giorno',
+      'Data',
+      '1° Turno (Fascia Pomeridiana)',
+      '1° Turno - Ore',
+      '1° Turno - Operatore',
+      '2° Turno (Fascia Serale)',
+      '2° Turno - Ore',
+      '2° Turno - Operatore',
+      'Ore Totali Presidio',
+      'Stato Copertura',
+    ];
+
+    const rows = computedWeekShifts.map(({ dateStr, shift1, shift2 }, idx) => {
+      const dayConfig = GIORNI_LUN_VEN[idx];
+      const dObj = parseISODate(dateStr);
+      const dayHours = Math.round((shift1.durataOre + shift2.durataOre) * 10) / 10;
+      const isCovered = !!(shift1.operatoreId && shift2.operatoreId);
+
+      return [
+        escapeCsv(dayConfig.name),
+        escapeCsv(`${dObj.getDate()}/${dObj.getMonth() + 1}/${dObj.getFullYear()}`),
+        escapeCsv(`${shift1.oraInizio} - ${shift1.oraFine}`),
+        escapeCsv(shift1.durataOre),
+        escapeCsv(shift1.operatoreNome || 'Da Assegnare'),
+        escapeCsv(`${shift2.oraInizio} - ${shift2.oraFine}`),
+        escapeCsv(shift2.durataOre),
+        escapeCsv(shift2.operatoreNome || 'Da Assegnare'),
+        escapeCsv(dayHours),
+        escapeCsv(isCovered ? 'Coperto' : 'Incompleto'),
+      ].join(';');
+    });
+
+    const csvContent = `${headers.join(';')}\n${rows.join('\n')}`;
+    const filename = `turni_settimana_${weekDays[0]}_al_${weekDays[4]}.csv`;
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const periodLabelWeek = `Settimana dal Lunedì ${currentMonday.getDate()} a Venerdì ${weekFriday.getDate()} ${MESI_ITALIANI[weekFriday.getMonth()]} ${weekFriday.getFullYear()}`;
 
   return (
@@ -292,6 +346,17 @@ export const ShiftsView: React.FC = () => {
             >
               <FileText className="w-4 h-4 text-yellow-400" />
               <span>Anteprima &amp; PDF</span>
+            </button>
+
+            {/* Scarica File Excel (.csv) dei turni settimanali */}
+            <button
+              type="button"
+              onClick={handleExportWeeklyShiftsExcel}
+              className="px-3.5 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
+              title="Scarica lo schema dei turni settimanali in file Excel (.csv)"
+            >
+              <Download className="w-4 h-4" />
+              <span>Scarica Excel</span>
             </button>
           </div>
         </div>

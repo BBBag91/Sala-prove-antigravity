@@ -14,12 +14,14 @@ import {
   Maximize2,
   ExternalLink,
   Loader2,
-  FileText
+  FileText,
+  Download,
 } from 'lucide-react';
 import {
   ExtractedMemberData,
   extractMemberDataFromImage,
   formatMemberForExcel,
+  downloadMemberExcelFile,
   getGeminiApiKey,
   setGeminiApiKey,
   testGeminiApiKey,
@@ -560,19 +562,30 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
                     ? 'bg-emerald-700 text-white'
                     : 'bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100/60'
                 }`}
-                title="Copia riga tabellare completa di 17 colonne per Excel"
+                title="Copia negli appunti la riga tabellare completa di 17 colonne per incollarla su Excel con Ctrl+V"
               >
                 {hasCopiedExcel ? (
                   <>
                     <Check className="w-3.5 h-3.5" />
-                    Copiato per Excel!
+                    Copiato!
                   </>
                 ) : (
                   <>
                     <Copy className="w-3.5 h-3.5 text-emerald-600" />
-                    Copia riga Excel (17 campi)
+                    Copia per Excel
                   </>
                 )}
+              </button>
+
+              {/* Tasto per SCARICARE direttamente il file Excel (.csv con 17 colonne) */}
+              <button
+                type="button"
+                onClick={() => extractedData && downloadMemberExcelFile(extractedData)}
+                className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                title="Scarica direttamente il file Excel (.csv) con intestazioni e dati del modulo compilato a penna"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Scarica File Excel</span>
               </button>
 
               <button

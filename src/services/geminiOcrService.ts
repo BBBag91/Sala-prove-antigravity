@@ -153,6 +153,79 @@ export const formatMemberForExcel = (data: ExtractedMemberData): string => {
 };
 
 /**
+ * Scarica direttamente un file .csv formattato per Excel con i 17 campi standard
+ */
+export const downloadMemberExcelFile = (data: ExtractedMemberData): void => {
+  const formatDateIT = (iso?: string) => {
+    if (!iso) return '';
+    const parts = iso.split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return iso;
+  };
+
+  const escapeCsv = (val?: string) => {
+    if (!val) return '""';
+    return `"${val.replace(/"/g, '""')}"`;
+  };
+
+  const todayIso = new Date().toISOString().split('T')[0];
+
+  const headers = [
+    'Classe tesseramento',
+    'Tipo tesseramento',
+    'Data Inizio',
+    'Data Fine',
+    'Discipline',
+    'Matricola',
+    'Nazione cittadinanza',
+    'Codice Fiscale',
+    'Cognome',
+    'Nome',
+    'Data di nascita',
+    'Sesso',
+    'Nazione nascita',
+    'Comune di nascita',
+    'Comune residenza',
+    'CAP residenza',
+    'Indirizzo residenza',
+  ];
+
+  const row = [
+    escapeCsv(data.classeTesseramento || 'Ordinario'),
+    escapeCsv(data.tipoTesseramento || 'Socio Ordinario'),
+    escapeCsv(data.dataInizio || formatDateIT(todayIso)),
+    escapeCsv(data.dataFine || ''),
+    escapeCsv(data.discipline || 'Musica / Sala Prove'),
+    escapeCsv(data.matricola || ''),
+    escapeCsv(data.nazioneCittadinanza || 'Italia'),
+    escapeCsv((data.codiceFiscale || '').toUpperCase().trim()),
+    escapeCsv(data.cognome || ''),
+    escapeCsv(data.nome || ''),
+    escapeCsv(formatDateIT(data.dataNascita)),
+    escapeCsv(data.sesso || ''),
+    escapeCsv(data.nazioneNascita || 'Italia'),
+    escapeCsv(data.comuneNascita || data.luogoNascita || ''),
+    escapeCsv(data.comuneResidenza || ''),
+    escapeCsv(data.cap || ''),
+    escapeCsv(data.indirizzo || data.residenzaCompleta || ''),
+  ];
+
+  const csvContent = `${headers.join(';')}\n${row.join(';')}`;
+  const safeName = `${data.cognome || 'tesserato'}_${data.nome || 'nuovo'}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `modulo_tesseramento_${safeName}.csv`;
+
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+/**
  * Analizza l'immagine del foglio manoscritto usando Google Gemini Vision
  */
 export const extractMemberDataFromImage = async (
