@@ -4,13 +4,10 @@ import {
   Music2,
   Search,
   Printer,
-  Calendar,
   Clock,
   DoorOpen,
-  User,
   SlidersHorizontal,
   CheckCircle2,
-  AlertCircle,
   Copy,
   Check,
 } from 'lucide-react';

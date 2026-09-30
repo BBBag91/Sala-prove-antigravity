@@ -11,7 +11,6 @@ import {
   Copy,
   Check,
   SwitchCamera,
-  Maximize2,
   ExternalLink,
   Loader2,
   FileText,
@@ -48,7 +47,6 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
-  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [cameraLoading, setCameraLoading] = useState(false);
 

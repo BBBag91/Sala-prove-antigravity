@@ -5,23 +5,16 @@ import {
   Download,
   Calendar,
   Users,
-  Clock,
-  Euro,
   FileSpreadsheet,
   CheckCircle2,
   Building2,
-  Music,
-  Filter,
-  Sparkles,
 } from 'lucide-react';
-import { StaffMember, Booking } from '../types';
 import { useApp } from '../context/AppContext';
 import { formatDateItalian, MESI_ITALIANI, formatDateToISO } from '../utils/dateUtils';
 import {
   getOperatorAppointmentsData,
   generateSingleOperatorSchedulePDF,
   generateAllOperatorsScheduleCatalogPDF,
-  generateMasterSummarySinglePagePDF,
   generateAllOperatorsSchematicPDF,
   OperatorScheduleReportData,
 } from '../utils/operatorSchedulePdf';

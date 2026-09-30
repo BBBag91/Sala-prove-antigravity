@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, DoorOpen, Users, Clock, Check, Edit2, Trash2, Wrench, Edit3, Building2 } from 'lucide-react';
+import { Plus, Users, Check, Edit2, Trash2, Building2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Room } from '../types';
 import { RoomModal } from './RoomModal';

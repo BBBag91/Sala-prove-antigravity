@@ -4,7 +4,7 @@ import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, 
 import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates, timeToMinutes } from '../utils/dateUtils';
 import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
 import { computeDailyShifts, autoAssignWeeklyShifts, autoAssignMonthlyShifts } from '../utils/shiftUtils';
-import { isSupabaseConfigured, setSupabaseCredentials, getSupabaseUrl, getSupabaseKey, supabase } from '../lib/supabase';
+import { isSupabaseConfigured, setSupabaseCredentials, supabase } from '../lib/supabase';
 import { supabaseService } from '../services/supabaseService';
 
 interface AppContextType {

@@ -2,26 +2,19 @@ import React, { useState } from 'react';
 import {
   Plus,
   Search,
-  UserCheck,
-  ShieldCheck,
   Music,
   MapPin,
-  Calendar,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
   Edit2,
   Trash2,
   RotateCcw,
   Phone,
   Mail,
   Printer,
-  FileText,
   Download,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
-import { formatDateItalian, formatDateToISO, parseISODate } from '../utils/dateUtils';
+import { formatDateItalian, formatDateToISO } from '../utils/dateUtils';
 import { ClientModal } from './ClientModal';
 import { MembershipCardPrintModal } from './MembershipCardPrintModal';
 
@@ -241,7 +234,6 @@ export const ClientsView: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {filteredClients.map((client) => {
           const isExpired = client.statoTesseramento === 'scaduto';
-          const isPending = client.statoTesseramento === 'in_attesa';
 
           return (
             <div

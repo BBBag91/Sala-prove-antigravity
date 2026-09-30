@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Plus,
   Search,
-  Filter,
   Calendar,
   Clock,
   User,
@@ -12,7 +11,6 @@ import {
   Trash2,
   Edit2,
   CheckCircle2,
-  AlertCircle,
   CreditCard,
   Printer,
 } from 'lucide-react';
@@ -23,7 +21,7 @@ import { BookingModal } from './BookingModal';
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
 
 export const BookingsView: React.FC = () => {
-  const { bookings, rooms, staff, deleteBooking, updateBooking } = useApp();
+  const { bookings, rooms, deleteBooking, updateBooking } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | BookingType>('all');

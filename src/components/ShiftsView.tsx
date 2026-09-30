@@ -12,26 +12,16 @@ import {
   Copy,
   Printer,
   Edit2,
-  CalendarCheck,
-  Building2,
-  Check,
   Table as TableIcon,
   LayoutGrid,
-  Palmtree,
-  Briefcase,
-  ShieldCheck,
   Download,
   FileText,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { DailyShiftComputed, StaffMember, WorkShift } from '../types';
+import { DailyShiftComputed, StaffMember } from '../types';
 import { formatDateToISO, MESI_ITALIANI, parseISODate } from '../utils/dateUtils';
 import {
-  BASE_SHIFT_1_START,
-  BASE_SHIFT_1_END,
-  BASE_SHIFT_2_START,
-  BASE_SHIFT_2_END,
   computeDailyShifts,
   getMonthlyWorkloadReport,
 } from '../utils/shiftUtils';
@@ -39,7 +29,7 @@ import { ShiftQuickModal } from './ShiftQuickModal';
 import { OperatorMonthlyScheduleModal } from './OperatorMonthlyScheduleModal';
 import { MonthlyShiftsPdfModal } from './MonthlyShiftsPdfModal';
 import { WeeklyShiftsPrintModal } from './WeeklyShiftsPrintModal';
-import { printWeeklyShiftsDirectly, generateWeeklyShiftsPDF } from '../utils/weeklyShiftsPdf';
+import { printWeeklyShiftsDirectly } from '../utils/weeklyShiftsPdf';
 
 const GIORNI_LUN_VEN = [
   { index: 1, name: 'Lunedì', short: 'Lun' },
@@ -88,10 +78,6 @@ export const ShiftsView: React.FC = () => {
 
   const weekFriday = new Date(currentMonday);
   weekFriday.setDate(currentMonday.getDate() + 4);
-
-  const activeStaff = staff.filter(
-    (s) => s.attivo && (s.ruolo === 'operatore' || s.ruolo === 'entrambi')
-  );
 
   // Navigazione settimane
   const handlePrevWeek = () => {
@@ -193,10 +179,6 @@ export const ShiftsView: React.FC = () => {
       staff,
       includeSignatures: true,
     });
-  };
-
-  const handlePrint = () => {
-    handlePrintWeekly();
   };
 
   // Esporta i turni della settimana in formato Excel CSV compatibile

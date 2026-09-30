@@ -25,7 +25,6 @@ import {
   RefreshCw,
   CalendarClock,
   CalendarDays,
-  Calendar,
   Shield,
   X,
   RotateCcw,
@@ -50,8 +49,6 @@ import { ShiftsView } from './ShiftsView';
 
 // -- Constants ------------------------------------------------------------------
 const HOUR_START = 9;
-const HOUR_END = 23;
-const TOTAL_HOURS = HOUR_END - HOUR_START;
 
 function getMondayOf(date: Date): Date {
   const d = new Date(date);
@@ -207,15 +204,6 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     } else {
       setCurrentDate(d => addDays(d, 7));
     }
-  };
-
-  // Navigazione esplicita per settimane
-  const handlePrevWeek = () => {
-    setCurrentDate(d => addDays(d, -7));
-  };
-
-  const handleNextWeek = () => {
-    setCurrentDate(d => addDays(d, 7));
   };
 
   // Navigazione rapida per mesi

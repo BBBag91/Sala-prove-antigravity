@@ -9,11 +9,9 @@ import {
   Edit2,
   Trash2,
   Calendar,
-  Sparkles,
   Printer,
   FileSpreadsheet,
   Palmtree,
-  CalendarCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';

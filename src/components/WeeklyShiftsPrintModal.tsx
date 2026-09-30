@@ -6,11 +6,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  Clock,
   CheckCircle2,
-  AlertTriangle,
-  FileText,
-  ShieldCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { MESI_ITALIANI, parseISODate } from '../utils/dateUtils';

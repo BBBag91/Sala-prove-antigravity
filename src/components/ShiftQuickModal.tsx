@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Clock,
-  User,
   CheckCircle2,
   AlertTriangle,
   Sparkles,
@@ -9,12 +8,10 @@ import {
   Save,
   Trash2,
   X,
-  Info,
   SlidersHorizontal,
-  ArrowRight,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { DailyShiftComputed, StaffMember, WorkShift } from '../types';
+import { DailyShiftComputed, WorkShift } from '../types';
 import { checkOperatorShiftAvailability } from '../utils/shiftUtils';
 
 interface ShiftQuickModalProps {

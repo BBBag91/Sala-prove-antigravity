@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Plus,
-  Receipt,
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -10,10 +9,8 @@ import {
   Filter,
   Trash2,
   Edit2,
-  CheckCircle2,
   Clock,
   Printer,
-  FileText,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Expense, ExpenseCategory } from '../types';

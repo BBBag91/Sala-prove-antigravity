@@ -10,11 +10,9 @@ import {
   CheckCircle2,
   RotateCcw,
   Sparkles,
-  ExternalLink,
   Users,
   DoorOpen,
   CreditCard,
-  Calendar,
   Save,
   Info,
 } from 'lucide-react';

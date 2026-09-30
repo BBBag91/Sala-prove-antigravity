@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { Booking, StaffMember, StudioInfo } from '../types';
-import { formatDateItalian, parseISODate, calculateDurationHours } from './dateUtils';
+import { formatDateItalian, calculateDurationHours } from './dateUtils';
 
 export interface OperatorAppointmentItem {
   booking: Booking;
@@ -790,7 +790,6 @@ function renderOperatorScheduleToDoc(
   const wSala = 32;
   const wCliente = 48;
   const wAttivita = 22;
-  const wComp = 14;
 
   const renderTableHeader = () => {
     doc.setFillColor(79, 70, 229); // Indigo 600

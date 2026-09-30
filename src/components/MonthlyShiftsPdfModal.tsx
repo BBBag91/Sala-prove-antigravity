@@ -3,16 +3,13 @@ import {
   X,
   Printer,
   Download,
-  Calendar,
   ChevronLeft,
   ChevronRight,
   Clock,
   User,
   CheckCircle2,
-  AlertTriangle,
   FileText,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';

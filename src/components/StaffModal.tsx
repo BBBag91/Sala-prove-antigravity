@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, UserCheck, Plus, Trash2, Clock, Briefcase, CheckCircle2, Shield, Calendar } from 'lucide-react';
+import { X, UserCheck, Plus, Trash2, Clock, Briefcase, CheckCircle2, Calendar } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PrimaryWorkShift, StaffMember, StaffRole } from '../types';
 import { GIORNI_CALENDARIO } from '../utils/dateUtils';

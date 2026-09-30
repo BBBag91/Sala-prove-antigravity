@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Calendar, Clock, AlertCircle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
+import { X, Calendar, AlertCircle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig } from '../types';
 import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime } from '../utils/dateUtils';

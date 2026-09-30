@@ -69,7 +69,6 @@ export const RecurrenceModal: React.FC<RecurrenceModalProps> = ({
   });
 
   const [isFreqDropdownOpen, setIsFreqDropdownOpen] = useState(false);
-  const [isEndDropdownOpen, setIsEndDropdownOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -103,13 +102,6 @@ export const RecurrenceModal: React.FC<RecurrenceModalProps> = ({
   const handleConfirm = () => {
     onSave(currentConfig);
     onClose();
-  };
-
-  const getEndTypeLabel = () => {
-    if (tipoFine === 'fino_al') return 'Fino al';
-    if (tipoFine === 'per') return 'Per';
-    if (tipoFine === 'conteggio') return 'Per';
-    return 'Per sempre';
   };
 
   const getFrequencyLabel = () => {
@@ -163,7 +155,6 @@ export const RecurrenceModal: React.FC<RecurrenceModalProps> = ({
               type="button"
               onClick={() => {
                 setIsFreqDropdownOpen(!isFreqDropdownOpen);
-                setIsEndDropdownOpen(false);
               }}
               className="flex items-center gap-2 text-base font-semibold text-white hover:text-yellow-300 transition-colors"
             >

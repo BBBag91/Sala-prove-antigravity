@@ -485,6 +485,7 @@ export const supabaseService = {
     if (bookingsRes.error) errors.push(`bookings: ${bookingsRes.error.message}`);
     if (expensesRes.error) errors.push(`expenses: ${expensesRes.error.message}`);
     if (incomesRes.error) errors.push(`incomes: ${incomesRes.error.message}`);
+    if ((shiftsRes as any)?.error) errors.push(`shifts: ${(shiftsRes as any).error.message}`);
 
     if (errors.length > 0) {
       throw new Error(`Si sono verificati errori durante il caricamento: ${errors.join('; ')}`);

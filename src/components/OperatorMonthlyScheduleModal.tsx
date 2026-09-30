@@ -9,16 +9,12 @@ import {
   AlertOctagon,
   CheckCircle2,
   Trash2,
-  Sparkles,
   HelpCircle,
-  Plus,
   Palmtree,
-  ShieldAlert,
-  ArrowRight,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PrimaryWorkShiftDate, StaffMember } from '../types';
-import { GIORNI_CALENDARIO, MESI_ITALIANI } from '../utils/dateUtils';
+import { MESI_ITALIANI } from '../utils/dateUtils';
 
 interface OperatorMonthlyScheduleModalProps {
   isOpen: boolean;
@@ -452,7 +448,6 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
               const isTotallyUnavailable = existing?.indisponibileTotale;
               const hasSpecificHours = !isTotallyUnavailable && existing?.oraInizio && existing?.oraFine;
               const hasWeeklyFallback = !existing && !!weekly;
-              const isFree = !existing && !weekly;
 
               return (
                 <div

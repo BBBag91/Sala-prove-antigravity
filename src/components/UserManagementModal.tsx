@@ -14,7 +14,6 @@ import {
   Check,
   RefreshCw,
   KeyRound,
-  Sparkles,
   Info,
   X,
 } from 'lucide-react';
