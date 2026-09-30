@@ -202,7 +202,7 @@ export const ShiftsView: React.FC = () => {
   const periodLabelWeek = `Settimana dal Lunedì ${currentMonday.getDate()} a Venerdì ${weekFriday.getDate()} ${MESI_ITALIANI[weekFriday.getMonth()]} ${weekFriday.getFullYear()}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-x-hidden">
       
       {/* ── 1. TESTATA: SCHEMA RIEPILOGATIVO SETTIMANALE DEI TURNI ── */}
       <div className="bg-[#0e0e0e] rounded-2xl p-4 sm:p-6 border border-yellow-500/25 shadow-xl space-y-4 print:hidden">
@@ -316,12 +316,17 @@ export const ShiftsView: React.FC = () => {
               <ChevronLeft className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] rounded-xl bg-neutral-950 border border-yellow-500/25">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 sm:py-2.5 min-h-[44px] rounded-xl bg-neutral-950 border border-yellow-500/25">
               <Calendar className="w-4 h-4 text-yellow-400 shrink-0" />
-              <span className="font-bold text-xs sm:text-sm text-yellow-100">
-                Lun {currentMonday.getDate()} {MESI_ITALIANI[currentMonday.getMonth()]} &ndash; Ven{' '}
-                {weekFriday.getDate()} {MESI_ITALIANI[weekFriday.getMonth()]}{' '}
-                {weekFriday.getFullYear()}
+              <span className="font-bold text-xs sm:text-sm text-yellow-100 whitespace-nowrap">
+                <span className="sm:hidden">
+                  {currentMonday.getDate()} {MESI_ITALIANI[currentMonday.getMonth()].substring(0, 3)} &ndash; {weekFriday.getDate()} {MESI_ITALIANI[weekFriday.getMonth()].substring(0, 3)}
+                </span>
+                <span className="hidden sm:inline">
+                  Lun {currentMonday.getDate()} {MESI_ITALIANI[currentMonday.getMonth()]} &ndash; Ven{' '}
+                  {weekFriday.getDate()} {MESI_ITALIANI[weekFriday.getMonth()]}{' '}
+                  {weekFriday.getFullYear()}
+                </span>
               </span>
             </div>
 
@@ -407,7 +412,8 @@ export const ShiftsView: React.FC = () => {
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* VISTA DESKTOP/TABLET: TABELLA ESTESA A 5 COLONNE (md in su) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-neutral-950 border-b border-yellow-500/25 text-neutral-300 text-[11px] uppercase tracking-wider">
@@ -657,6 +663,206 @@ export const ShiftsView: React.FC = () => {
               </tfoot>
             </table>
           </div>
+
+          {/* VISTA SMARTPHONE (Zero scroll orizzontale: tutto perfettamente adattato a larghezza 100%) */}
+          <div className="block md:hidden divide-y divide-neutral-900">
+            {computedWeekShifts.map(({ dateStr, dayBookings, shift1, shift2 }, dayIdx) => {
+              const dayConfig = GIORNI_LUN_VEN[dayIdx];
+              const dObj = parseISODate(dateStr);
+              const isToday = formatDateToISO(new Date()) === dateStr;
+              const dayHours = Math.round((shift1.durataOre + shift2.durataOre) * 10) / 10;
+              const isFullyCovered = !!(shift1.operatoreId && shift2.operatoreId);
+
+              return (
+                <div
+                  key={dateStr}
+                  className={`p-3 space-y-2.5 transition-colors ${
+                    isToday ? 'bg-yellow-500/10' : 'bg-transparent'
+                  }`}
+                >
+                  {/* Intestazione Giorno Smartphone */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center font-black shrink-0 border text-center ${
+                          isToday
+                            ? 'bg-yellow-400 text-black border-yellow-400 shadow-xs'
+                            : 'bg-neutral-950 text-yellow-200 border-yellow-500/30'
+                        }`}
+                      >
+                        <span className="text-sm font-black leading-none">{dObj.getDate()}</span>
+                        <span className="text-[8px] uppercase tracking-wider font-extrabold opacity-80 mt-0.5">
+                          {dayConfig.short}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-extrabold text-xs sm:text-sm text-yellow-100 truncate">
+                            {dayConfig.name} {dObj.getDate()} {MESI_ITALIANI[dObj.getMonth()]}
+                          </span>
+                          {isToday && (
+                            <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-yellow-400 text-black uppercase">
+                              Oggi
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-neutral-400 font-mono block">
+                          {dayHours}h totali {dayBookings.length > 0 && `• ${dayBookings.length} prenotazioni`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      {isFullyCovered ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          Coperto
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold text-[10px]">
+                          <AlertTriangle className="w-3 h-3 text-amber-400" />
+                          Da Assegnare
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* I due turni incolonnati verticalmente per smartphone */}
+                  <div className="space-y-2">
+                    {/* 1° Turno */}
+                    <div
+                      onClick={() => handleOpenEdit(shift1)}
+                      className={`p-2.5 rounded-xl border flex items-center justify-between gap-2.5 transition-all cursor-pointer ${
+                        shift1.operatoreId
+                          ? 'bg-neutral-950 border-yellow-500/20 active:border-yellow-400'
+                          : 'bg-amber-500/[0.08] border-amber-500/30 active:border-amber-400'
+                      }`}
+                    >
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-yellow-400/20 text-yellow-300 border border-yellow-500/30">
+                            1° Turno
+                          </span>
+                          <span className="font-mono font-bold text-yellow-300 text-xs">
+                            {shift1.oraInizio} &ndash; {shift1.oraFine}
+                          </span>
+                          <span className="text-[10px] text-neutral-400 font-mono">
+                            ({shift1.durataOre}h)
+                          </span>
+                          {shift1.isAdapted && (
+                            <span className="text-[8px] font-bold text-amber-300 bg-amber-400/15 border border-amber-500/30 px-1 rounded">
+                              +{shift1.minutiExtra}m extra
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-0.5">
+                          {shift1.operatoreNome ? (
+                            <>
+                              <div
+                                className="w-5 h-5 rounded-md flex items-center justify-center font-black text-[10px] text-black shrink-0"
+                                style={{ backgroundColor: shift1.operatoreBadgeColor || '#eab308' }}
+                              >
+                                {shift1.operatoreNome[0]}
+                              </div>
+                              <span className="font-bold text-yellow-100 text-xs truncate">
+                                {shift1.operatoreNome}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-amber-400 flex items-center gap-1 italic">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              Da Assegnare
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {isAdmin && (
+                        <div className="text-neutral-500 hover:text-yellow-400 p-1.5 rounded-lg bg-neutral-900/60 shrink-0">
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2° Turno */}
+                    <div
+                      onClick={() => handleOpenEdit(shift2)}
+                      className={`p-2.5 rounded-xl border flex items-center justify-between gap-2.5 transition-all cursor-pointer ${
+                        shift2.operatoreId
+                          ? 'bg-neutral-950 border-yellow-500/20 active:border-yellow-400'
+                          : 'bg-amber-500/[0.08] border-amber-500/30 active:border-amber-400'
+                      }`}
+                    >
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-yellow-400/20 text-yellow-300 border border-yellow-500/30">
+                            2° Turno
+                          </span>
+                          <span className="font-mono font-bold text-yellow-300 text-xs">
+                            {shift2.oraInizio} &ndash; {shift2.oraFine}
+                          </span>
+                          <span className="text-[10px] text-neutral-400 font-mono">
+                            ({shift2.durataOre}h)
+                          </span>
+                          {shift2.isAdapted && (
+                            <span className="text-[8px] font-bold text-amber-300 bg-amber-400/15 border border-amber-500/30 px-1 rounded">
+                              +{shift2.minutiExtra}m extra
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-0.5">
+                          {shift2.operatoreNome ? (
+                            <>
+                              <div
+                                className="w-5 h-5 rounded-md flex items-center justify-center font-black text-[10px] text-black shrink-0"
+                                style={{ backgroundColor: shift2.operatoreBadgeColor || '#eab308' }}
+                              >
+                                {shift2.operatoreNome[0]}
+                              </div>
+                              <span className="font-bold text-yellow-100 text-xs truncate">
+                                {shift2.operatoreNome}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-amber-400 flex items-center gap-1 italic">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              Da Assegnare
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {isAdmin && (
+                        <div className="text-neutral-500 hover:text-yellow-400 p-1.5 rounded-lg bg-neutral-900/60 shrink-0">
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Totale Settimana Footer Smartphone */}
+            <div className="p-3.5 bg-neutral-950/90 border-t border-yellow-500/25 flex items-center justify-between text-xs">
+              <div>
+                <span className="font-black uppercase text-[10px] text-yellow-400 block tracking-wider">
+                  Totale Settimana
+                </span>
+                <span className="text-neutral-400 text-[11px]">10 turni Lun &ndash; Ven</span>
+              </div>
+              <div className="text-right">
+                <span className="font-mono font-black text-yellow-300 text-sm block">
+                  {Math.round(totalOperatingHoursWeek * 10) / 10}h
+                </span>
+                <span className="text-emerald-400 font-bold text-[10px]">
+                  {coveredWeekShifts}/10 Coperti
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         /* VISTA LISTA A SCHEDE GIORNALIERE */
@@ -817,7 +1023,8 @@ export const ShiftsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* VISTA DESKTOP: TABELLA EQUITÀ ORE (md in su) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-yellow-500/20 text-neutral-400 text-[11px]">
@@ -924,6 +1131,105 @@ export const ShiftsView: React.FC = () => {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* VISTA MOBILE OPERATORI (Zero scroll orizzontale) */}
+            <div className="block md:hidden space-y-3">
+              {monthlyReport.map(({ operator: op, shiftsCount, totalHours, percentage }) => {
+                const monthExceptions = (op.indisponibilitaDate || []).filter((d) =>
+                  d.data.startsWith(currentMonthKey)
+                );
+                const vacationDays = monthExceptions.filter((d) => d.indisponibileTotale).length;
+                const customWorkDays = monthExceptions.filter(
+                  (d) => !d.indisponibileTotale && d.oraInizio
+                ).length;
+
+                let weekShiftsOpCount = 0;
+                computedWeekShifts.forEach(({ shift1, shift2 }) => {
+                  if (shift1.operatoreId === op.id) weekShiftsOpCount++;
+                  if (shift2.operatoreId === op.id) weekShiftsOpCount++;
+                });
+
+                return (
+                  <div
+                    key={op.id}
+                    className="p-3.5 rounded-xl bg-neutral-950/80 border border-yellow-500/20 space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs text-black shrink-0"
+                          style={{ backgroundColor: op.coloreBadge }}
+                        >
+                          {op.nome[0]}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-yellow-100 text-xs block truncate">
+                            {op.nome} {op.cognome}
+                          </span>
+                          <span className="text-[10px] text-neutral-400 block truncate">
+                            {op.ruolo === 'entrambi' ? 'Operatore & Docente' : 'Operatore di Sala'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOpForMonthlySchedule(op)}
+                        className="px-2.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/30 text-[10px] font-semibold flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
+                      >
+                        <Calendar className="w-3 h-3 text-yellow-400" />
+                        <span>Ferie &amp; Turni</span>
+                      </button>
+                    </div>
+
+                    {/* Badge Ferie / Disponibilità */}
+                    <div>
+                      {vacationDays > 0 ? (
+                        <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-bold inline-block">
+                          🏖️ {vacationDays} gg Ferie questo mese
+                        </span>
+                      ) : customWorkDays > 0 ? (
+                        <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold inline-block">
+                          💼 {customWorkDays} turni lavoro primario
+                        </span>
+                      ) : (
+                        <span className="text-neutral-500 text-[10px]">✅ Sempre disponibile</span>
+                      )}
+                    </div>
+
+                    {/* Statistiche compatte */}
+                    <div className="grid grid-cols-3 gap-2 text-center text-[11px] pt-1 border-t border-neutral-900">
+                      <div className="bg-neutral-900/50 p-1.5 rounded-lg">
+                        <span className="text-[9px] text-neutral-400 block">Settimana</span>
+                        <span className="font-mono font-bold text-yellow-200">{weekShiftsOpCount} turni</span>
+                      </div>
+                      <div className="bg-neutral-900/50 p-1.5 rounded-lg">
+                        <span className="text-[9px] text-neutral-400 block">Totale Mese</span>
+                        <span className="font-mono font-bold text-yellow-300">{shiftsCount} turni</span>
+                      </div>
+                      <div className="bg-neutral-900/50 p-1.5 rounded-lg">
+                        <span className="text-[9px] text-neutral-400 block">Ore Mese</span>
+                        <span className="font-mono font-black text-yellow-400">{totalHours}h</span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar Bilanciamento */}
+                    <div className="space-y-1 pt-1">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-neutral-400">Quota monte ore mensile</span>
+                        <span className="font-mono font-bold text-yellow-300">{percentage}%</span>
+                      </div>
+                      <div className="bg-neutral-900 rounded-full h-1.5 overflow-hidden border border-yellow-500/20">
+                        <div
+                          className="bg-yellow-400 h-full rounded-full transition-all"
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );

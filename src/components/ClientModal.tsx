@@ -4,6 +4,8 @@ import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
 import { formatDateToISO } from '../utils/dateUtils';
 import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
+import { DocumentCameraScanner } from './DocumentCameraScanner';
+import { ExtractedMemberData } from '../services/geminiOcrService';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -80,6 +82,31 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
   const handleApplyPresetGear = (presetText: string) => {
     setDescrizioneStrumentazione((prev) => (prev ? `${prev}; ${presetText}` : presetText));
+  };
+
+  const handleDataExtracted = (data: ExtractedMemberData) => {
+    if (data.nome) setNome(data.nome);
+    if (data.cognome) setCognome(data.cognome);
+    if (data.codiceFiscale) setCodiceFiscale(data.codiceFiscale.toUpperCase().trim());
+    if (data.sesso) setSesso(data.sesso);
+    if (data.dataNascita) setDataNascita(data.dataNascita);
+    if (data.luogoNascita || data.comuneNascita) {
+      setLuogoNascita(data.comuneNascita || data.luogoNascita || '');
+    }
+    if (data.residenzaCompleta || data.indirizzo) {
+      setResidenza(data.residenzaCompleta || data.indirizzo || '');
+    }
+    if (data.telefono) setTelefono(data.telefono);
+    if (data.email) setEmail(data.email);
+    if (data.gruppoBand) setGruppoBand(data.gruppoBand);
+    if (data.strumentiOAttrezzatura) {
+      setDescrizioneStrumentazione((prev) =>
+        prev ? `${prev}; ${data.strumentiOAttrezzatura}` : data.strumentiOAttrezzatura || ''
+      );
+    }
+    if (data.note) {
+      setNote((prev) => (prev ? `${prev} - ${data.note}` : data.note || ''));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -160,6 +187,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+          {/* Scansione Modulo Cartaceo con Fotocamera & IA */}
+          <DocumentCameraScanner onDataExtracted={handleDataExtracted} />
+
           {/* Dati Anagrafici Base */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
