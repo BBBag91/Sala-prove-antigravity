@@ -105,10 +105,32 @@ export function getOperatorAppointmentsData(
 }
 
 /**
- * Generate PDF for a Single Operator's Schedule
+ * Generate PDF for a Single Operator's Schedule (Matching Photo 1 Schematic 1-page summary)
  */
 export function generateSingleOperatorSchedulePDF(
   report: OperatorScheduleReportData,
+  studioInfo?: StudioInfo,
+  omitStudioHeader: boolean = true
+): void {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  renderOperatorScheduleToDoc(doc, report, studioInfo, true, omitStudioHeader);
+
+  const cleanName = `${report.operator.nome}_${report.operator.cognome}`.replace(/\s+/g, '_');
+  const cleanPeriod = report.periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
+  doc.save(`Scheda_Turni_${cleanName}_${cleanPeriod}.pdf`);
+}
+
+/**
+ * Generate Multi-Page PDF with 1 Schematic Page (Photo 1) for each operator
+ */
+export function generateAllOperatorsSchematicPDF(
+  reports: OperatorScheduleReportData[],
+  periodLabel: string,
   studioInfo?: StudioInfo
 ): void {
   const doc = new jsPDF({
@@ -117,11 +139,17 @@ export function generateSingleOperatorSchedulePDF(
     format: 'a4',
   });
 
-  renderOperatorScheduleToDoc(doc, report, studioInfo, true);
+  reports.forEach((report, index) => {
+    if (index > 0) {
+      doc.addPage();
+    }
+    renderOperatorScheduleToDoc(doc, report, studioInfo, false, true);
+  });
 
-  const cleanName = `${report.operator.nome}_${report.operator.cognome}`.replace(/\s+/g, '_');
-  const cleanPeriod = report.periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
-  doc.save(`Appuntamenti_${cleanName}_${cleanPeriod}.pdf`);
+  addPageNumbers(doc);
+
+  const cleanPeriod = periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
+  doc.save(`Schede_Sintetiche_Operatori_${cleanPeriod}.pdf`);
 }
 
 /**
@@ -589,7 +617,8 @@ function renderOperatorScheduleToDoc(
   doc: jsPDF,
   report: OperatorScheduleReportData,
   studioInfo?: StudioInfo,
-  addStandalonePageNumbers: boolean = true
+  addStandalonePageNumbers: boolean = true,
+  omitStudioHeader: boolean = true
 ): void {
   const studioName = studioInfo?.nome || 'Sound Studio';
   const studioSub = studioInfo?.sottotitolo || 'Gestionale Sala Prove Musicale';
@@ -603,7 +632,7 @@ function renderOperatorScheduleToDoc(
   const pageHeight = 297;
   const margin = 14;
   const contentWidth = pageWidth - margin * 2;
-  let y = 14;
+  let y = omitStudioHeader ? 12 : 14;
 
   const checkPageBreak = (neededHeight: number) => {
     if (y + neededHeight > pageHeight - 16) {
@@ -624,27 +653,29 @@ function renderOperatorScheduleToDoc(
     y += 7;
   };
 
-  // 1. Studio Header Box
-  doc.setFillColor(248, 250, 252);
-  doc.rect(margin, y, contentWidth, 20, 'F');
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.3);
-  doc.rect(margin, y, contentWidth, 20, 'S');
+  if (!omitStudioHeader) {
+    // 1. Studio Header Box
+    doc.setFillColor(248, 250, 252);
+    doc.rect(margin, y, contentWidth, 20, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, y, contentWidth, 20, 'S');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(79, 70, 229); // Indigo 600
-  doc.text(`SALA PROVE • ${studioName.toUpperCase()}`, margin + 4, y + 6.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(79, 70, 229); // Indigo 600
+    doc.text(`SALA PROVE • ${studioName.toUpperCase()}`, margin + 4, y + 6.5);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text(studioSub, margin + 4, y + 11);
-  if (contacts) {
-    doc.text(contacts, margin + 4, y + 15.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(studioSub, margin + 4, y + 11);
+    if (contacts) {
+      doc.text(contacts, margin + 4, y + 15.5);
+    }
+
+    y += 24;
   }
-
-  y += 24;
 
   // 2. Operator Profile & Period Banner
   doc.setFillColor(241, 245, 249); // Slate 100

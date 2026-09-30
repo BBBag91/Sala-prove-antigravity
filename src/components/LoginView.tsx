@@ -8,6 +8,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { ThemeToggle } from './ThemeToggle';
 
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
@@ -35,6 +36,10 @@ export const LoginView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black text-yellow-50 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden selection:bg-yellow-400 selection:text-black">
+      {/* Theme Switcher Button top right */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle compact={false} />
+      </div>
       {/* Background ambient lighting */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-500/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />

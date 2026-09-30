@@ -108,24 +108,26 @@ export const FinanceView: React.FC = () => {
       {/* Month Navigation & Action Bar */}
       <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
+          <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
             <button
               onClick={handlePrevMonth}
-              className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors"
+              className="w-11 h-11 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-all touch-manipulation touch-active"
+              aria-label="Mese precedente"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <span className="px-3 text-xs font-semibold text-slate-700">Mese</span>
+            <span className="px-3 text-xs font-bold text-slate-700 select-none">Mese</span>
             <button
               onClick={handleNextMonth}
-              className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors"
+              className="w-11 h-11 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-all touch-manipulation touch-active"
+              aria-label="Mese successivo"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Conto Economico di Fine Mese:</span>
+            <span>Conto Mese:</span>
             <span className="text-indigo-600 font-semibold">
               {MESI_ITALIANI[currentMonth]} {currentYear}
             </span>
@@ -135,7 +137,7 @@ export const FinanceView: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={handlePrint}
-            className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2.5 min-h-[44px] border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2 touch-manipulation touch-active"
             title="Stampa report contabile del mese"
           >
             <Printer className="w-4 h-4 text-slate-500" />
@@ -147,7 +149,7 @@ export const FinanceView: React.FC = () => {
               setExpenseToEdit(null);
               setIsModalOpen(true);
             }}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors flex items-center gap-1.5 shrink-0"
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 shrink-0 touch-manipulation touch-active ml-auto sm:ml-0"
           >
             <Plus className="w-4 h-4" />
             <span>Registra Spesa</span>
@@ -281,7 +283,7 @@ export const FinanceView: React.FC = () => {
         )}
       </div>
 
-      {/* Spese Registro Table */}
+      {/* Spese Registro Table & Mobile Cards */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden space-y-3 p-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
           <div>
@@ -296,7 +298,7 @@ export const FinanceView: React.FC = () => {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value as any)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden"
+              className="text-xs font-semibold px-3 py-2.5 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden touch-manipulation cursor-pointer"
             >
               <option value="all">Tutte le categorie</option>
               {EXPENSE_CATEGORIES.map((c) => (
@@ -308,7 +310,102 @@ export const FinanceView: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* ── Mobile Stacked Cards (Eliminates horizontal scrolling on mobile) ── */}
+        <div className="md:hidden space-y-3 pt-1">
+          {filteredExpenses.length === 0 ? (
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-xs">
+              Nessuna spesa trovata per i criteri selezionati.
+            </div>
+          ) : (
+            filteredExpenses.map((exp) => {
+              const catInfo = EXPENSE_CATEGORIES.find((c) => c.id === exp.categoria);
+              const isPaid = exp.stato === 'pagato';
+
+              return (
+                <div
+                  key={`mobile-${exp.id}`}
+                  className="bg-slate-50/60 rounded-xl border border-slate-200 p-4 space-y-3 shadow-2xs hover:border-slate-300 transition-colors"
+                >
+                  {/* Top: Category & Amount */}
+                  <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
+                    <span className="font-semibold text-slate-800 text-xs flex items-center gap-1.5">
+                      <span className="text-base">{catInfo?.icon}</span>
+                      <span>{catInfo?.label || exp.categoria}</span>
+                    </span>
+                    <strong className="text-slate-900 font-mono text-base font-bold">
+                      {formatCurrency(exp.importo)}
+                    </strong>
+                  </div>
+
+                  {/* Body: Date & Description */}
+                  <div className="space-y-1 text-xs">
+                    <div className="text-[11px] font-mono text-slate-500">
+                      📅 {formatDateItalian(exp.data, false)}
+                    </div>
+                    <div className="font-bold text-slate-900 text-sm">
+                      {exp.descrizione}
+                    </div>
+
+                    {(exp.fornitore || exp.numeroFatturaRicevuta) && (
+                      <div className="text-slate-600 bg-white/60 p-2 rounded-lg border border-slate-200 text-xs mt-1">
+                        {exp.fornitore && <p className="font-semibold text-slate-800">{exp.fornitore}</p>}
+                        {exp.numeroFatturaRicevuta && (
+                          <p className="font-mono text-[10px] text-slate-400">Doc: {exp.numeroFatturaRicevuta}</p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-1 text-[11px] text-slate-500 pt-1">
+                      <span>Metodo:</span>
+                      <span className="capitalize font-semibold text-slate-700">
+                        {exp.metodoPagamento.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions: Large Status Toggle + Edit/Delete (44px touch targets) */}
+                  <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                    <button
+                      onClick={() => handleToggleState(exp)}
+                      className={`flex-1 min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition-all touch-manipulation touch-active ${
+                        isPaid
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+                          : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
+                      }`}
+                      title="Clicca per modificare stato"
+                    >
+                      {isPaid ? '✅ Pagato' : '⏳ In Scadenza (Tocca per pagare)'}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setExpenseToEdit(exp);
+                        setIsModalOpen(true);
+                      }}
+                      className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 flex items-center justify-center transition-all touch-manipulation touch-active cursor-pointer shrink-0"
+                      title="Modifica spesa"
+                      aria-label="Modifica spesa"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(exp)}
+                      className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center transition-all touch-manipulation touch-active cursor-pointer shrink-0"
+                      title="Elimina spesa"
+                      aria-label="Elimina spesa"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* ── Desktop Expenses Table (Hidden on mobile) ── */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
               <tr>

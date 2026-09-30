@@ -21,6 +21,7 @@ import {
   Briefcase,
   ShieldCheck,
   Download,
+  FileText,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -37,6 +38,8 @@ import {
 import { ShiftQuickModal } from './ShiftQuickModal';
 import { OperatorMonthlyScheduleModal } from './OperatorMonthlyScheduleModal';
 import { MonthlyShiftsPdfModal } from './MonthlyShiftsPdfModal';
+import { WeeklyShiftsPrintModal } from './WeeklyShiftsPrintModal';
+import { printWeeklyShiftsDirectly, generateWeeklyShiftsPDF } from '../utils/weeklyShiftsPdf';
 
 const GIORNI_LUN_VEN = [
   { index: 1, name: 'Lunedì', short: 'Lun' },
@@ -73,6 +76,7 @@ export const ShiftsView: React.FC = () => {
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [selectedOpForMonthlySchedule, setSelectedOpForMonthlySchedule] = useState<StaffMember | null>(null);
   const [isMonthlyPdfModalOpen, setIsMonthlyPdfModalOpen] = useState(false);
+  const [isWeeklyPrintModalOpen, setIsWeeklyPrintModalOpen] = useState(false);
   const [viewFormat, setViewFormat] = useState<'table' | 'cards'>('table');
 
   // Calcola i 5 giorni della settimana selezionata (Lunedì - Venerdì)
@@ -179,9 +183,20 @@ export const ShiftsView: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Stampa diretta da browser (formattata a 1 pagina, senza calendario grafico)
+  // Stampa al volo da browser tramite iframe isolato (100% garantita, mai fogli bianchi né neri)
+  const handlePrintWeekly = () => {
+    printWeeklyShiftsDirectly({
+      currentMonday,
+      weekFriday,
+      computedWeekShifts,
+      studioInfo,
+      staff,
+      includeSignatures: true,
+    });
+  };
+
   const handlePrint = () => {
-    window.print();
+    handlePrintWeekly();
   };
 
   const periodLabelWeek = `Settimana dal Lunedì ${currentMonday.getDate()} a Venerdì ${weekFriday.getDate()} ${MESI_ITALIANI[weekFriday.getMonth()]} ${weekFriday.getFullYear()}`;
@@ -218,7 +233,7 @@ export const ShiftsView: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleAutoAssignWeek}
-                  className="px-3.5 py-2 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2.5 min-h-[44px] bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
                   title="Autoassegna i turni della settimana combinando lavoro primario, ferie ed equità delle ore"
                 >
                   <Wand2 className="w-4 h-4 stroke-[2.5]" />
@@ -228,50 +243,62 @@ export const ShiftsView: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleAutoAssignMonth}
-                  className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/40 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2.5 min-h-[44px] bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/40 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
                   title="Autoassegna tutti i turni del mese corrente con rotazione equa"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                  <Sparkles className="w-4 h-4 text-yellow-400" />
                   <span>Auto-Assegna Mese</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleCopyFromPreviousWeek}
-                  className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-yellow-200 border border-yellow-500/30 font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2.5 min-h-[44px] bg-neutral-900 hover:bg-neutral-800 text-yellow-200 border border-yellow-500/30 font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
                   title="Copia gli operatori assegnati nella settimana precedente"
                 >
-                  <Copy className="w-3.5 h-3.5 text-yellow-400" />
+                  <Copy className="w-4 h-4 text-yellow-400" />
                   <span className="hidden sm:inline">Copia Prec.</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setIsMonthlyPdfModalOpen(true)}
-                  className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/40 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2.5 min-h-[44px] bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/40 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
                   title="Esporta il documento PDF riassuntivo del mese (1 Pagina Landscape)"
                 >
-                  <Download className="w-3.5 h-3.5 text-yellow-400" />
+                  <Download className="w-4 h-4 text-yellow-400" />
                   <span>PDF Mese</span>
                 </button>
               </>
             )}
 
+            {/* Stampa al Volo Settimana (1 Foglio A4) */}
             <button
               type="button"
-              onClick={handlePrint}
-              className="px-3.5 py-2 bg-yellow-400/20 hover:bg-yellow-400/30 text-yellow-300 border border-yellow-500/40 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-              title="Stampa subito questa tabella settimanale su un singolo foglio pulito"
+              onClick={handlePrintWeekly}
+              className="px-4 py-2.5 min-h-[44px] bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
+              title="Stampa al volo lo schema dei turni di questa settimana su 1 singolo foglio A4"
             >
-              <Printer className="w-4 h-4 text-yellow-400" />
-              <span>Stampa Tabella (1 Foglio)</span>
+              <Printer className="w-4 h-4 stroke-[2.5]" />
+              <span>Stampa Settimana (1 Foglio)</span>
+            </button>
+
+            {/* Anteprima Completa & Download PDF Settimana */}
+            <button
+              type="button"
+              onClick={() => setIsWeeklyPrintModalOpen(true)}
+              className="px-3.5 py-2.5 min-h-[44px] bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/40 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
+              title="Anteprima a schermo con opzioni firme e download PDF"
+            >
+              <FileText className="w-4 h-4 text-yellow-400" />
+              <span>Anteprima &amp; PDF</span>
             </button>
           </div>
         </div>
 
         {/* Feedback Alert */}
         {feedbackMessage && (
-          <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-fade-in">
+          <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-fade-in">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{feedbackMessage}</span>
           </div>
@@ -282,13 +309,14 @@ export const ShiftsView: React.FC = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={handlePrevWeek}
-              className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-yellow-400 border border-yellow-500/25 transition-colors cursor-pointer"
+              className="w-11 h-11 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-400 border border-yellow-500/25 flex items-center justify-center transition-all cursor-pointer touch-manipulation touch-active"
               title="Settimana precedente"
+              aria-label="Settimana precedente"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neutral-950 border border-yellow-500/25">
+            <div className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] rounded-xl bg-neutral-950 border border-yellow-500/25">
               <Calendar className="w-4 h-4 text-yellow-400 shrink-0" />
               <span className="font-bold text-xs sm:text-sm text-yellow-100">
                 Lun {currentMonday.getDate()} {MESI_ITALIANI[currentMonday.getMonth()]} &ndash; Ven{' '}
@@ -299,15 +327,16 @@ export const ShiftsView: React.FC = () => {
 
             <button
               onClick={handleNextWeek}
-              className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-yellow-400 border border-yellow-500/25 transition-colors cursor-pointer"
+              className="w-11 h-11 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-400 border border-yellow-500/25 flex items-center justify-center transition-all cursor-pointer touch-manipulation touch-active"
               title="Settimana successiva"
+              aria-label="Settimana successiva"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-5 h-5" />
             </button>
 
             <button
               onClick={handleCurrentWeek}
-              className="px-2.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-yellow-300 text-xs font-bold border border-yellow-500/25 transition-colors cursor-pointer"
+              className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-300 text-xs font-bold border border-yellow-500/25 transition-all cursor-pointer touch-manipulation touch-active"
             >
               Oggi
             </button>
@@ -316,29 +345,29 @@ export const ShiftsView: React.FC = () => {
           {/* Toggle Formato Tabella / Lista & Pill Copertura */}
           <div className="flex items-center gap-3 flex-wrap">
             {/* View Mode Switcher */}
-            <div className="flex items-center bg-neutral-950 p-0.5 rounded-lg border border-yellow-500/25">
+            <div className="flex items-center bg-neutral-950 p-1 rounded-xl border border-yellow-500/25">
               <button
                 type="button"
                 onClick={() => setViewFormat('table')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-md flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3.5 py-2 min-h-[40px] text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer touch-manipulation touch-active ${
                   viewFormat === 'table'
                     ? 'bg-yellow-400 text-black shadow-xs font-black'
                     : 'text-neutral-400 hover:text-yellow-300'
                 }`}
               >
-                <TableIcon className="w-3.5 h-3.5" />
+                <TableIcon className="w-4 h-4" />
                 <span>Vista Tabella</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewFormat('cards')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-md flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3.5 py-2 min-h-[40px] text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer touch-manipulation touch-active ${
                   viewFormat === 'cards'
                     ? 'bg-yellow-400 text-black shadow-xs font-black'
                     : 'text-neutral-400 hover:text-yellow-300'
                 }`}
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
+                <LayoutGrid className="w-4 h-4" />
                 <span>Vista Schede</span>
               </button>
             </div>
@@ -359,10 +388,11 @@ export const ShiftsView: React.FC = () => {
         </div>
       </div>
 
-      {/* ── 3. VISUALIZZAZIONE SETTIMANALE: TABELLA O LISTA ── */}
-      {viewFormat === 'table' ? (
-        /* VISTA TABELLA SCHEMATICA (PRINCIPALE) */
-        <div className="bg-[#0c0c0c] rounded-2xl border border-yellow-500/25 shadow-xl overflow-hidden print:border-none print:shadow-none print:bg-white print:p-0">
+      {/* ── 3. VISUALIZZAZIONE SETTIMANALE: TABELLA O LISTA (SOLO A SCHERMO) ── */}
+      <div className="print:hidden">
+        {viewFormat === 'table' ? (
+          /* VISTA TABELLA SCHEMATICA (PRINCIPALE) */
+          <div className="bg-[#0c0c0c] rounded-2xl border border-yellow-500/25 shadow-xl overflow-hidden">
           
           {/* Header visibile a schermo */}
           <div className="px-5 py-3.5 bg-neutral-950 border-b border-yellow-500/20 flex items-center justify-between gap-3 flex-wrap print:hidden">
@@ -758,6 +788,7 @@ export const ShiftsView: React.FC = () => {
           })}
         </div>
       )}
+      </div>
 
       {/* ── 4. QUADRO EQUITÀ ORE E TURNAZIONE (SENZA ALCUN CALCOLO ECONOMICO O COSTO ORARIO) ── */}
       {(() => {
@@ -899,47 +930,52 @@ export const ShiftsView: React.FC = () => {
       })()}
 
       {/* ── 5. SEZIONE STAMPABILE DEDICATA (1 PAGINA ESATTA SU A4, NESSUN CALENDARIO GRAFICO) ── */}
-      <div className="hidden print:block text-black bg-white p-6 font-sans">
+      <div className="print-only-sheet text-black bg-white font-sans w-full max-w-full print:m-0 print:p-0">
         {/* Intestazione Sala */}
-        <div className="border border-slate-300 bg-slate-50 p-3.5 rounded-lg mb-4 flex items-center justify-between">
+        <div className="border border-slate-300 bg-slate-50 p-2.5 rounded-lg mb-3 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-black text-slate-900 tracking-tight uppercase">
+            <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase">
               SALA PROVE • {studioInfo?.nome || 'SOUND STUDIO'}
             </h2>
-            <p className="text-xs text-slate-600">
+            <p className="text-[11px] text-slate-600">
               {studioInfo?.indirizzo ? `Sede: ${studioInfo.indirizzo}` : ''}
               {studioInfo?.telefono ? ` • Tel: ${studioInfo.telefono}` : ''}
             </p>
           </div>
           <div className="text-right text-xs">
-            <span className="font-bold text-amber-700 block uppercase">
+            <span className="font-bold text-amber-700 block uppercase text-[11px]">
               Schema Settimanale Turni Presidio
             </span>
-            <span className="text-slate-500 font-mono text-[10px]">
+            <span className="text-slate-500 font-mono text-[9.5px]">
               Emissione: {new Date().toLocaleDateString('it-IT')} &bull; Pagina 1 di 1
             </span>
           </div>
         </div>
 
         {/* Titolo Periodo */}
-        <div className="mb-4">
-          <h1 className="text-base font-black text-slate-900 uppercase">
-            SCHEMA RIEPILOGATIVO SETTIMANALE DEI TURNI
-          </h1>
-          <p className="text-xs text-slate-600 font-semibold mt-0.5">
-            {periodLabelWeek} &bull; Copertura: {coveredWeekShifts}/10 turni coperti ({Math.round(totalOperatingHoursWeek * 10) / 10}h totali)
-          </p>
+        <div className="mb-2.5 flex items-center justify-between">
+          <div>
+            <h1 className="text-sm font-black text-slate-900 uppercase">
+              SCHEMA RIEPILOGATIVO SETTIMANALE DEI TURNI
+            </h1>
+            <p className="text-[11px] text-slate-600 font-semibold mt-0.5">
+              {periodLabelWeek} &bull; Copertura: {coveredWeekShifts}/10 turni coperti ({Math.round(totalOperatingHoursWeek * 10) / 10}h totali)
+            </p>
+          </div>
+          <span className="text-[10px] font-mono text-slate-500 font-semibold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+            Lunedì &ndash; Venerdì
+          </span>
         </div>
 
         {/* Tabella Stampabile */}
-        <table className="w-full text-left text-xs border border-slate-300 border-collapse mb-5">
+        <table className="w-full text-left text-xs border border-slate-400 border-collapse mb-3.5">
           <thead>
-            <tr className="bg-slate-800 text-white font-bold text-[10.5px]">
-              <th className="p-2 border border-slate-400 w-36">GIORNO &amp; DATA</th>
-              <th className="p-2 border border-slate-400">1° TURNO (17:00 &ndash; 20:00)</th>
-              <th className="p-2 border border-slate-400">2° TURNO (20:00 &ndash; 23:00)</th>
-              <th className="p-2 border border-slate-400 text-center w-20">ORE GIORNO</th>
-              <th className="p-2 border border-slate-400 text-center w-24">STATO</th>
+            <tr className="bg-slate-200 text-slate-900 font-black text-[10px] uppercase border-b-2 border-slate-400">
+              <th className="p-1.5 border border-slate-400 w-32">GIORNO &amp; DATA</th>
+              <th className="p-1.5 border border-slate-400">1° TURNO (17:00 &ndash; 20:00)</th>
+              <th className="p-1.5 border border-slate-400">2° TURNO (20:00 &ndash; 23:00)</th>
+              <th className="p-1.5 border border-slate-400 text-center w-20">ORE GIORNO</th>
+              <th className="p-1.5 border border-slate-400 text-center w-24">STATO</th>
             </tr>
           </thead>
           <tbody>
@@ -951,10 +987,10 @@ export const ShiftsView: React.FC = () => {
 
               return (
                 <tr key={dateStr} className={dayIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                  <td className="p-2 border border-slate-300 font-black text-slate-900">
+                  <td className="p-1.5 border border-slate-300 font-black text-slate-900">
                     {dayConfig.name.toUpperCase()} {dObj.getDate()}/{String(dObj.getMonth() + 1).padStart(2, '0')}
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-1.5 border border-slate-300">
                     <span className="font-mono font-bold text-slate-800 mr-2">
                       {shift1.oraInizio}-{shift1.oraFine}
                     </span>
@@ -965,7 +1001,7 @@ export const ShiftsView: React.FC = () => {
                       <span className="text-[9px] text-slate-500 ml-1">(+{shift1.minutiExtra}m)</span>
                     )}
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-1.5 border border-slate-300">
                     <span className="font-mono font-bold text-slate-800 mr-2">
                       {shift2.oraInizio}-{shift2.oraFine}
                     </span>
@@ -976,10 +1012,10 @@ export const ShiftsView: React.FC = () => {
                       <span className="text-[9px] text-slate-500 ml-1">(+{shift2.minutiExtra}m)</span>
                     )}
                   </td>
-                  <td className="p-2 border border-slate-300 text-center font-mono font-bold text-slate-900">
+                  <td className="p-1.5 border border-slate-300 text-center font-mono font-bold text-slate-900">
                     {dayHours}h
                   </td>
-                  <td className="p-2 border border-slate-300 text-center font-bold">
+                  <td className="p-1.5 border border-slate-300 text-center font-bold">
                     {isFullyCovered ? '✓ Coperto' : '⚠️ Incompleto'}
                   </td>
                 </tr>
@@ -988,14 +1024,14 @@ export const ShiftsView: React.FC = () => {
           </tbody>
           <tfoot>
             <tr className="bg-slate-100 font-black border-t-2 border-slate-400 text-slate-900">
-              <td className="p-2 border border-slate-300 uppercase">Totale Settimana</td>
-              <td colSpan={2} className="p-2 border border-slate-300 font-normal text-slate-600">
+              <td className="p-1.5 border border-slate-300 uppercase">Totale Settimana</td>
+              <td colSpan={2} className="p-1.5 border border-slate-300 font-normal text-slate-600">
                 10 turni settimanali pianificati
               </td>
-              <td className="p-2 border border-slate-300 text-center font-mono font-black">
+              <td className="p-1.5 border border-slate-300 text-center font-mono font-black">
                 {Math.round(totalOperatingHoursWeek * 10) / 10}h
               </td>
-              <td className="p-2 border border-slate-300 text-center">
+              <td className="p-1.5 border border-slate-300 text-center">
                 {coveredWeekShifts}/10 Coperti
               </td>
             </tr>
@@ -1056,6 +1092,18 @@ export const ShiftsView: React.FC = () => {
           initialMonthStr={currentMonthKey}
         />
       )}
+
+      {/* Weekly Shifts Print & PDF Modal */}
+      <WeeklyShiftsPrintModal
+        isOpen={isWeeklyPrintModalOpen}
+        onClose={() => setIsWeeklyPrintModalOpen(false)}
+        currentMonday={currentMonday}
+        weekFriday={weekFriday}
+        computedWeekShifts={computedWeekShifts}
+        onPrevWeek={handlePrevWeek}
+        onNextWeek={handleNextWeek}
+        onCurrentWeek={handleCurrentWeek}
+      />
     </div>
   );
 };

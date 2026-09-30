@@ -11,6 +11,7 @@ export interface GenerateMonthlyShiftsPdfOptions {
   studioInfo?: StudioInfo;
   downloadFileName?: string;
   includeSignatures?: boolean;
+  printDirectly?: boolean;
 }
 
 export interface DayShiftRow {
@@ -459,7 +460,13 @@ export function generateMonthlyShiftsPDF(options: GenerateMonthlyShiftsPdfOption
   );
   doc.text(`Pagina 1 di 1`, pageWidth - margin, pageHeight - 5, { align: 'right' });
 
-  // SAVE AS PDF
+  // SAVE OR PRINT AS PDF
   const defaultFileName = `Tabella_Turni_${data.monthName}_${data.year}.pdf`;
-  doc.save(downloadFileName || defaultFileName);
+  if (options.printDirectly) {
+    doc.autoPrint();
+    const blobUrl = doc.output('bloburl');
+    window.open(blobUrl, '_blank');
+  } else {
+    doc.save(downloadFileName || defaultFileName);
+  }
 }

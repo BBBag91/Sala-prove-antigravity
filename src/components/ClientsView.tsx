@@ -107,21 +107,21 @@ export const ClientsView: React.FC = () => {
       {/* Action Bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Cerca per nome, codice fiscale, band, residenza..."
-            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-10 pr-4 py-2.5 min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 touch-manipulation"
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="px-3 py-2 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden"
+            className="px-3.5 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden touch-manipulation cursor-pointer"
           >
             <option value="all">Tutti gli stati tessera</option>
             <option value="attivo">Solo Attivi</option>
@@ -131,7 +131,7 @@ export const ClientsView: React.FC = () => {
 
           <button
             onClick={() => handleOpenPrint(null)}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 shrink-0"
+            className="px-3.5 py-2.5 min-h-[44px] bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
             title="Stampa Registro Soci o Schede Tessere PDF"
           >
             <Printer className="w-4 h-4 text-indigo-600" />
@@ -143,10 +143,10 @@ export const ClientsView: React.FC = () => {
               setClientToEdit(null);
               setIsModalOpen(true);
             }}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors flex items-center gap-1.5 shrink-0"
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 shrink-0 touch-manipulation touch-active cursor-pointer ml-auto sm:ml-0"
           >
             <Plus className="w-4 h-4" />
-            <span>Registra Nuovo Tesserato</span>
+            <span>Nuovo Tesserato</span>
           </button>
         </div>
       </div>
@@ -163,14 +163,14 @@ export const ClientsView: React.FC = () => {
               className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-4 hover:border-slate-300 transition-colors"
             >
               {/* Header Card */}
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-slate-900 text-lg">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-bold text-slate-900 text-base sm:text-lg">
                       {client.nome} {client.cognome}
                     </h3>
                     <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider border ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border ${
                         client.statoTesseramento === 'attivo'
                           ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                           : isExpired
@@ -187,18 +187,19 @@ export const ClientsView: React.FC = () => {
                   </div>
 
                   {client.gruppoBand && (
-                    <p className="text-xs font-medium text-indigo-600 mt-0.5">
+                    <p className="text-xs font-semibold text-indigo-600 mt-0.5">
                       Band: {client.gruppoBand}
                     </p>
                   )}
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1">
+                {/* Actions (44px touch targets on mobile) */}
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => handleOpenPrint(client)}
-                    className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-md hover:bg-slate-100 transition-colors"
+                    className="w-11 h-11 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-indigo-600 flex items-center justify-center transition-all touch-manipulation touch-active"
                     title="Stampa / Esporta PDF Tessera"
+                    aria-label="Stampa tessera"
                   >
                     <Printer className="w-4 h-4" />
                   </button>
@@ -207,15 +208,17 @@ export const ClientsView: React.FC = () => {
                       setClientToEdit(client);
                       setIsModalOpen(true);
                     }}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                    className="w-11 h-11 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all touch-manipulation touch-active"
                     title="Modifica scheda"
+                    aria-label="Modifica scheda"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(client)}
-                    className="p-1.5 text-rose-500 hover:text-rose-700 rounded-md hover:bg-rose-50 transition-colors"
+                    className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center transition-all touch-manipulation touch-active"
                     title="Elimina"
+                    aria-label="Elimina scheda"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -223,14 +226,14 @@ export const ClientsView: React.FC = () => {
               </div>
 
               {/* Anagrafica Details */}
-              <div className="bg-slate-50 rounded-lg p-3.5 space-y-1.5 text-xs text-slate-600 border border-slate-100">
+              <div className="bg-slate-50 rounded-xl p-3.5 space-y-2 text-xs text-slate-600 border border-slate-100">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase">Codice Fiscale</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Codice Fiscale</span>
                     <span className="font-mono font-bold text-slate-800">{client.codiceFiscale}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase">Sesso / Nascita</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Sesso / Nascita</span>
                     <span className="font-medium text-slate-800">
                       {client.sesso} • {client.luogoNascita} ({client.dataNascita})
                     </span>
@@ -238,53 +241,61 @@ export const ClientsView: React.FC = () => {
                 </div>
 
                 <div className="pt-1">
-                  <span className="text-slate-400 block text-[10px] uppercase">Residenza</span>
-                  <div className="flex items-center gap-1 font-medium text-slate-800">
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Residenza</span>
+                  <div className="flex items-center gap-1.5 font-medium text-slate-800">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span>{client.residenza}</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   {client.telefono && (
-                    <div className="flex items-center gap-1 text-slate-700">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{client.telefono}</span>
-                    </div>
+                    <a
+                      href={`tel:${client.telefono}`}
+                      className="flex items-center gap-1.5 text-slate-700 hover:text-indigo-600 transition-colors py-1 touch-manipulation"
+                      title="Chiama da smartphone"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="font-semibold underline decoration-slate-300">{client.telefono}</span>
+                    </a>
                   )}
                   {client.email && (
-                    <div className="flex items-center gap-1 text-slate-700 truncate">
-                      <Mail className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="truncate">{client.email}</span>
-                    </div>
+                    <a
+                      href={`mailto:${client.email}`}
+                      className="flex items-center gap-1.5 text-slate-700 hover:text-indigo-600 transition-colors py-1 truncate touch-manipulation"
+                      title="Invia email"
+                    >
+                      <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate underline decoration-slate-300">{client.email}</span>
+                    </a>
                   )}
                 </div>
               </div>
 
               {/* Tesseramento info bar */}
-              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
                 <div>
                   <span className="text-slate-500">Tessera N: </span>
-                  <strong className="text-slate-800 font-mono">{client.numeroTessera}</strong>
+                  <strong className="text-slate-800 font-mono text-sm">{client.numeroTessera}</strong>
                   <span className="text-slate-400 ml-2">
                     (Scadenza: <strong>{formatDateItalian(client.dataScadenzaTesseramento, false)}</strong>)
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleOpenPrint(client)}
-                    className="flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-[11px] rounded-md transition-colors shadow-2xs"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 min-h-[44px] bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs rounded-xl transition-all shadow-2xs touch-manipulation touch-active"
                     title="Stampa Modulo A4 o Badge Tessera PDF"
                   >
-                    <Printer className="w-3 h-3 text-indigo-600" />
+                    <Printer className="w-4 h-4 text-indigo-600" />
                     <span>Stampa PDF</span>
                   </button>
                   {isExpired && (
                     <button
                       onClick={() => handleRenewMembership(client)}
-                      className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-[11px] rounded-md transition-colors shadow-xs"
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs touch-manipulation touch-active"
                     >
-                      <RotateCcw className="w-3 h-3" /> Rinnova
+                      <RotateCcw className="w-4 h-4" /> Rinnova
                     </button>
                   )}
                 </div>

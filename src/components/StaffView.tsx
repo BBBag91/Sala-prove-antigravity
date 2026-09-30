@@ -82,7 +82,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
           {onNavigateToTurni && (
             <button
               onClick={onNavigateToTurni}
-              className="px-3.5 py-2 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs rounded-lg shadow-xs transition-colors flex items-center gap-2"
+              className="px-4 py-2.5 min-h-[44px] bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active cursor-pointer"
               title="Apri pannello completo pianificazione turni presidio sala"
             >
               <Clock className="w-4 h-4" />
@@ -94,7 +94,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
             <button
               type="button"
               onClick={() => setIsMonthlyPdfModalOpen(true)}
-              className="px-3.5 py-2 bg-yellow-400/20 hover:bg-yellow-400/30 text-yellow-300 font-bold text-xs rounded-lg border border-yellow-500/40 shadow-2xs transition-colors flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 min-h-[44px] bg-yellow-400/20 hover:bg-yellow-400/30 text-yellow-300 font-bold text-xs rounded-xl border border-yellow-500/40 shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
               title="Esporta o stampa la tabella schematica turni del mese (1 pagina orizzontale)"
             >
               <Printer className="w-4 h-4 text-yellow-400" />
@@ -104,11 +104,11 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
 
           <button
             onClick={() => handleOpenSchedulePrint(null)}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg border border-slate-300 shadow-2xs transition-colors flex items-center gap-2"
+            className="px-4 py-2.5 min-h-[44px] bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl border border-slate-300 shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active cursor-pointer"
             title="Esporta o stampa il catalogo completo degli appuntamenti per tutti gli operatori"
           >
             <Printer className="w-4 h-4 text-indigo-600" />
-            <span>Stampa / PDF Appuntamenti</span>
+            <span className="hidden sm:inline">Stampa / PDF Appuntamenti</span>
           </button>
 
           <button
@@ -116,10 +116,10 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
               setStaffToEdit(null);
               setIsModalOpen(true);
             }}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors flex items-center gap-2 shrink-0"
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 shrink-0 touch-manipulation touch-active cursor-pointer ml-auto sm:ml-0"
           >
             <Plus className="w-4 h-4" />
-            <span>Nuovo Operatore / Insegnante</span>
+            <span>Nuovo Operatore</span>
           </button>
         </div>
       </div>
@@ -135,10 +135,10 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
               className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-4 hover:border-slate-300 transition-colors"
             >
               {/* Header card */}
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-3.5">
                   <div
-                    className="w-11 h-11 rounded-lg flex items-center justify-center font-bold text-base text-white shadow-2xs"
+                    className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-base text-white shadow-2xs shrink-0"
                     style={{ backgroundColor: member.coloreBadge }}
                   >
                     {member.nome[0]}
@@ -146,7 +146,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-slate-900 text-base">
+                      <h3 className="font-bold text-slate-900 text-base">
                         {member.nome} {member.cognome}
                       </h3>
                       {!member.attivo && (
@@ -175,12 +175,13 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1">
+                {/* Actions (44px touch targets on mobile) */}
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => handleOpenSchedulePrint(member.id)}
-                    className="p-1.5 text-indigo-600 hover:text-indigo-800 rounded-md hover:bg-indigo-50 transition-colors"
+                    className="w-11 h-11 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-indigo-600 flex items-center justify-center transition-all touch-manipulation touch-active"
                     title={`Stampa / PDF lista appuntamenti di ${member.nome} ${member.cognome}`}
+                    aria-label="Stampa appuntamenti"
                   >
                     <Printer className="w-4 h-4" />
                   </button>
@@ -189,15 +190,17 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
                       setStaffToEdit(member);
                       setIsModalOpen(true);
                     }}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                    className="w-11 h-11 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all touch-manipulation touch-active"
                     title="Modifica"
+                    aria-label="Modifica"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(member)}
-                    className="p-1.5 text-rose-500 hover:text-rose-700 rounded-md hover:bg-rose-50 transition-colors"
+                    className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center transition-all touch-manipulation touch-active"
                     title="Elimina"
+                    aria-label="Elimina"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -205,18 +208,26 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
               </div>
 
               {/* Contacts & Subjects */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
                 {member.telefono && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{member.telefono}</span>
-                  </div>
+                  <a
+                    href={`tel:${member.telefono}`}
+                    className="flex items-center gap-2 py-1 text-slate-700 hover:text-indigo-600 transition-colors touch-manipulation"
+                    title="Chiama da smartphone"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="font-semibold underline decoration-slate-300">{member.telefono}</span>
+                  </a>
                 )}
                 {member.email && (
-                  <div className="flex items-center gap-2 truncate">
-                    <Mail className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="truncate">{member.email}</span>
-                  </div>
+                  <a
+                    href={`mailto:${member.email}`}
+                    className="flex items-center gap-2 py-1 truncate text-slate-700 hover:text-indigo-600 transition-colors touch-manipulation"
+                    title="Invia email"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate underline decoration-slate-300">{member.email}</span>
+                  </a>
                 )}
                 {member.materieInsegnamento && (
                   <div className="sm:col-span-2 flex items-center gap-2 text-indigo-900 font-medium">
@@ -244,28 +255,28 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
                       <button
                         type="button"
                         onClick={() => setSelectedOperatorForMonthlyCalendar(member)}
-                        className="px-2.5 py-1 rounded-md bg-yellow-400 hover:bg-yellow-300 text-black text-[11px] font-black flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                        className="px-3.5 py-2 min-h-[44px] rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black text-xs font-black flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer touch-manipulation touch-active"
                         title={`Apri calendario mensile completo per ${member.nome}`}
                       >
-                        <Calendar className="w-3.5 h-3.5 text-black" />
-                        <span>Calendario Mese & Ferie</span>
+                        <Calendar className="w-4 h-4 text-black" />
+                        <span>Calendario Mese &amp; Ferie</span>
                       </button>
                     </div>
 
                     {/* Badge calendario mensile attivo se ci sono eccezioni nel mese corrente */}
                     {memberMonthExceptions.length > 0 && (
-                      <div className="p-2 rounded-md bg-yellow-400/10 border border-yellow-500/30 flex items-center justify-between text-[11px] text-yellow-300 gap-2 flex-wrap">
+                      <div className="p-2.5 rounded-xl bg-yellow-400/10 border border-yellow-500/30 flex items-center justify-between text-[11px] text-yellow-300 gap-2 flex-wrap">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-yellow-200">Mese Attivo:</span>
                           {countVacationMonth > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold flex items-center gap-1">
-                              <Palmtree className="w-3 h-3" />
+                            <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold flex items-center gap-1">
+                              <Palmtree className="w-3.5 h-3.5" />
                               {countVacationMonth} gg Ferie/Riposo
                             </span>
                           )}
                           {countCustomHoursMonth > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
+                            <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" />
                               {countCustomHoursMonth} turni spec.
                             </span>
                           )}
@@ -287,11 +298,11 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
                           return (
                             <div
                               key={shift.id}
-                              className="flex items-center justify-between p-2 bg-white rounded-md border border-slate-200 shadow-2xs"
+                              className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 shadow-2xs"
                             >
                               <span className="font-semibold text-slate-900">{day?.short || 'Giorno'}</span>
                               <span className="font-mono font-medium text-slate-700 flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-slate-400" />
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
                                 {shift.oraInizio} - {shift.oraFine}
                               </span>
                             </div>
@@ -308,7 +319,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
                 <div className="flex items-center gap-2">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
                   <span className="text-slate-500">Mese corrente:</span>
-                  <strong className="text-slate-900 font-bold font-mono">{assignedHoursMonth} ore</strong>
+                  <strong className="text-slate-900 font-bold font-mono text-sm">{assignedHoursMonth} ore</strong>
                   {member.tariffaOrariaRimborso && (
                     <span className="text-emerald-700 font-bold font-mono">
                       (€{assignedHoursMonth * member.tariffaOrariaRimborso})
@@ -318,11 +329,11 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
 
                 <button
                   onClick={() => handleOpenSchedulePrint(member.id)}
-                  className="px-2.5 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] border border-indigo-200/80 flex items-center gap-1.5 transition-colors ml-auto shadow-2xs"
+                  className="px-3 py-2 min-h-[44px] rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs border border-indigo-200/80 flex items-center justify-center gap-2 transition-all ml-auto shadow-2xs touch-manipulation touch-active"
                   title={`Esporta o stampa foglio appuntamenti per ${member.nome}`}
                 >
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Lista Appuntamenti</span>
+                  <FileSpreadsheet className="w-4 h-4 text-indigo-600" />
+                  <span>Foglio Appuntamenti</span>
                 </button>
               </div>
             </div>

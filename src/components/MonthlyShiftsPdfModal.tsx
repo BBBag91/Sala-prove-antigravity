@@ -99,8 +99,20 @@ export const MonthlyShiftsPdfModal: React.FC<MonthlyShiftsPdfModalProps> = ({
     setTimeout(() => setDownloadSuccess(false), 3500);
   };
 
+  const handlePrintPDF = () => {
+    generateMonthlyShiftsPDF({
+      monthStr: monthKey,
+      shifts,
+      bookings,
+      staffList: staff,
+      studioInfo,
+      includeSignatures,
+      printDirectly: true,
+    });
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm overflow-y-auto print:hidden">
       <div className="bg-[#0c0c0c] rounded-2xl max-w-4xl w-full border border-yellow-500/30 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden text-yellow-100 my-auto">
         
         {/* Modal Header */}
@@ -429,12 +441,21 @@ export const MonthlyShiftsPdfModal: React.FC<MonthlyShiftsPdfModalProps> = ({
             </button>
             <button
               type="button"
+              onClick={handlePrintPDF}
+              className="px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/40 text-xs font-bold shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
+              title="Invia direttamente alla stampante il PDF del mese configurato su 1 pagina A4"
+            >
+              <Printer className="w-4 h-4 text-yellow-400" />
+              <span>Stampa PDF (1 Pagina)</span>
+            </button>
+            <button
+              type="button"
               onClick={handleDownloadPDF}
               className="px-5 py-2.5 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black text-xs font-black shadow-lg transition-colors flex items-center gap-2 cursor-pointer"
               title="Scarica il documento PDF ufficiale configurato per 1 singola pagina"
             >
               <Download className="w-4 h-4" />
-              <span>Scarica PDF (1 Pagina Max)</span>
+              <span>Scarica PDF</span>
             </button>
           </div>
         </div>

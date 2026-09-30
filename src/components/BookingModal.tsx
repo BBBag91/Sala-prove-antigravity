@@ -3,7 +3,6 @@ import { X, Calendar, Clock, AlertCircle, CheckCircle2, RefreshCw, Music2, Gradu
 import { useApp } from '../context/AppContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig } from '../types';
 import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime } from '../utils/dateUtils';
-import { checkOperatorAvailability } from '../utils/scheduler';
 import { RecurrenceModal } from './RecurrenceModal';
 import { SmartTimePicker } from './SmartTimePicker';
 import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
@@ -48,7 +47,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     tipoFine: 'per_sempre',
     conteggioOccorrenze: 4,
   });
-  const [operatoreAssegnatoId, setOperatoreAssegnatoId] = useState('');
   const [tariffaBase, setTariffaBase] = useState<string | number>(36);
   const [sconto, setSconto] = useState<string | number>(0);
   const [tariffaTotale, setTariffaTotale] = useState<string | number>(36);
@@ -113,7 +111,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           conteggioOccorrenze: 4,
         });
       }
-      setOperatoreAssegnatoId(bookingToEdit.operatoreAssegnatoId || '');
       const disc = bookingToEdit.sconto || 0;
       setSconto(disc);
       setTariffaTotale(bookingToEdit.tariffaTotale);
@@ -147,7 +144,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         tipoFine: 'per_sempre',
         conteggioOccorrenze: 4,
       });
-      setOperatoreAssegnatoId('');
       setSconto(0);
       setCustomTariffa(false);
       setStatoPagamento('da_saldare');
@@ -255,10 +251,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const handleSelectTipo = (newTipo: BookingType) => {
     setTipo(newTipo);
     if (newTipo === 'lezione') {
-      // Quando si seleziona 'lezione', imposta automaticamente 1 ora di lezione e azzera l'operatore di presidio (non necessario per lezioni)
+      // Quando si seleziona 'lezione', imposta automaticamente 1 ora di lezione
       const startMin = timeToMinutes(oraInizio);
       setOraFine(minutesToTime(startMin + 60));
-      setOperatoreAssegnatoId('');
     } else if (newTipo === 'prove') {
       // Se si torna a 'prove' ed era impostata 1 ora, reimposta la durata standard delle prove a 2 ore
       const currentDuration = calculateDurationHours(oraInizio, oraFine);
@@ -319,26 +314,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const selectedClient = clients.find((c) => c.id === clienteId);
   const selectedRoom = rooms.find((r) => r.id === salaId);
 
-  // Eligible operators for shift
-  const operatorCandidates = staff
-    .filter((s) => s.attivo && (s.ruolo === 'operatore' || s.ruolo === 'entrambi'))
-    .map((op) => {
-      const avail = checkOperatorAvailability(
-        op,
-        data,
-        oraInizio,
-        oraFine,
-        bookings,
-        bookingToEdit?.id
-      );
-      return {
-        operator: op,
-        available: avail.available,
-        statusText: avail.statusText,
-        isContinuous: avail.isContinuousPossible,
-      };
-    });
-
   // Teachers list
   const teacherCandidates = staff.filter(
     (s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi')
@@ -360,11 +335,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     if (!finalClienteNome || !selectedRoom) return;
 
-    const isBandRehearsal = tipo === 'prove';
-    const op = isBandRehearsal ? staff.find((s) => s.id === operatoreAssegnatoId) : undefined;
-    const teacher = !isBandRehearsal ? staff.find((s) => s.id === insegnanteId) : undefined;
-    const finalOperatoreId = isBandRehearsal ? (operatoreAssegnatoId || undefined) : undefined;
-    const finalOperatoreNome = isBandRehearsal && op ? `${op.nome} ${op.cognome}` : undefined;
+    const teacher = tipo === 'lezione' ? staff.find((s) => s.id === insegnanteId) : undefined;
+    const finalOperatoreId = bookingToEdit?.operatoreAssegnatoId;
+    const finalOperatoreNome = bookingToEdit?.operatoreAssegnatoNome;
 
     const clientDisplayName = finalClienteNome;
 
@@ -924,36 +897,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             )}
           </div>
 
-          {/* Assegnazione Operatore (SOLO PER PROVE BAND - nelle lezioni è presente l'insegnante) */}
-          {tipo === 'prove' && (
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  Operatore Assegnato al Presidio Sala
-                </label>
-                <span className="text-[11px] text-slate-500">
-                  Disponibilità calcolata in tempo reale (24h - lavoro primario)
-                </span>
-              </div>
-              <select
-                value={operatoreAssegnatoId}
-                onChange={(e) => setOperatoreAssegnatoId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-              >
-                <option value="">-- Assegna in seguito (o usa Auto-Assegnazione Intelligente) --</option>
-                {operatorCandidates.map(({ operator, available, statusText, isContinuous }) => (
-                  <option
-                    key={operator.id}
-                    value={operator.id}
-                    className={available ? 'text-slate-900 font-medium' : 'text-slate-400'}
-                  >
-                    {operator.nome} {operator.cognome} — {available ? '✅ ' : '❌ '}
-                    {statusText} {isContinuous ? '⚡ (Turno Continuativo)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+
 
           {/* Strumentazione Necessaria per il cliente */}
           <div>

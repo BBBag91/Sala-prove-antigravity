@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ThemeToggle } from './components/ThemeToggle';
 import { LoginView } from './components/LoginView';
 import { CalendarDashboardView } from './components/CalendarDashboardView';
 import { ShiftsView } from './components/ShiftsView';
@@ -177,12 +179,14 @@ const AppContent: React.FC = () => {
   const activeDropdownSection = dropdownSections.find((item) => item.id === activeTab);
 
   return (
-    <div className="min-h-screen bg-black text-yellow-50 flex flex-col antialiased selection:bg-yellow-400 selection:text-black">      {/* Top Header */}      <header className="bg-neutral-950/95 border-b border-yellow-500/30 sticky top-0 z-40 shadow-lg shadow-black/80 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="flex items-center h-14 justify-between gap-3">
+    <div className="min-h-screen bg-black text-yellow-50 flex flex-col antialiased selection:bg-yellow-400 selection:text-black print:min-h-0 print:bg-white print:text-black">
+      {/* Top Header */}
+      <header className="bg-neutral-950/95 border-b border-yellow-500/30 sticky top-0 z-40 shadow-lg shadow-black/80 backdrop-blur print:hidden">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+          <div className="flex items-center h-14 justify-between gap-1.5 sm:gap-2 lg:gap-3">
 
             {/* ── Left: Brand & Desktop Navigation ── */}
-            <div className="flex items-center gap-3 lg:gap-4 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0">
               {/* Logo / Brand */}
               <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
                 <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-bold shadow-md shadow-yellow-500/30 shrink-0">
@@ -190,33 +194,35 @@ const AppContent: React.FC = () => {
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
-                    <span>SALA PROVE</span>
-                    <span className="text-yellow-400 font-bold truncate">• {studioInfo.nome}</span>
+                    <span className="shrink-0">SALA PROVE</span>
+                    <span className="text-yellow-400 font-bold truncate max-w-[100px] sm:max-w-[130px] lg:max-w-[160px] 2xl:max-w-[220px]">
+                      • {studioInfo.nome}
+                    </span>
                   </h1>
-                  <p className="text-[10px] text-yellow-400/60 leading-tight truncate hidden xl:block">
+                  <p className="text-[10px] text-yellow-400/60 leading-tight truncate hidden 2xl:block">
                     {studioInfo.sottotitolo || 'Associazione Culturale Musicale • Centro Prove & Registrazione'}
                   </p>
                 </div>
               </div>
 
               {/* Vertical separator */}
-              <div className="hidden md:block w-px h-6 bg-yellow-500/20 shrink-0" />
+              <div className="hidden md:block w-px h-5 bg-yellow-500/20 shrink-0" />
 
               {/* Desktop Navigation Tabs */}
-              <nav className="hidden md:flex items-center gap-1.5 shrink-0">
+              <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 shrink-0">
                 {/* Calendario tab */}
                 <button
                   onClick={() => {
                     setActiveTab('calendar');
                     setIsMenuOpen(false);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     activeTab === 'calendar'
                       ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
                       : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
                   }`}
                 >
-                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
                   <span>Calendario</span>
                 </button>
 
@@ -226,15 +232,16 @@ const AppContent: React.FC = () => {
                     setActiveTab('turni');
                     setIsMenuOpen(false);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     activeTab === 'turni'
                       ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
                       : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
                   }`}
                   title="Schema riepilogativo settimanale dei turni di presidio"
                 >
-                  <CalendarClock className="w-3.5 h-3.5" />
-                  <span>Schema Turni</span>
+                  <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden xl:inline">Schema Turni</span>
+                  <span className="xl:hidden">Turni</span>
                 </button>
 
                 {/* ADMIN ONLY: Conti del Mese & Bollette Tab */}
@@ -244,15 +251,16 @@ const AppContent: React.FC = () => {
                       setActiveTab('finance');
                       setIsMenuOpen(false);
                     }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
                       activeTab === 'finance'
                         ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
                         : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
                     }`}
                     title="Gestione conti del mese, uscite e bollette"
                   >
-                    <Receipt className="w-3.5 h-3.5" />
-                    <span>Conti &amp; Bollette</span>
+                    <Receipt className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden xl:inline">Conti &amp; Bollette</span>
+                    <span className="xl:hidden">Conti</span>
                     {expenses.length > 0 && (
                       <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
                         activeTab === 'finance' ? 'bg-black text-yellow-400' : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
@@ -270,19 +278,19 @@ const AppContent: React.FC = () => {
                       onClick={() => setIsMenuOpen((prev) => !prev)}
                       aria-expanded={isMenuOpen}
                       aria-haspopup="true"
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        activeTab !== 'calendar' && activeTab !== 'finance'
+                      className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        activeTab !== 'calendar' && activeTab !== 'finance' && activeTab !== 'turni'
                           ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
                           : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-yellow-500/30'
                       }`}
                     >
-                      {activeDropdownSection && activeTab !== 'finance' ? (
+                      {activeDropdownSection && activeTab !== 'finance' && activeTab !== 'turni' && activeTab !== 'calendar' ? (
                         <>
                           {activeDropdownSection.icon}
                           <span>{activeDropdownSection.shortLabel}</span>
                           {activeDropdownSection.badge !== undefined && (
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                              activeTab !== 'calendar'
+                              activeTab !== 'calendar' && activeTab !== 'turni'
                                 ? 'bg-black text-yellow-400'
                                 : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
                             }`}>
@@ -292,8 +300,9 @@ const AppContent: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <Layers className="w-3.5 h-3.5" />
-                          <span>Altre Sezioni</span>
+                          <Layers className="w-3.5 h-3.5 shrink-0" />
+                          <span className="hidden xl:inline">Altre Sezioni</span>
+                          <span className="xl:hidden">Altre</span>
                         </>
                       )}
                       <ChevronDown
@@ -369,12 +378,15 @@ const AppContent: React.FC = () => {
             </div>
 
             {/* ── Right: User Profile & Actions (Uncluttered, Elegant & Never Overlapping) ── */}
-            <div className="hidden md:flex items-center gap-2 shrink-0">
+            <div className="hidden md:flex items-center gap-1.5 lg:gap-2 shrink-0">
+              {/* Theme Toggle (Versione Scura / Versione Chiara) */}
+              <ThemeToggle responsiveLabel={true} />
+
               {/* Profile Dropdown Menu */}
               <div className="relative shrink-0" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen((prev) => !prev)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
                     isUserMenuOpen
                       ? 'bg-yellow-400/20 border-yellow-400 text-yellow-300'
                       : isAdmin
@@ -383,18 +395,18 @@ const AppContent: React.FC = () => {
                   }`}
                   title={`Profilo: ${user.nome} (${user.email})`}
                 >
-                  <div className="w-5 h-5 rounded-full bg-yellow-400/20 flex items-center justify-center text-[11px]">
+                  <div className="w-5 h-5 rounded-full bg-yellow-400/20 flex items-center justify-center text-[11px] shrink-0">
                     {isAdmin ? '👑' : '👤'}
                   </div>
-                  <span className="font-semibold text-white truncate max-w-[130px]">
+                  <span className="font-semibold text-white truncate max-w-[80px] lg:max-w-[110px] xl:max-w-[140px]">
                     {user.nome || (isAdmin ? 'Admin' : 'Utente')}
                   </span>
-                  <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                  <span className={`hidden xl:inline-block text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
                     isAdmin ? 'bg-yellow-400/20 text-yellow-300' : 'bg-neutral-800 text-neutral-300'
                   }`}>
                     {isAdmin ? 'Admin' : 'Utente'}
                   </span>
-                  <ChevronDown className={`w-3 h-3 text-neutral-400 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180 text-yellow-400' : ''}`} />
+                  <ChevronDown className={`w-3 h-3 text-neutral-400 transition-transform duration-200 shrink-0 ${isUserMenuOpen ? 'rotate-180 text-yellow-400' : ''}`} />
                 </button>
 
                 {/* Profile Dropdown Panel */}
@@ -464,6 +476,15 @@ const AppContent: React.FC = () => {
                     {/* Divider */}
                     <div className="h-px bg-neutral-800 my-1" />
 
+                    {/* Quick Theme Switcher */}
+                    <div className="px-3 py-1.5 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-neutral-300">Tema Interfaccia:</span>
+                      <ThemeToggle compact={false} showLabel={true} />
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-neutral-800 my-1" />
+
                     {/* Logout */}
                     <button
                       onClick={() => {
@@ -482,16 +503,18 @@ const AppContent: React.FC = () => {
               {/* Quick Logout Button */}
               <button
                 onClick={logout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs font-bold border border-rose-500/30 transition-all shadow-sm cursor-pointer shrink-0"
+                className="flex items-center justify-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs font-bold border border-rose-500/30 transition-all shadow-sm cursor-pointer shrink-0"
                 title="Disconnetti dalla sessione"
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Esci</span>
+                <LogOut className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden xl:inline">Esci</span>
               </button>
             </div>
 
             {/* ── Mobile Right Actions (Compact, Clean & Responsive) ── */}
             <div className="flex md:hidden items-center gap-1.5 shrink-0">
+              {/* Mobile Quick Theme Toggle */}
+              <ThemeToggle compact={true} />
 
               {/* Mobile Role badge */}
               <div
@@ -514,103 +537,31 @@ const AppContent: React.FC = () => {
                 )}
               </div>
 
-              {/* Mobile Menu Toggle Button */}
+              {/* Mobile Menu Toggle Button (44px comfortable touch target) */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className={`p-1.5 rounded-lg border transition-all ${
+                className={`w-11 h-11 rounded-xl border flex items-center justify-center transition-all touch-manipulation touch-active cursor-pointer ${
                   isMobileMenuOpen
                     ? 'bg-yellow-400 text-black border-yellow-400 shadow-md shadow-yellow-500/30'
                     : 'bg-neutral-900 text-yellow-400 border-yellow-500/30 hover:bg-neutral-800'
                 }`}
-                aria-label="Apri menu opzioni"
+                aria-label="Apri menu sezioni ed opzioni"
               >
                 {isMobileMenuOpen ? (
-                  <X className="w-4 h-4 stroke-[2.5]" />
+                  <X className="w-5 h-5 stroke-[2.5]" />
                 ) : (
-                  <Menu className="w-4 h-4 stroke-[2.5]" />
+                  <Menu className="w-5 h-5 stroke-[2.5]" />
                 )}
               </button>
             </div>
 
-          </div>
-
-          {/* ── Mobile Horizontal Tab Strip (Fast 1-Tap Switching) ── */}
-          <div className="md:hidden py-1.5 border-t border-yellow-500/15 overflow-x-auto no-scrollbar flex items-center gap-1.5">
-            <button
-              onClick={() => {
-                setActiveTab('calendar');
-                setIsMobileMenuOpen(false);
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap ${
-                activeTab === 'calendar'
-                  ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
-                  : 'bg-neutral-900/80 text-yellow-100/70 border border-yellow-500/20'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Calendario</span>
-            </button>
-
-            {isAdmin && (
-              <>
-                <button
-                  onClick={() => {
-                    setActiveTab('finance');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap ${
-                    activeTab === 'finance'
-                      ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
-                      : 'bg-neutral-900/80 text-yellow-100/70 border border-yellow-500/20'
-                  }`}
-                >
-                  <Receipt className="w-3.5 h-3.5" />
-                  <span>Conti &amp; Bollette</span>
-                  {expenses.length > 0 && (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                      activeTab === 'finance' ? 'bg-black text-yellow-400' : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
-                    }`}>
-                      {expenses.length}
-                    </span>
-                  )}
-                </button>
-
-                {dropdownSections.filter((s) => s.id !== 'finance').map((section) => {
-                  const isActive = activeTab === section.id;
-                  return (
-                    <button
-                      key={section.id}
-                      onClick={() => {
-                        setActiveTab(section.id);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap ${
-                        isActive
-                          ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
-                          : 'bg-neutral-900/80 text-yellow-100/70 border border-yellow-500/20'
-                      }`}
-                    >
-                      {section.icon}
-                      <span>{section.shortLabel}</span>
-                      {section.badge !== undefined && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                          isActive ? 'bg-black text-yellow-400' : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
-                        }`}>
-                          {section.badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </>
-            )}
           </div>
         </div>
       </header>
 
       {/* ── Mobile Menu Drawer ── */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 md:hidden animate-in fade-in duration-200 print:hidden">
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/80 backdrop-blur-sm"
@@ -621,28 +572,29 @@ const AppContent: React.FC = () => {
           <div className="fixed inset-y-0 right-0 max-w-xs w-full bg-neutral-950 border-l border-yellow-500/30 p-4 shadow-2xl flex flex-col z-50 overflow-y-auto animate-in slide-in-from-right duration-200">
             {/* Drawer Header */}
             <div className="flex items-center justify-between pb-3 border-b border-yellow-500/20">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-bold">
-                  <Music2 className="w-3.5 h-3.5 stroke-[2.5]" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-bold shadow-sm shadow-yellow-500/30">
+                  <Music2 className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
                   <h3 className="text-xs font-bold text-white leading-tight">SALA PROVE</h3>
-                  <p className="text-[10px] text-yellow-400/70 truncate max-w-[150px]">{studioInfo.nome}</p>
+                  <p className="text-[10px] text-yellow-400/80 truncate max-w-[150px]">{studioInfo.nome}</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg text-neutral-400 hover:text-yellow-400 hover:bg-neutral-900 border border-yellow-500/20"
+                className="w-11 h-11 rounded-xl text-neutral-400 hover:text-yellow-400 hover:bg-neutral-900 border border-yellow-500/20 flex items-center justify-center touch-manipulation touch-active"
+                aria-label="Chiudi menu"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* User Profile Card */}
-            <div className="my-3 p-3 rounded-xl bg-neutral-900/90 border border-yellow-500/25 space-y-2">
+            <div className="my-3 p-3.5 rounded-xl bg-neutral-900/90 border border-yellow-500/25 space-y-2.5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-yellow-400/20 border border-yellow-500/30 flex items-center justify-center text-yellow-400 font-bold text-sm">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-yellow-400/20 border border-yellow-500/40 flex items-center justify-center text-yellow-400 font-bold text-sm">
                     {user.avatar || (isAdmin ? '👑' : '👤')}
                   </div>
                   <div>
@@ -658,13 +610,18 @@ const AppContent: React.FC = () => {
               </div>
 
               {/* Quick actions inside drawer */}
-              <div className="pt-2 border-t border-neutral-800">
+              <div className="pt-2 border-t border-neutral-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-neutral-300">Tema Grafico:</span>
+                  <ThemeToggle compact={false} showLabel={true} />
+                </div>
+
                 <button
                   onClick={() => {
                     switchRole();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-yellow-300 text-xs font-semibold border border-yellow-500/20 transition-colors"
+                  className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-yellow-300 text-xs font-semibold border border-yellow-500/20 transition-all touch-manipulation touch-active cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-yellow-400" />
                   <span>{isAdmin ? 'Simula Utente Standard' : 'Simula Amministratore'}</span>
@@ -673,8 +630,8 @@ const AppContent: React.FC = () => {
             </div>
 
             {/* Navigation List in Drawer */}
-            <div className="flex-1 space-y-1 py-1">
-              <p className="text-[10px] uppercase font-bold text-yellow-500/60 px-2 tracking-wider">Navigazione</p>
+            <div className="flex-1 space-y-1.5 py-1">
+              <p className="text-[10px] uppercase font-bold text-yellow-500/60 px-2 tracking-wider">Tutte le Sezioni</p>
 
               {/* Calendario */}
               <button
@@ -682,17 +639,17 @@ const AppContent: React.FC = () => {
                   setActiveTab('calendar');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-manipulation touch-active ${
                   activeTab === 'calendar'
                     ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
                     : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <LayoutDashboard className="w-4 h-4" />
+                <div className="flex items-center gap-3">
+                  <LayoutDashboard className="w-4 h-4 shrink-0" />
                   <span>Calendario &amp; Prenotazioni</span>
                 </div>
-                {activeTab === 'calendar' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                {activeTab === 'calendar' && <Check className="w-4 h-4 stroke-[3]" />}
               </button>
 
               {/* Schema Turni Settimana */}
@@ -701,17 +658,17 @@ const AppContent: React.FC = () => {
                   setActiveTab('turni');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-manipulation touch-active ${
                   activeTab === 'turni'
                     ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
                     : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <CalendarClock className="w-4 h-4" />
+                <div className="flex items-center gap-3">
+                  <CalendarClock className="w-4 h-4 shrink-0" />
                   <span>Schema Turni Settimana</span>
                 </div>
-                {activeTab === 'turni' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                {activeTab === 'turni' && <Check className="w-4 h-4 stroke-[3]" />}
               </button>
 
               {isAdmin && (
@@ -721,18 +678,18 @@ const AppContent: React.FC = () => {
                       setActiveTab('finance');
                       setIsMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-manipulation touch-active ${
                       activeTab === 'finance'
                         ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
                         : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <Receipt className="w-4 h-4" />
+                    <div className="flex items-center gap-3">
+                      <Receipt className="w-4 h-4 shrink-0" />
                       <span>Spese &amp; Conto Mensile</span>
                     </div>
                     {expenses.length > 0 && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         activeTab === 'finance' ? 'bg-black text-yellow-400' : 'bg-neutral-800 text-yellow-300'
                       }`}>
                         {expenses.length}
@@ -749,25 +706,25 @@ const AppContent: React.FC = () => {
                           setActiveTab(item.id);
                           setIsMobileMenuOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-all ${
+                        className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-manipulation touch-active ${
                           isItemActive
                             ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
                             : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
                         }`}
                       >
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-3">
                           {item.icon}
                           <span>{item.label}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           {item.badge !== undefined && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                               isItemActive ? 'bg-black text-yellow-400' : 'bg-neutral-800 text-yellow-300'
                             }`}>
                               {item.badge}
                             </span>
                           )}
-                          {isItemActive && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          {isItemActive && <Check className="w-4 h-4 stroke-[3]" />}
                         </div>
                       </button>
                     );
@@ -778,10 +735,10 @@ const AppContent: React.FC = () => {
                       setIsUserManagementOpen(true);
                       setIsMobileMenuOpen(false);
                     }}
-                    className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold text-yellow-300 bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-500/30 transition-all mt-2"
+                    className="w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-yellow-300 bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-500/30 transition-all touch-manipulation touch-active mt-2"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <UserPlus className="w-4 h-4 text-yellow-400" />
+                    <div className="flex items-center gap-3">
+                      <UserPlus className="w-4 h-4 text-yellow-400 shrink-0" />
                       <span>Gestione Utenti Supabase</span>
                     </div>
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-400 text-black">
@@ -793,16 +750,16 @@ const AppContent: React.FC = () => {
             </div>
 
             {/* Bottom Actions in Drawer */}
-            <div className="pt-3 border-t border-yellow-500/20 space-y-2 mt-auto">
+            <div className="pt-3 border-t border-yellow-500/20 space-y-2 mt-auto pb-safe">
               {isAdmin && (
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
                     handleResetDemo();
                   }}
-                  className="w-full py-2 px-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-400 text-xs font-semibold border border-yellow-500/30 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  className="w-full min-h-[44px] py-2.5 px-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-400 text-xs font-semibold border border-yellow-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer touch-manipulation touch-active"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  <RotateCcw className="w-4 h-4" />
                   <span>Ripristina Dati Demo</span>
                 </button>
               )}
@@ -812,9 +769,9 @@ const AppContent: React.FC = () => {
                   setIsMobileMenuOpen(false);
                   logout();
                 }}
-                className="w-full py-2 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 text-xs font-bold border border-rose-500/30 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                className="w-full min-h-[44px] py-2.5 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 text-xs font-bold border border-rose-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer touch-manipulation touch-active"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-4 h-4" />
                 <span>Disconnetti (Logout)</span>
               </button>
             </div>
@@ -822,8 +779,8 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-6 flex-1 w-full">
+      {/* Main Container (pb-24 on mobile ensures bottom navigation doesn't overlap content) */}
+      <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-6 pb-24 md:pb-6 flex-1 w-full print:p-0 print:m-0 print:max-w-none print:w-full">
         {activeTab === 'calendar' && (
           <CalendarDashboardView onNavigateToTurni={() => setActiveTab('turni')} />
         )}
@@ -843,17 +800,17 @@ const AppContent: React.FC = () => {
           </>
         )}
         {!isAdmin && activeTab !== 'calendar' && activeTab !== 'turni' && (
-          <div className="bg-neutral-950 border border-rose-500/30 rounded-2xl p-8 text-center space-y-3 my-8">
+          <div className="bg-neutral-950 border border-rose-500/30 rounded-2xl p-8 text-center space-y-3 my-8 print:hidden">
             <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
               <Shield className="w-6 h-6" />
             </div>
             <h2 className="text-lg font-bold text-white">Accesso Riservato</h2>
             <p className="text-xs text-neutral-400 max-w-md mx-auto">
-              Questa sezione è riservata all'Amministratore. Il tuo account utente ha accesso esclusivamente al Calendario e alla gestione appuntamenti.
+              Questa sezione è riservata all'Amministratore. Il tuo account utente ha accesso esclusivamente al Calendario e allo Schema Turni.
             </p>
             <button
               onClick={() => setActiveTab('calendar')}
-              className="px-4 py-2 bg-yellow-400 text-black font-bold text-xs rounded-xl shadow-md cursor-pointer hover:bg-yellow-300 transition-all"
+              className="px-4 py-2 min-h-[44px] bg-yellow-400 text-black font-bold text-xs rounded-xl shadow-md cursor-pointer hover:bg-yellow-300 transition-all touch-manipulation touch-active"
             >
               Torna al Calendario
             </button>
@@ -861,8 +818,132 @@ const AppContent: React.FC = () => {
         )}
       </main>
 
+      {/* ── Fixed Mobile Bottom Navigation Bar (Always thumb-accessible on smartphone) ── */}
+      <nav
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-neutral-950/95 border-t border-yellow-500/30 backdrop-blur-md pb-safe shadow-[0_-8px_25px_rgba(0,0,0,0.85)] print:hidden"
+        aria-label="Navigazione rapida mobile"
+      >
+        <div className={`grid ${isAdmin ? 'grid-cols-5' : 'grid-cols-3'} items-stretch h-14`}>
+          {/* 1. Calendario */}
+          <button
+            onClick={() => {
+              setActiveTab('calendar');
+              setIsMobileMenuOpen(false);
+            }}
+            className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
+              activeTab === 'calendar' ? 'text-yellow-400 font-extrabold' : 'text-neutral-400 hover:text-yellow-300'
+            }`}
+            title="Calendario Prenotazioni"
+          >
+            {activeTab === 'calendar' && (
+              <span className="absolute top-0 inset-x-4 h-0.5 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
+            )}
+            <LayoutDashboard className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] leading-tight">Calendario</span>
+          </button>
+
+          {/* 2. Schema Turni */}
+          <button
+            onClick={() => {
+              setActiveTab('turni');
+              setIsMobileMenuOpen(false);
+            }}
+            className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
+              activeTab === 'turni' ? 'text-yellow-400 font-extrabold' : 'text-neutral-400 hover:text-yellow-300'
+            }`}
+            title="Schema Riepilogativo Turni"
+          >
+            {activeTab === 'turni' && (
+              <span className="absolute top-0 inset-x-4 h-0.5 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
+            )}
+            <CalendarClock className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] leading-tight">Turni</span>
+          </button>
+
+          {isAdmin ? (
+            <>
+              {/* 3. Prenotazioni */}
+              <button
+                onClick={() => {
+                  setActiveTab('bookings');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
+                  activeTab === 'bookings' ? 'text-yellow-400 font-extrabold' : 'text-neutral-400 hover:text-yellow-300'
+                }`}
+                title="Gestione Prenotazioni"
+              >
+                {activeTab === 'bookings' && (
+                  <span className="absolute top-0 inset-x-4 h-0.5 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
+                )}
+                <div className="relative">
+                  <Music2 className="w-5 h-5 mb-0.5" />
+                  {bookings.length > 0 && (
+                    <span className="absolute -top-1 -right-2.5 bg-yellow-400 text-black text-[9px] font-black px-1 rounded-full leading-tight">
+                      {bookings.length}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] leading-tight">Prenota</span>
+              </button>
+
+              {/* 4. Conti & Spese */}
+              <button
+                onClick={() => {
+                  setActiveTab('finance');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
+                  activeTab === 'finance' ? 'text-yellow-400 font-extrabold' : 'text-neutral-400 hover:text-yellow-300'
+                }`}
+                title="Conti e Spese Mensili"
+              >
+                {activeTab === 'finance' && (
+                  <span className="absolute top-0 inset-x-4 h-0.5 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
+                )}
+                <div className="relative">
+                  <Receipt className="w-5 h-5 mb-0.5" />
+                  {expenses.length > 0 && (
+                    <span className="absolute -top-1 -right-2.5 bg-yellow-400 text-black text-[9px] font-black px-1 rounded-full leading-tight">
+                      {expenses.length}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] leading-tight">Conti</span>
+              </button>
+
+              {/* 5. Altro (Menu Drawer) */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
+                  isMobileMenuOpen || !['calendar', 'turni', 'bookings', 'finance'].includes(activeTab)
+                    ? 'text-yellow-400 font-extrabold'
+                    : 'text-neutral-400 hover:text-yellow-300'
+                }`}
+                title="Tutte le altre sezioni ed opzioni"
+              >
+                <Layers className="w-5 h-5 mb-0.5" />
+                <span className="text-[10px] leading-tight">Altro</span>
+              </button>
+            </>
+          ) : (
+            /* Standard User: Profilo / Menu */
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
+                isMobileMenuOpen ? 'text-yellow-400 font-extrabold' : 'text-neutral-400 hover:text-yellow-300'
+              }`}
+              title="Profilo ed Opzioni"
+            >
+              <User className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px] leading-tight">Profilo</span>
+            </button>
+          )}
+        </div>
+      </nav>
+
       {/* Footer */}
-      <footer className="bg-neutral-950 border-t border-yellow-500/25 py-4 text-center text-xs text-yellow-100/60">
+      <footer className="bg-neutral-950 border-t border-yellow-500/25 py-4 pb-24 md:pb-4 text-center text-xs text-yellow-100/60 print:hidden">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p>
             <strong className="text-yellow-400 font-bold">Gestione Sala Prove Musicale</strong> • <span className="text-neutral-300">Controllo Accessi RBAC attivo &bull; Profilo: <strong className="text-yellow-300 font-semibold">{user.nome} ({user.ruolo.toUpperCase()})</strong></span>
@@ -887,10 +968,12 @@ const AppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppProvider>
+          <AppContent />
+        </AppProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

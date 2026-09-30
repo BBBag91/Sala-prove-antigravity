@@ -3,35 +3,72 @@
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    color: #fef08a;
-    background-color: #000000;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
   }
-
-  ::selection {
-    background-color: #facc15;
-    color: #000000;
-  }
 }
 
-/* Custom yellow & black scrollbar */
-::-webkit-scrollbar {
+/* Custom scrollbars according to theme */
+html:not(.light) body,
+html.dark body {
+  color: #fef08a;
+  background-color: #000000;
+}
+
+html:not(.light) ::selection,
+html.dark ::selection {
+  background-color: #facc15;
+  color: #000000;
+}
+
+html:not(.light) ::-webkit-scrollbar,
+html.dark ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
 }
-::-webkit-scrollbar-track {
+html:not(.light) ::-webkit-scrollbar-track,
+html.dark ::-webkit-scrollbar-track {
   background: #000000;
 }
-::-webkit-scrollbar-thumb {
+html:not(.light) ::-webkit-scrollbar-thumb,
+html.dark ::-webkit-scrollbar-thumb {
   background: #854d0e;
   border-radius: 9999px;
   border: 1px solid rgba(250, 204, 21, 0.3);
 }
-::-webkit-scrollbar-thumb:hover {
+html:not(.light) ::-webkit-scrollbar-thumb:hover,
+html.dark ::-webkit-scrollbar-thumb:hover {
   background: #facc15;
+}
+
+/* Light Theme Scrollbar and Selection */
+html.light body {
+  color: #0f172a;
+  background-color: #ffffff;
+}
+
+html.light ::selection {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+html.light ::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #93c5fd;
+  border-radius: 9999px;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #2563eb;
 }
 
 /* Hide scrollbar for clean horizontal strips */
@@ -43,228 +80,725 @@
   scrollbar-width: none;
 }
 
-/* Screen Theme Overrides: Black Background & Predominantly Yellow Elements */
+/* Mobile Touch & UX Optimizations */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* iOS Safe Area bottom padding utility */
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+.pb-safe-nav {
+  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Active micro-interactions for touch */
+.touch-active {
+  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.1s ease;
+  will-change: transform;
+}
+.touch-active:active {
+  transform: scale(0.96);
+  opacity: 0.88;
+}
+
+/* Touch targets guarantees */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+
+/* =========================================================================
+   VERSIONE DARK (Esistente: Sfondo Nero & Elementi Oro/Giallo)
+   Attiva di default o con classe .dark
+   ========================================================================= */
 @media screen {
   /* Surfaces: Cards, Modals, Panels, Toolbars */
-  .bg-white {
+  html:not(.light) .bg-white,
+  html.dark .bg-white {
     background-color: #0d0d0d !important;
     border-color: rgba(250, 204, 21, 0.22) !important;
   }
 
-  .bg-slate-50,
-  .bg-slate-50\/60,
-  .bg-slate-50\/40,
-  .bg-slate-50\/80 {
+  html:not(.light) .bg-slate-50,
+  html:not(.light) .bg-slate-50\/60,
+  html:not(.light) .bg-slate-50\/40,
+  html:not(.light) .bg-slate-50\/80,
+  html.dark .bg-slate-50,
+  html.dark .bg-slate-50\/60,
+  html.dark .bg-slate-50\/40,
+  html.dark .bg-slate-50\/80 {
     background-color: #121212 !important;
   }
 
-  .bg-slate-100 {
+  html:not(.light) .bg-slate-100,
+  html.dark .bg-slate-100 {
     background-color: #1a1a1a !important;
   }
 
-  .bg-slate-200 {
+  html:not(.light) .bg-slate-200,
+  html.dark .bg-slate-200 {
     background-color: #242424 !important;
   }
 
-  .bg-slate-900 {
+  html:not(.light) .bg-slate-900,
+  html.dark .bg-slate-900 {
     background-color: #141410 !important;
     border-color: rgba(250, 204, 21, 0.35) !important;
   }
 
   /* Borders: Golden Yellow Tinted Borders */
-  .border-slate-100,
-  .border-slate-200,
-  .border-slate-300 {
+  html:not(.light) .border-slate-100,
+  html:not(.light) .border-slate-200,
+  html:not(.light) .border-slate-300,
+  html.dark .border-slate-100,
+  html.dark .border-slate-200,
+  html.dark .border-slate-300 {
     border-color: rgba(250, 204, 21, 0.22) !important;
   }
 
-  .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
-  .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+  html:not(.light) .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+  html:not(.light) .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+  html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+  html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
     border-color: rgba(250, 204, 21, 0.18) !important;
   }
 
   /* Typography: Yellow Palette & High Contrast Headings */
-  .text-slate-900 {
+  html:not(.light) .text-slate-900,
+  html.dark .text-slate-900 {
     color: #fef9c3 !important; /* bright warm yellow-white */
   }
 
-  .text-slate-800 {
+  html:not(.light) .text-slate-800,
+  html.dark .text-slate-800 {
     color: #fef08a !important; /* soft primary yellow */
   }
 
-  .text-slate-700 {
+  html:not(.light) .text-slate-700,
+  html.dark .text-slate-700 {
     color: #fde047 !important; /* light yellow */
   }
 
-  .text-slate-600 {
+  html:not(.light) .text-slate-600,
+  html.dark .text-slate-600 {
     color: #eab308 !important; /* golden yellow */
   }
 
-  .text-slate-500 {
+  html:not(.light) .text-slate-500,
+  html.dark .text-slate-500 {
     color: #ca8a04 !important; /* amber yellow */
   }
 
-  .text-slate-400 {
+  html:not(.light) .text-slate-400,
+  html.dark .text-slate-400 {
     color: #a1a1aa !important; /* readable muted secondary text */
   }
 
-  .text-slate-300 {
+  html:not(.light) .text-slate-300,
+  html.dark .text-slate-300 {
     color: #71717a !important;
   }
 
   /* Primary Brand: Indigo converted to Vibrant High-Contrast Yellow */
-  .bg-indigo-600 {
+  html:not(.light) .bg-indigo-600,
+  html.dark .bg-indigo-600 {
     background-color: #facc15 !important;
     color: #000000 !important;
     font-weight: 700 !important;
   }
 
-  .bg-indigo-600:hover,
-  .hover\:bg-indigo-700:hover {
+  html:not(.light) .bg-indigo-600:hover,
+  html:not(.light) .hover\:bg-indigo-700:hover,
+  html.dark .bg-indigo-600:hover,
+  html.dark .hover\:bg-indigo-700:hover {
     background-color: #eab308 !important;
     color: #000000 !important;
   }
 
-  .bg-indigo-600 *,
-  .bg-indigo-700 * {
+  html:not(.light) .bg-indigo-600 *,
+  html:not(.light) .bg-indigo-700 *,
+  html.dark .bg-indigo-600 *,
+  html.dark .bg-indigo-700 * {
     color: #000000 !important;
   }
 
-  .bg-indigo-50 {
+  html:not(.light) .bg-indigo-50,
+  html.dark .bg-indigo-50 {
     background-color: rgba(250, 204, 21, 0.12) !important;
     color: #facc15 !important;
     border-color: rgba(250, 204, 21, 0.35) !important;
   }
 
-  .bg-indigo-100 {
+  html:not(.light) .bg-indigo-100,
+  html.dark .bg-indigo-100 {
     background-color: rgba(250, 204, 21, 0.22) !important;
     border-color: rgba(250, 204, 21, 0.45) !important;
   }
 
-  .bg-indigo-200,
-  .bg-indigo-200\/80 {
+  html:not(.light) .bg-indigo-200,
+  html:not(.light) .bg-indigo-200\/80,
+  html.dark .bg-indigo-200,
+  html.dark .bg-indigo-200\/80 {
     background-color: #facc15 !important;
     color: #000000 !important;
   }
 
-  .text-indigo-600,
-  .text-indigo-700,
-  .text-indigo-500,
-  .text-indigo-400 {
+  html:not(.light) .text-indigo-600,
+  html:not(.light) .text-indigo-700,
+  html:not(.light) .text-indigo-500,
+  html:not(.light) .text-indigo-400,
+  html.dark .text-indigo-600,
+  html.dark .text-indigo-700,
+  html.dark .text-indigo-500,
+  html.dark .text-indigo-400 {
     color: #facc15 !important;
   }
 
-  .text-indigo-900,
-  .text-indigo-950 {
+  html:not(.light) .text-indigo-900,
+  html:not(.light) .text-indigo-950,
+  html.dark .text-indigo-900,
+  html.dark .text-indigo-950 {
     color: #fef08a !important;
   }
 
-  .border-indigo-100,
-  .border-indigo-200,
-  .border-indigo-500 {
+  html:not(.light) .border-indigo-100,
+  html:not(.light) .border-indigo-200,
+  html:not(.light) .border-indigo-500,
+  html.dark .border-indigo-100,
+  html.dark .border-indigo-200,
+  html.dark .border-indigo-500 {
     border-color: rgba(250, 204, 21, 0.45) !important;
   }
 
   /* Colored status badges adapted for dark mode */
-  .bg-emerald-50 {
+  html:not(.light) .bg-emerald-50,
+  html.dark .bg-emerald-50 {
     background-color: rgba(16, 185, 129, 0.15) !important;
     border-color: rgba(16, 185, 129, 0.35) !important;
   }
-  .text-emerald-700, .text-emerald-800, .text-emerald-600 {
+  html:not(.light) .text-emerald-700,
+  html:not(.light) .text-emerald-800,
+  html:not(.light) .text-emerald-600,
+  html.dark .text-emerald-700,
+  html.dark .text-emerald-800,
+  html.dark .text-emerald-600 {
     color: #34d399 !important;
   }
 
-  .bg-rose-50, .bg-red-50 {
+  html:not(.light) .bg-rose-50,
+  html:not(.light) .bg-red-50,
+  html.dark .bg-rose-50,
+  html.dark .bg-red-50 {
     background-color: rgba(244, 63, 94, 0.15) !important;
     border-color: rgba(244, 63, 94, 0.35) !important;
   }
-  .text-rose-700, .text-rose-600, .text-rose-500 {
+  html:not(.light) .text-rose-700,
+  html:not(.light) .text-rose-600,
+  html:not(.light) .text-rose-500,
+  html.dark .text-rose-700,
+  html.dark .text-rose-600,
+  html.dark .text-rose-500 {
     color: #fb7185 !important;
   }
 
-  .bg-amber-50, .bg-amber-100 {
+  html:not(.light) .bg-amber-50,
+  html:not(.light) .bg-amber-100,
+  html.dark .bg-amber-50,
+  html.dark .bg-amber-100 {
     background-color: rgba(245, 158, 11, 0.15) !important;
     border-color: rgba(245, 158, 11, 0.35) !important;
   }
-  .text-amber-700, .text-amber-800 {
+  html:not(.light) .text-amber-700,
+  html:not(.light) .text-amber-800,
+  html.dark .text-amber-700,
+  html.dark .text-amber-800 {
     color: #fbbf24 !important;
   }
 
-  .bg-purple-50, .bg-purple-100 {
+  html:not(.light) .bg-purple-50,
+  html:not(.light) .bg-purple-100,
+  html.dark .bg-purple-50,
+  html.dark .bg-purple-100 {
     background-color: rgba(168, 85, 247, 0.15) !important;
     border-color: rgba(168, 85, 247, 0.35) !important;
   }
-  .text-purple-700, .text-purple-900 {
+  html:not(.light) .text-purple-700,
+  html:not(.light) .text-purple-900,
+  html.dark .text-purple-700,
+  html.dark .text-purple-900 {
     color: #c084fc !important;
   }
 
-  .bg-sky-50, .bg-sky-100 {
+  html:not(.light) .bg-sky-50,
+  html:not(.light) .bg-sky-100,
+  html.dark .bg-sky-50,
+  html.dark .bg-sky-100 {
     background-color: rgba(14, 165, 233, 0.15) !important;
     border-color: rgba(14, 165, 233, 0.35) !important;
   }
 
   /* Secondary buttons and chips */
-  .hover\:bg-slate-50:hover,
-  .hover\:bg-slate-100:hover,
-  .hover\:bg-white:hover {
+  html:not(.light) .hover\:bg-slate-50:hover,
+  html:not(.light) .hover\:bg-slate-100:hover,
+  html:not(.light) .hover\:bg-white:hover,
+  html.dark .hover\:bg-slate-50:hover,
+  html.dark .hover\:bg-slate-100:hover,
+  html.dark .hover\:bg-white:hover {
     background-color: rgba(250, 204, 21, 0.1) !important;
   }
 
   /* Form Elements: Dark inputs with yellow borders & text */
-  input:not([type="checkbox"]):not([type="radio"]),
-  select,
-  textarea {
+  html:not(.light) input:not([type="checkbox"]):not([type="radio"]),
+  html:not(.light) select,
+  html:not(.light) textarea,
+  html.dark input:not([type="checkbox"]):not([type="radio"]),
+  html.dark select,
+  html.dark textarea {
     background-color: #141414 !important;
     color: #fef08a !important;
     border-color: rgba(250, 204, 21, 0.35) !important;
   }
 
-  input:not([type="checkbox"]):not([type="radio"]):focus,
-  select:focus,
-  textarea:focus {
+  html:not(.light) input:not([type="checkbox"]):not([type="radio"]):focus,
+  html:not(.light) select:focus,
+  html:not(.light) textarea:focus,
+  html.dark input:not([type="checkbox"]):not([type="radio"]):focus,
+  html.dark select:focus,
+  html.dark textarea:focus {
     border-color: #facc15 !important;
     box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.4) !important;
     outline: none !important;
   }
 
-  input[type="checkbox"],
-  input[type="radio"] {
+  html:not(.light) input[type="checkbox"],
+  html:not(.light) input[type="radio"],
+  html.dark input[type="checkbox"],
+  html.dark input[type="radio"] {
     accent-color: #facc15;
   }
 
   /* Modals backdrop */
-  .fixed.inset-0.bg-black\/50,
-  .fixed.inset-0.bg-slate-900\/40,
-  .fixed.inset-0.bg-slate-900\/50 {
+  html:not(.light) .fixed.inset-0.bg-black\/80,
+  html:not(.light) .fixed.inset-0.bg-black\/50,
+  html:not(.light) .fixed.inset-0.bg-slate-900\/40,
+  html:not(.light) .fixed.inset-0.bg-slate-900\/50,
+  html.dark .fixed.inset-0.bg-black\/80,
+  html.dark .fixed.inset-0.bg-black\/50,
+  html.dark .fixed.inset-0.bg-slate-900\/40,
+  html.dark .fixed.inset-0.bg-slate-900\/50 {
     background-color: rgba(0, 0, 0, 0.85) !important;
     backdrop-filter: blur(4px);
   }
 
   /* Shadow adjustment */
-  .shadow-sm,
-  .shadow-xs,
-  .shadow-md,
-  .shadow-lg,
-  .shadow-xl {
+  html:not(.light) .shadow-sm,
+  html:not(.light) .shadow-xs,
+  html:not(.light) .shadow-md,
+  html:not(.light) .shadow-lg,
+  html:not(.light) .shadow-xl,
+  html.dark .shadow-sm,
+  html.dark .shadow-xs,
+  html.dark .shadow-md,
+  html.dark .shadow-lg,
+  html.dark .shadow-xl {
     box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.7), 0 0 10px rgba(250, 204, 21, 0.04) !important;
   }
 }
 
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 12mm 10mm;
-  }
 
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-
-  .bg-white {
+/* =========================================================================
+   VERSIONE CHIARA (Richiesta: Sfondo Bianco e Resto Blu)
+   Attiva quando: html.light oppure [data-theme="light"]
+   ========================================================================= */
+@media screen {
+  /* ── 1. Sfondo Bianco Assoluto & Superfici Icy-Slate ── */
+  html.light,
+  html.light #root,
+  html.light body,
+  html.light .min-h-screen,
+  html.light .bg-black,
+  html.light .bg-neutral-950,
+  html.light .bg-white,
+  html.light [class*="bg-[#0e0e0e]"],
+  html.light [class*="bg-[#0a0a0a]"],
+  html.light [class*="bg-[#0d0d0d]"] {
     background-color: #ffffff !important;
   }
 
+  /* Top Navbar con sfondo bianco satinato e bordo blu tenue */
+  html.light header.bg-neutral-950\/95,
+  html.light header {
+    background-color: rgba(255, 255, 255, 0.96) !important;
+    border-color: rgba(37, 99, 235, 0.16) !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(37, 99, 235, 0.04) !important;
+  }
+
+  /* Footer in versione chiara */
+  html.light footer.bg-neutral-950 {
+    background-color: #f8fafc !important;
+    border-color: rgba(37, 99, 235, 0.14) !important;
+    color: #475569 !important;
+  }
+
+  /* Superfici secondarie / card container / toolbar / colonne calendario */
+  html.light .bg-neutral-900,
+  html.light .bg-neutral-900\/90,
+  html.light .bg-neutral-900\/80,
+  html.light .bg-neutral-900\/50,
+  html.light [class*="bg-[#141414]"],
+  html.light [class*="bg-[#18181b]"],
+  html.light .bg-slate-50,
+  html.light .bg-slate-50\/60,
+  html.light .bg-slate-50\/40,
+  html.light .bg-slate-50\/80 {
+    background-color: #f8fafc !important;
+  }
+
+  html.light .bg-neutral-800,
+  html.light .bg-slate-100 {
+    background-color: #f1f5f9 !important;
+  }
+
+  html.light .bg-slate-200 {
+    background-color: #e2e8f0 !important;
+  }
+
+  html.light .bg-slate-900 {
+    background-color: #eff6ff !important;
+    border-color: rgba(37, 99, 235, 0.25) !important;
+  }
+
+  /* Modali, Dropdown e Cassetti Laterali in Bianco Pulito */
+  html.light .bg-neutral-950.rounded-xl,
+  html.light .bg-neutral-950.rounded-2xl,
+  html.light [role="dialog"],
+  html.light .fixed [class*="bg-neutral-950"] {
+    background-color: #ffffff !important;
+    border-color: rgba(37, 99, 235, 0.22) !important;
+    box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(37, 99, 235, 0.1) !important;
+  }
+
+  html.light .fixed.inset-0.bg-black\/80,
+  html.light .fixed.inset-0.bg-black\/50,
+  html.light .fixed.inset-0.bg-slate-900\/40,
+  html.light .fixed.inset-0.bg-slate-900\/50 {
+    background-color: rgba(15, 23, 42, 0.5) !important;
+    backdrop-filter: blur(5px) !important;
+  }
+
+  /* ── 2. Il Resto Blu: Elementi Primari, Bottoni e Tab Attivi ── */
+  html.light .bg-yellow-400,
+  html.light .bg-yellow-500,
+  html.light .bg-amber-400,
+  html.light .bg-indigo-600 {
+    background-color: #2563eb !important; /* Royal Blue */
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border-color: #1d4ed8 !important;
+  }
+
+  html.light .bg-yellow-400 *,
+  html.light .bg-yellow-500 *,
+  html.light .bg-indigo-600 *,
+  html.light .bg-indigo-700 * {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+
+  html.light .hover\:bg-yellow-300:hover,
+  html.light .hover\:bg-yellow-400:hover,
+  html.light .bg-yellow-400:hover,
+  html.light .bg-yellow-500:hover,
+  html.light .bg-indigo-600:hover,
+  html.light .hover\:bg-indigo-700:hover {
+    background-color: #1d4ed8 !important; /* Deep Blue hover */
+    color: #ffffff !important;
+  }
+
+  /* Chip morbidi e badge secondari in Blu Delicato */
+  html.light [class*="bg-yellow-400/"],
+  html.light [class*="bg-yellow-500/"],
+  html.light .bg-indigo-50,
+  html.light .bg-indigo-100 {
+    background-color: rgba(37, 99, 235, 0.09) !important;
+    color: #1d4ed8 !important;
+    border-color: rgba(37, 99, 235, 0.25) !important;
+  }
+
+  html.light [class*="bg-yellow-400/"] *,
+  html.light [class*="bg-yellow-500/"] *,
+  html.light .bg-indigo-50 * {
+    color: #1d4ed8 !important;
+  }
+
+  /* Hover generali su righe o menu secondari */
+  html.light .hover\:bg-neutral-900:hover,
+  html.light .hover\:bg-neutral-800:hover,
+  html.light .hover\:bg-yellow-400\/10:hover,
+  html.light .hover\:bg-yellow-400\/20:hover,
+  html.light .hover\:bg-slate-50:hover,
+  html.light .hover\:bg-slate-100:hover,
+  html.light .hover\:bg-white:hover {
+    background-color: rgba(37, 99, 235, 0.08) !important;
+    color: #1d4ed8 !important;
+  }
+
+  /* ── 3. Bordi & Divisori Sfumati in Blu / Slate-Blue ── */
+  html.light [class*="border-yellow-"],
+  html.light .border-neutral-800,
+  html.light .border-neutral-700,
+  html.light .border-slate-100,
+  html.light .border-slate-200,
+  html.light .border-slate-300,
+  html.light .border-indigo-100,
+  html.light .border-indigo-200,
+  html.light .border-indigo-500 {
+    border-color: rgba(37, 99, 235, 0.18) !important;
+  }
+
+  html.light .divide-neutral-800 > :not([hidden]) ~ :not([hidden]),
+  html.light .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+  html.light .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgba(37, 99, 235, 0.12) !important;
+  }
+
+  /* ── 4. Tipografia: Navy Profondo & Accenti Blu ── */
+  /* Titoli e testo ad alto contrasto: Navy Midnight */
+  html.light .text-white,
+  html.light .text-yellow-50,
+  html.light .text-yellow-100,
+  html.light .text-slate-900,
+  html.light .text-slate-800 {
+    color: #0f172a !important; /* Slate 900 / Navy */
+  }
+
+  /* Testo di enfasi, brand e accenti: Blu Reale */
+  html.light .text-yellow-400,
+  html.light .text-yellow-300,
+  html.light .text-yellow-500,
+  html.light .text-indigo-600,
+  html.light .text-indigo-700,
+  html.light .text-indigo-500,
+  html.light .text-indigo-400 {
+    color: #2563eb !important; /* Royal Blue */
+  }
+
+  html.light .text-indigo-900,
+  html.light .text-indigo-950 {
+    color: #1e3a8a !important;
+  }
+
+  /* Testo intermedio / body */
+  html.light .text-yellow-200,
+  html.light .text-neutral-200,
+  html.light .text-neutral-300,
+  html.light .text-slate-700 {
+    color: #1e293b !important; /* Slate 800 */
+  }
+
+  /* Testo secondario */
+  html.light .text-slate-600 {
+    color: #334155 !important;
+  }
+
+  /* Testo attenuato / didascalie */
+  html.light .text-neutral-400,
+  html.light .text-neutral-500,
+  html.light .text-slate-500,
+  html.light .text-slate-400,
+  html.light .text-slate-300,
+  html.light [class*="text-yellow-"][class*="/60"],
+  html.light [class*="text-yellow-"][class*="/70"],
+  html.light [class*="text-yellow-"][class*="/80"] {
+    color: #64748b !important; /* Slate 500 */
+  }
+
+  /* ── 5. Form Elements: Input Bianchi con Bordi e Focus Blu ── */
+  html.light input:not([type="checkbox"]):not([type="radio"]),
+  html.light select,
+  html.light textarea,
+  html.light input[class*="bg-[#0a0a0a]"],
+  html.light input[class*="bg-[#141414]"] {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  html.light input:not([type="checkbox"]):not([type="radio"]):focus,
+  html.light select:focus,
+  html.light textarea:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25) !important;
+    outline: none !important;
+  }
+
+  html.light input[type="checkbox"],
+  html.light input[type="radio"] {
+    accent-color: #2563eb !important;
+  }
+
+  /* ── 6. Ombre & Bagliori Eleganti ── */
+  html.light .shadow-sm,
+  html.light .shadow-xs,
+  html.light .shadow-md,
+  html.light .shadow-lg,
+  html.light .shadow-xl,
+  html.light .shadow-2xl {
+    box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.08), 0 0 1px 1px rgba(37, 99, 235, 0.05) !important;
+  }
+
+  html.light [class*="shadow-yellow-"] {
+    box-shadow: 0 4px 14px -1px rgba(37, 99, 235, 0.22) !important;
+  }
+
+  /* Luci ambientali del login o dashboard in blu */
+  html.light .bg-yellow-500\/10,
+  html.light .bg-amber-500\/5 {
+    background-color: rgba(37, 99, 235, 0.07) !important;
+  }
+
+  /* ── 7. Badge di stato per Modalità Chiara ── */
+  html.light .bg-emerald-50 {
+    background-color: #ecfdf5 !important;
+    border-color: #a7f3d0 !important;
+  }
+  html.light .text-emerald-700,
+  html.light .text-emerald-800,
+  html.light .text-emerald-600 {
+    color: #047857 !important;
+  }
+
+  html.light .bg-rose-50,
+  html.light .bg-red-50 {
+    background-color: #fff1f2 !important;
+    border-color: #fecdd3 !important;
+  }
+  html.light .text-rose-700,
+  html.light .text-rose-600,
+  html.light .text-rose-500 {
+    color: #be123c !important;
+  }
+
+  html.light .bg-amber-50,
+  html.light .bg-amber-100 {
+    background-color: #fffbeb !important;
+    border-color: #fde68a !important;
+  }
+  html.light .text-amber-700,
+  html.light .text-amber-800 {
+    color: #b45309 !important;
+  }
+
+  html.light .bg-purple-50,
+  html.light .bg-purple-100 {
+    background-color: #faf5ff !important;
+    border-color: #e9d5ff !important;
+  }
+  html.light .text-purple-700,
+  html.light .text-purple-900 {
+    color: #7e22ce !important;
+  }
+
+  html.light .bg-sky-50,
+  html.light .bg-sky-100 {
+    background-color: #eff6ff !important;
+    border-color: #bfdbfe !important;
+  }
+}
+
+@media screen {
+  .print-only-sheet {
+    display: none !important;
+  }
+}
+
+/* =========================================================================
+   STAMPA (Foglio A4 Bianco Pulito al 100%, Senza Sfondi Neri né Barre UI)
+   ========================================================================= */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 8mm 8mm 8mm;
+  }
+
+  /* 1. Sfondo Bianco Assoluto su qualsiasi elemento genitore e wrapper */
+  html,
+  body,
+  #root,
+  .min-h-screen,
+  div,
+  main {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  /* 2. Nasconde categoricamente barre di navigazione, header, footer e cassetti UI */
+  header,
+  footer,
+  nav,
+  aside,
+  .print\:hidden,
+  button:not(.print\:inline-block),
+  [role="banner"],
+  [role="navigation"] {
+    display: none !important;
+  }
+
+  /* Evita che i backdrop scuri dei modali colorino il foglio di nero */
+  .fixed.inset-0.bg-black\/85,
+  .fixed.inset-0.bg-black\/80,
+  .fixed.inset-0.bg-black\/60,
+  .fixed.inset-0.bg-black\/50,
+  [class*="backdrop-blur"] {
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Rende visibile solo il blocco dedicato alla stampa */
+  .print\:block,
+  .print-only-sheet {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* 3. Forzatura testi e contrasto ad inchiostro nero / slate su carta */
+  *,
+  h1, h2, h3, h4, h5, h6, p, span, strong, td, th {
+    color: #000000 !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .text-white,
+  .text-yellow-50,
+  .text-yellow-100,
+  .text-yellow-200,
+  .text-yellow-300,
+  .text-yellow-400,
+  .text-yellow-500,
+  .text-neutral-200,
+  .text-neutral-300,
+  .text-neutral-400,
   .text-slate-900,
   .text-slate-800,
   .text-slate-700,
@@ -272,21 +806,40 @@
     color: #000000 !important;
   }
 
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  /* 4. Tabelle e Bordi Definiti */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
-  .print\:hidden {
-    display: none !important;
+  th {
+    background-color: #e2e8f0 !important;
+    color: #000000 !important;
+    border: 1px solid #64748b !important;
   }
 
-  .print\:block {
-    display: block !important;
+  td {
+    border: 1px solid #cbd5e1 !important;
+    color: #000000 !important;
+  }
+
+  tr:nth-child(even) td {
+    background-color: #f8fafc !important;
+  }
+  tr:nth-child(odd) td {
+    background-color: #ffffff !important;
   }
 
   .print\:break-after-page {
     break-after: page !important;
     page-break-after: always !important;
   }
+
+  .print\:break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
 }
+

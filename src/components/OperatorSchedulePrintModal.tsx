@@ -22,6 +22,7 @@ import {
   generateSingleOperatorSchedulePDF,
   generateAllOperatorsScheduleCatalogPDF,
   generateMasterSummarySinglePagePDF,
+  generateAllOperatorsSchematicPDF,
   OperatorScheduleReportData,
 } from '../utils/operatorSchedulePdf';
 
@@ -163,12 +164,12 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
     try {
       if (selectedOperatorId === 'all') {
         if (layoutMode === 'schematic_table') {
-          generateMasterSummarySinglePagePDF(allReports, periodLabel, studioInfo);
+          generateAllOperatorsSchematicPDF(allReports, periodLabel, studioInfo);
         } else {
           generateAllOperatorsScheduleCatalogPDF(allReports, periodLabel, studioInfo);
         }
       } else if (activeReport) {
-        generateSingleOperatorSchedulePDF(activeReport, studioInfo);
+        generateSingleOperatorSchedulePDF(activeReport, studioInfo, true);
       }
     } catch (err) {
       console.error('Errore durante la generazione PDF:', err);
@@ -320,41 +321,73 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
             </div>
           )}
 
+          {/* Quick Operator Pills for fast switching (Selezionabile per Operatore) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-1 no-scrollbar text-xs">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0 mr-1">
+              Operatore:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedOperatorId('all')}
+              className={`px-3 py-1 rounded-lg font-bold text-xs shrink-0 transition-all cursor-pointer ${
+                selectedOperatorId === 'all'
+                  ? 'bg-blue-600 text-white shadow-xs font-black'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+              }`}
+            >
+              📁 Tutti ({staff.length})
+            </button>
+            {staff.map((op) => (
+              <button
+                key={op.id}
+                type="button"
+                onClick={() => setSelectedOperatorId(op.id)}
+                className={`px-3 py-1 rounded-lg font-bold text-xs shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  selectedOperatorId === op.id
+                    ? 'bg-blue-600 text-white shadow-xs font-black'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+                }`}
+              >
+                <span>👤 {op.cognome} {op.nome}</span>
+              </button>
+            ))}
+          </div>
+
           {/* Actions & Metrics row */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
-            {/* Quick Summary Pill & Layout Mode Selector */}
+            {/* Layout Mode Selector (Sempre attivo e selezionabile, come da Foto 2) */}
             <div className="flex items-center gap-3 flex-wrap text-xs">
-              {selectedOperatorId === 'all' && (
-                <div className="flex items-center bg-slate-200/80 p-0.5 rounded-lg border border-slate-300">
-                  <button
-                    type="button"
-                    onClick={() => setLayoutMode('schematic_table')}
-                    className={`px-3 py-1.5 rounded-md font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                      layoutMode === 'schematic_table'
-                        ? 'bg-yellow-400 text-black shadow-xs font-black'
-                        : 'text-slate-700 hover:text-slate-900'
-                    }`}
-                    title="Layout compatto e schematico su una singola pagina"
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5" />
-                    <span>Tabella Schematica</span>
-                    <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-black/15 text-black font-bold">1 Pagina Max</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLayoutMode('detailed_cards')}
-                    className={`px-3 py-1.5 rounded-md font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                      layoutMode === 'detailed_cards'
-                        ? 'bg-yellow-400 text-black shadow-xs font-black'
-                        : 'text-slate-700 hover:text-slate-900'
-                    }`}
-                    title="Stampa le schede analitiche complete con tutti gli appuntamenti di ciascun operatore"
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>Dettagliato (Multi-foglio)</span>
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center bg-slate-200/90 p-0.5 rounded-xl border border-slate-300">
+                <button
+                  type="button"
+                  onClick={() => setLayoutMode('schematic_table')}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                    layoutMode === 'schematic_table'
+                      ? 'bg-blue-600 text-white shadow-xs font-black'
+                      : 'text-slate-700 hover:text-slate-900'
+                  }`}
+                  title="Layout sintetico su 1 singola pagina max (Foto 1 & 2)"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>Tabella Schematica</span>
+                  <span className={`text-[9.5px] px-1.5 py-0.2 rounded font-bold ${layoutMode === 'schematic_table' ? 'bg-black/25 text-white' : 'bg-slate-300 text-slate-700'}`}>
+                    1 Pagina Max
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLayoutMode('detailed_cards')}
+                  className={`px-3.5 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                    layoutMode === 'detailed_cards'
+                      ? 'bg-blue-600 text-white shadow-xs font-black'
+                      : 'text-slate-700 hover:text-slate-900'
+                  }`}
+                  title="Stampa le schede analitiche complete con tutti gli appuntamenti"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Dettagliato (Multi-foglio)</span>
+                </button>
+              </div>
 
               {selectedOperatorId === 'all' ? (
                 <span className="bg-indigo-50 text-indigo-700 border border-indigo-200/80 px-2.5 py-1 rounded-md font-bold hidden sm:inline-flex">
@@ -362,9 +395,9 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
                 </span>
               ) : activeReport ? (
                 <span className="bg-indigo-50 text-indigo-700 border border-indigo-200/80 px-2.5 py-1 rounded-md font-bold">
-                  {activeReport.operator.nome} {activeReport.operator.cognome}: {activeReport.totalAppointments} Appuntamenti •{' '}
+                  {activeReport.operator.cognome} {activeReport.operator.nome}: {activeReport.totalAppointments} Appuntamenti •{' '}
                   {activeReport.totalHours} ore ({activeReport.totalWorkingDays} giorni)
-                  {activeReport.totalCompensation > 0 && ` • Compenso: €${activeReport.totalCompensation}`}
+                  {activeReport.totalCompensation > 0 && ` • Compenso: €${activeReport.totalCompensation.toFixed(2)}`}
                 </span>
               ) : null}
             </div>
@@ -378,8 +411,8 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
               >
                 <Printer className="w-4 h-4 text-slate-700" />
                 <span>
-                  {selectedOperatorId === 'all' && layoutMode === 'schematic_table'
-                    ? 'Stampa Subito (1 Foglio)'
+                  {layoutMode === 'schematic_table'
+                    ? 'Stampa (1 Pagina Max)'
                     : 'Stampa'}
                 </span>
               </button>
@@ -387,7 +420,7 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
               <button
                 onClick={handleDownloadPDF}
                 disabled={isExporting}
-                className="px-4 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 text-black font-black text-xs rounded-lg shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black text-xs rounded-lg shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
                 title="Scarica documento in formato PDF A4 vettoriale"
               >
                 <Download className="w-4 h-4" />
@@ -396,9 +429,9 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
                     ? 'Generazione PDF...'
                     : selectedOperatorId === 'all'
                     ? layoutMode === 'schematic_table'
-                      ? 'Scarica PDF (1 Pagina)'
+                      ? 'Scarica PDF (1 Pagina per Operatore)'
                       : 'Scarica Catalogo PDF'
-                    : 'Scarica PDF'}
+                    : 'Scarica PDF (1 Pagina Max)'}
                 </span>
               </button>
             </div>
@@ -577,16 +610,15 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
                   )}
                 </div>
 
-                {/* Individual Pages for each operator in catalog (SOLO in modalità dettagliata!) */}
-                {layoutMode === 'detailed_cards' &&
-                  allReports.map((report) => (
-                    <OperatorScheduleCard
-                      key={report.operator.id}
-                      report={report}
-                      studioInfo={studioInfo}
-                      periodLabel={periodLabel}
-                    />
-                  ))}
+                {/* Individual Pages for each operator in catalog / schematic view */}
+                {allReports.map((report) => (
+                  <OperatorScheduleCard
+                    key={report.operator.id}
+                    report={report}
+                    studioInfo={studioInfo}
+                    periodLabel={periodLabel}
+                  />
+                ))}
               </div>
             ) : (
               // SINGLE OPERATOR PREVIEW
@@ -621,190 +653,148 @@ export const OperatorSchedulePrintModal: React.FC<OperatorSchedulePrintModalProp
 };
 
 /**
- * Reusable A4 Visual Sheet for a single operator's schedule
+ * Reusable A4 Visual Sheet for an operator's schedule (Exact 1:1 reproduction of Photo 1)
  */
 const OperatorScheduleCard: React.FC<{
   report: OperatorScheduleReportData;
   studioInfo: any;
   periodLabel: string;
 }> = ({ report, studioInfo, periodLabel }) => {
+  const roleText =
+    report.operator.ruolo === 'entrambi'
+      ? 'Operatore di Sala & Insegnante'
+      : report.operator.ruolo === 'operatore'
+      ? 'Operatore di Sala'
+      : 'Insegnante / Docente';
+
   return (
-    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 print:shadow-none print:border-none print:p-6 print:break-after-page space-y-5">
-      {/* Studio Header */}
-      <div className="border border-slate-200 bg-slate-50/80 rounded-lg p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 print:shadow-none print:border-none print:p-6 print:break-after-page space-y-4">
+      {/* 1. Header Banner Operatore & Periodo (1:1 come da Foto 1) */}
+      <div className="bg-[#f1f5f9] border border-[#cbd5e1] rounded-lg p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
         <div>
-          <h3 className="text-sm font-extrabold text-indigo-600 tracking-tight uppercase flex items-center gap-1.5">
-            <Building2 className="w-4 h-4" />
-            <span>SALA PROVE • {studioInfo.nome}</span>
-          </h3>
-          <p className="text-[11px] text-slate-500 font-normal">
-            {studioInfo.sottotitolo || 'Gestionale Sala Prove Musicale'}
+          <h2 className="text-xl font-black text-slate-900 tracking-tight">
+            {report.operator.cognome.toUpperCase()} {report.operator.nome}
+          </h2>
+          <p className="text-xs text-slate-600 mt-1 font-normal">
+            Ruolo: <strong className="text-slate-800 font-semibold">{roleText}</strong>
+            {report.operator.telefono && ` | Tel: ${report.operator.telefono}`}
+            {report.operator.email && ` | Email: ${report.operator.email}`}
           </p>
-          <p className="text-[10px] text-slate-400 mt-0.5">
-            {[
-              studioInfo.indirizzo ? `Sede: ${studioInfo.indirizzo}` : '',
-              studioInfo.telefono ? `Tel: ${studioInfo.telefono}` : '',
-              studioInfo.email ? `Email: ${studioInfo.email}` : '',
-            ]
-              .filter(Boolean)
-              .join(' • ')}
-          </p>
-        </div>
-
-        <div className="text-right sm:text-right w-full sm:w-auto text-[11px] text-slate-500">
-          <span className="font-semibold text-slate-700 block">FOGLIO TURNI & APPUNTAMENTI</span>
-          <span>Periodo: <strong className="text-indigo-600">{periodLabel}</strong></span>
-        </div>
-      </div>
-
-      {/* Operator Banner */}
-      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-white shadow-2xs"
-              style={{ backgroundColor: report.operator.coloreBadge }}
-            >
-              {report.operator.nome[0]}
-              {report.operator.cognome[0]}
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900">
-                {report.operator.cognome} {report.operator.nome}
-              </h2>
-              <p className="text-xs text-slate-500">
-                {report.operator.ruolo === 'entrambi'
-                  ? 'Operatore di Sala & Insegnante'
-                  : report.operator.ruolo === 'operatore'
-                  ? 'Operatore di Sala'
-                  : 'Insegnante / Docente'}
-                {report.operator.telefono && ` • Tel: ${report.operator.telefono}`}
-              </p>
-            </div>
-          </div>
         </div>
 
         <div className="text-left sm:text-right">
-          {report.operator.tariffaOrariaRimborso ? (
-            <div className="text-xs text-slate-600">
-              <span>Tariffa concordata: </span>
-              <strong className="text-slate-900 font-mono">€{report.operator.tariffaOrariaRimborso}/ora</strong>
-            </div>
-          ) : null}
-          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded inline-block mt-0.5">
-            {report.operator.attivo ? 'Operatore Attivo' : 'Non Attivo'}
+          <span className="font-black text-[#4f46e5] text-xs sm:text-sm tracking-wide block uppercase">
+            PERIODO: {periodLabel.toUpperCase()}
+          </span>
+          <span className="text-xs text-slate-500 font-medium block mt-1">
+            Stato: <strong className={report.operator.attivo ? 'text-slate-800 font-semibold' : 'text-rose-600'}>
+              {report.operator.attivo ? 'Operatore Attivo' : 'Non Attivo'}
+            </strong>
           </span>
         </div>
       </div>
 
-      {/* KPI Tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div className="bg-slate-50/70 border border-slate-200 rounded-lg p-2.5">
-          <span className="text-[10px] uppercase font-bold text-slate-400 block">Giorni Impegnati</span>
-          <span className="text-base font-bold text-slate-900">{report.totalWorkingDays} gg</span>
+      {/* 2. 4 Riquadri KPI Sintetici (1:1 come da Foto 1) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-md p-2.5 sm:p-3">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">GIORNI LAVORATIVI</span>
+          <span className="text-lg font-black text-slate-900 mt-0.5 block">{report.totalWorkingDays} gg</span>
         </div>
-        <div className="bg-slate-50/70 border border-slate-200 rounded-lg p-2.5">
-          <span className="text-[10px] uppercase font-bold text-slate-400 block">Appuntamenti</span>
-          <span className="text-base font-bold text-slate-900">{report.totalAppointments}</span>
+        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-md p-2.5 sm:p-3">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">NUMERO APPUNTAMENTI</span>
+          <span className="text-lg font-black text-slate-900 mt-0.5 block">{report.totalAppointments}</span>
         </div>
-        <div className="bg-indigo-50/60 border border-indigo-100 rounded-lg p-2.5">
-          <span className="text-[10px] uppercase font-bold text-indigo-500 block">Ore Totali</span>
-          <span className="text-base font-bold font-mono text-indigo-700">{report.totalHours} ore</span>
+        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-md p-2.5 sm:p-3">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">ORE TOTALI ASSEGNATE</span>
+          <span className="text-lg font-black text-slate-900 mt-0.5 block">{report.totalHours} ore</span>
         </div>
-        <div className="bg-emerald-50/60 border border-emerald-100 rounded-lg p-2.5">
-          <span className="text-[10px] uppercase font-bold text-emerald-600 block">Compenso Totale</span>
-          <span className="text-base font-bold font-mono text-emerald-800">
-            € {report.totalCompensation.toFixed(2)}
+        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-md p-2.5 sm:p-3">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">COMPENSO TOTALE</span>
+          <span className="text-lg font-black text-emerald-600 mt-0.5 block">
+            {report.totalCompensation > 0 ? `€ ${report.totalCompensation.toFixed(2)}` : '€ 0.00'}
           </span>
         </div>
       </div>
 
-      {/* Appointments List / Table */}
-      <div className="border border-slate-200 rounded-lg overflow-hidden">
-        <div className="bg-indigo-600 text-white px-3 py-2 text-xs font-bold flex items-center justify-between">
-          <span>Elenco Dettagliato Appuntamenti e Turni</span>
-          <span className="text-[10px] font-normal text-indigo-200">
-            Ordinati cronologicamente per data e orario
-          </span>
-        </div>
+      {/* 3. Intestazione Sezione Tabella */}
+      <div className="pt-2">
+        <h3 className="text-base font-bold text-slate-900 tracking-tight">
+          Dettaglio Cronologico Giorni e Appuntamenti
+        </h3>
+      </div>
 
-        {report.appointments.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 italic text-xs bg-slate-50">
-            Nessun appuntamento o turno registrato per questo operatore nel periodo selezionato.
-          </div>
-        ) : (
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200 text-[10px] uppercase tracking-wider">
-                <th className="py-2 px-3">Data & Giorno</th>
-                <th className="py-2 px-2">Orario & Durata</th>
-                <th className="py-2 px-2">Sala Prove</th>
-                <th className="py-2 px-3">Cliente / Gruppo / Note</th>
-                <th className="py-2 px-2">Tipo</th>
-                <th className="py-2 px-3 text-right">Compenso</th>
+      {/* 4. Tabella con Intestazione Viola/Indaco (#4f46e5 come da Foto 1) */}
+      <div className="border border-slate-200 rounded-lg overflow-hidden shadow-2xs">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr className="bg-[#4f46e5] text-white font-bold text-[10px] sm:text-[10.5px] uppercase tracking-wider">
+              <th className="py-2.5 px-3">DATA & GIORNO</th>
+              <th className="py-2.5 px-2">ORARIO & ORE</th>
+              <th className="py-2.5 px-2">SALA PROVE</th>
+              <th className="py-2.5 px-3">BAND / ALLIEVO / NOTE</th>
+              <th className="py-2.5 px-2">ATTIVITÀ</th>
+              <th className="py-2.5 px-3 text-right">COMP.</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-slate-700">
+            {report.appointments.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="p-8 text-center text-slate-400 italic text-xs bg-slate-50">
+                  Nessun appuntamento o turno registrato per questo operatore nel periodo selezionato.
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {report.appointments.map((item, idx) => (
-                <tr key={item.booking.id + idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
-                  <td className="py-2 px-3 font-semibold text-slate-900 whitespace-nowrap">
+            ) : (
+              report.appointments.map((item, idx) => (
+                <tr key={item.booking.id + idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]'}>
+                  <td className="py-2.5 px-3 font-bold text-slate-900 whitespace-nowrap">
                     {formatDateItalian(item.date, true)}
                   </td>
-                  <td className="py-2 px-2 font-mono whitespace-nowrap text-slate-800">
-                    {item.time}{' '}
-                    <span className="text-slate-400 font-normal">({item.duration}h)</span>
+                  <td className="py-2.5 px-2 text-slate-800 whitespace-nowrap font-medium">
+                    {item.time} ({item.duration}h)
                   </td>
-                  <td className="py-2 px-2 font-medium text-indigo-700">
+                  <td className="py-2.5 px-2 font-bold text-[#4f46e5] whitespace-nowrap">
                     {item.roomName}
                   </td>
-                  <td className="py-2 px-3">
-                    <span className="font-semibold text-slate-800 block">{item.clientName}</span>
+                  <td className="py-2.5 px-3">
+                    <span className="font-semibold text-slate-900 block">{item.clientName}</span>
                     {(item.equipment || item.notes) && (
                       <span className="text-[10px] text-slate-500 italic block mt-0.5 line-clamp-1">
                         Note: {item.equipment || item.notes}
                       </span>
                     )}
                   </td>
-                  <td className="py-2 px-2 whitespace-nowrap">
-                    <span
-                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
-                        item.activityType === 'Lezione Musica'
-                          ? 'bg-purple-50 border-purple-200 text-purple-700'
-                          : 'bg-slate-100 border-slate-200 text-slate-700'
-                      }`}
-                    >
+                  <td className="py-2.5 px-2 whitespace-nowrap font-medium">
+                    <span className={item.activityType === 'Lezione Musica' ? 'text-purple-600 font-bold' : 'text-slate-800'}>
                       {item.activityType === 'Lezione Musica' ? 'Lezione' : 'Presidio'}
                     </span>
                   </td>
-                  <td className="py-2 px-3 text-right font-mono font-semibold text-emerald-700 whitespace-nowrap">
+                  <td className="py-2.5 px-3 text-right font-mono text-emerald-600 font-semibold whitespace-nowrap">
                     {item.totalCompensation ? `€${item.totalCompensation.toFixed(0)}` : '-'}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Official Signatures Box */}
-      <div className="pt-4 border-t border-slate-200 text-xs text-slate-600 grid grid-cols-2 gap-8">
-        <div className="space-y-6">
-          <p className="text-[11px] text-slate-500">
-            Luogo e Data: <strong className="text-slate-800">{studioInfo.citta || 'In sede'}, {formatDateItalian(new Date().toISOString().split('T')[0], false)}</strong>
-          </p>
+      {/* 5. Firme e Data a fondo pagina */}
+      <div className="pt-6 text-xs text-slate-600 space-y-6">
+        <p className="text-[11px] text-slate-500">
+          Luogo e Data: <strong className="text-slate-800">{studioInfo.citta || 'Milano'}, {formatDateItalian(new Date().toISOString().split('T')[0], false)}</strong>
+        </p>
+        <div className="grid grid-cols-2 gap-8 pt-2">
           <div>
-            <div className="border-b border-slate-300 w-44 mb-1"></div>
-            <span className="text-[10px] text-slate-400">Firma Operatore (ricevuta e presa visione)</span>
+            <span className="text-[11px] text-slate-600 font-medium block mb-8">
+              Firma Operatore per presa visione e ricevuta:
+            </span>
+            <div className="border-b border-slate-300 w-52 sm:w-60"></div>
           </div>
-        </div>
-
-        <div className="space-y-6 text-right flex flex-col items-end">
-          <p className="text-[11px] text-slate-500">
-            Per la Direzione: <strong className="text-slate-800">{studioInfo.nome}</strong>
-          </p>
-          <div className="w-full flex flex-col items-end">
-            <div className="border-b border-slate-300 w-44 mb-1"></div>
-            <span className="text-[10px] text-slate-400">Firma Responsabile / Timbro Sala</span>
+          <div>
+            <span className="text-[11px] text-slate-600 font-medium block mb-8">
+              Firma Responsabile Gestione Sala Prove:
+            </span>
+            <div className="border-b border-slate-300 w-52 sm:w-60"></div>
           </div>
         </div>
       </div>
