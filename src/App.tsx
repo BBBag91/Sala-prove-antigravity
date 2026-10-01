@@ -385,17 +385,6 @@ const AppContent: React.FC = () => {
 
             {/* ── Right: User Profile & Actions (Uncluttered, Elegant & Never Overlapping) ── */}
             <div className="hidden md:flex items-center gap-1.5 lg:gap-2 shrink-0">
-              {/* Pulsante Notifica / Riepilogo Mattutino 10:00 & WhatsApp */}
-              <button
-                onClick={() => setIsBriefingModalOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-900 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/15 hover:border-emerald-400 transition-all cursor-pointer shadow-xs shrink-0"
-                title="Riepilogo Giornaliero del Mattino (Ore 10:00) ed invio WhatsApp al gruppo staff"
-              >
-                <span className="text-sm">☕</span>
-                <span className="hidden xl:inline">Riepilogo 10:00</span>
-                <span className="xl:hidden">10:00</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              </button>
 
               {/* Theme Toggle (Versione Scura / Versione Chiara) */}
               <ThemeToggle responsiveLabel={true} />
@@ -413,8 +402,12 @@ const AppContent: React.FC = () => {
                   }`}
                   title={`Profilo: ${user.nome} (${user.email})`}
                 >
-                  <div className="w-5 h-5 rounded-full bg-yellow-400/20 flex items-center justify-center text-[11px] shrink-0">
-                    {isAdmin ? '👑' : '👤'}
+                  <div className="relative w-5 h-5 shrink-0">
+                    <div className="w-5 h-5 rounded-full bg-yellow-400/20 flex items-center justify-center text-[11px]">
+                      {isAdmin ? '👑' : '👤'}
+                    </div>
+                    {/* Indicatore riepilogo mattutino */}
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-neutral-900 animate-pulse" />
                   </div>
                   <span className="font-semibold text-white truncate max-w-[80px] lg:max-w-[110px] xl:max-w-[140px]">
                     {user.nome || (isAdmin ? 'Admin' : 'Utente')}
