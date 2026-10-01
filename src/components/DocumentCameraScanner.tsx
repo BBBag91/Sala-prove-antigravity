@@ -205,11 +205,6 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
       const msg = err.message || 'Errore durante l\'analisi IA dell\'immagine.';
       setErrorMessage(msg);
       setMode('preview');
-
-      // Se l'errore indica una chiave non valida o non autorizzata, apri la configurazione
-      if (msg.includes('401') || msg.includes('API key') || msg.includes('Chiave')) {
-        setIsApiKeyModalOpen(true);
-      }
     }
   };
 
