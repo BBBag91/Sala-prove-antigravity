@@ -474,31 +474,6 @@ const AppContent: React.FC = () => {
                     </button>
                     )}
 
-                    {/* WhatsApp Notifiche Gruppo (Admin) */}
-                    {isAdmin && (
-                      <button
-                        onClick={() => {
-                          setIsWhatsAppSettingsOpen(true);
-                          setIsUserMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-neutral-200 hover:text-emerald-300 hover:bg-neutral-900 transition-colors cursor-pointer"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>Configura WhatsApp Gruppo Staff</span>
-                      </button>
-                    )}
-                    {isAdmin && (
-                      <button
-                        onClick={() => {
-                          handleResetDemo();
-                          setIsUserMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-neutral-400 hover:text-yellow-300 hover:bg-neutral-900 transition-colors cursor-pointer"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5 text-yellow-500/80 shrink-0" />
-                        <span>Ripristina Dati Demo</span>
-                      </button>
-                    )}
 
                     {/* Divider */}
                     <div className="h-px bg-neutral-800 my-1" />
@@ -776,20 +751,7 @@ const AppContent: React.FC = () => {
             </div>
 
             {/* Bottom Actions in Drawer */}
-            <div className="pt-3 border-t border-yellow-500/20 space-y-2 mt-auto pb-safe">
-              {isAdmin && (
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    handleResetDemo();
-                  }}
-                  className="w-full min-h-[44px] py-2.5 px-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-400 text-xs font-semibold border border-yellow-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer touch-manipulation touch-active"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Ripristina Dati Demo</span>
-                </button>
-              )}
-
+            <div className="pt-3 border-t border-yellow-500/20 mt-auto pb-safe">
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
@@ -803,6 +765,7 @@ const AppContent: React.FC = () => {
             </div>
           </div>
         </div>
+
       )}
 
       {/* Main Container (pb-24 on mobile ensures bottom navigation doesn't overlap content) */}
