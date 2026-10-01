@@ -405,18 +405,18 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     <div className="space-y-3 print:hidden">
 
       {/* -- Toolbar -- */}
-      <div className="bg-[#0e0e0e] rounded-xl border border-yellow-500/25 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-[#0e0e0e] rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-sm overflow-hidden">
         
         {/* Row 1: Nav & View & Zoom */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2 sm:px-4 sm:py-2.5 border-b border-yellow-500/20 gap-1.5 sm:gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2 sm:px-4 sm:py-2.5 border-b border-slate-200 dark:border-yellow-500/20 gap-1.5 sm:gap-2">
           
           {/* Left: Date navigation arrows (Mesi & Settimane) & Title with Quick Picker */}
           <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2 flex-wrap">
-            <div className="flex items-center bg-[#141414] rounded-xl p-1 border border-yellow-500/30 shrink-0">
+            <div className="flex items-center bg-slate-100 dark:bg-[#141414] rounded-xl p-1 border border-slate-200 dark:border-yellow-500/30 shrink-0">
               {/* Mese Precedente */}
               <button
                 onClick={handlePrevMonth}
-                className="flex items-center justify-center gap-0.5 px-2 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-all text-xs font-bold cursor-pointer touch-manipulation touch-active"
+                className="flex items-center justify-center gap-0.5 px-2 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-white dark:hover:bg-neutral-800 transition-all text-xs font-bold cursor-pointer touch-manipulation touch-active"
                 title="Mese precedente (Shift + Freccia Sinistra)"
                 aria-label="Mese precedente"
               >
@@ -427,7 +427,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               {/* Settimana Precedente */}
               <button
                 onClick={handlePrev}
-                className="flex items-center justify-center gap-0.5 px-2 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-all text-xs font-bold cursor-pointer touch-manipulation touch-active"
+                className="flex items-center justify-center gap-0.5 px-2 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-white dark:hover:bg-neutral-800 transition-all text-xs font-bold cursor-pointer touch-manipulation touch-active"
                 title="Settimana precedente (Freccia Sinistra)"
                 aria-label="Settimana precedente"
               >
@@ -438,7 +438,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               {/* Oggi */}
               <button
                 onClick={handleGoToday}
-                className="px-2.5 sm:px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs font-black text-black bg-yellow-400 hover:bg-yellow-300 transition-all shadow-xs cursor-pointer touch-manipulation touch-active"
+                className="px-2.5 sm:px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs font-black text-white dark:text-black bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 transition-all shadow-xs cursor-pointer touch-manipulation touch-active"
                 title="Torna alla data corrente (Tasto T o O)"
               >
                 Oggi
@@ -447,7 +447,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               {/* Settimana Successiva */}
               <button
                 onClick={handleNext}
-                className="flex items-center justify-center gap-0.5 px-2 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-all text-xs font-bold cursor-pointer touch-manipulation touch-active"
+                className="flex items-center justify-center gap-0.5 px-2 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-white dark:hover:bg-neutral-800 transition-all text-xs font-bold cursor-pointer touch-manipulation touch-active"
                 title="Settimana successiva (Freccia Destra)"
                 aria-label="Settimana successiva"
               >
@@ -458,7 +458,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               {/* Mese Successivo */}
               <button
                 onClick={handleNextMonth}
-                className="flex items-center justify-center gap-0.5 px-2 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-all text-xs font-bold cursor-pointer touch-manipulation touch-active"
+                className="flex items-center justify-center gap-0.5 px-2 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-white dark:hover:bg-neutral-800 transition-all text-xs font-bold cursor-pointer touch-manipulation touch-active"
                 title="Mese successivo (Shift + Freccia Destra)"
                 aria-label="Mese successivo"
               >
@@ -474,16 +474,16 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 setQuickPickerYear(dominantMonth.getFullYear());
                 setIsQuickDatePickerOpen(true);
               }}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-neutral-900 border border-transparent hover:border-yellow-500/30 transition-all text-left cursor-pointer group"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-900 border border-transparent hover:border-slate-300 dark:hover:border-yellow-500/30 transition-all text-left cursor-pointer group"
               title="Clicca per aprire il selettore rapido di Mesi, Anni e Settimane"
             >
-              <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 group-hover:scale-110 transition-transform shrink-0" />
-              <h2 className="text-xs sm:text-base font-bold text-yellow-100 group-hover:text-yellow-300 tracking-tight truncate flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-yellow-400 group-hover:scale-110 transition-transform shrink-0" />
+              <h2 className="text-xs sm:text-base font-bold text-slate-900 dark:text-yellow-100 group-hover:text-blue-600 dark:group-hover:text-yellow-300 tracking-tight truncate flex items-center gap-1.5">
                 <span>{titleText}</span>
-                <ChevronDown className="w-3 h-3 text-yellow-400/70 group-hover:text-yellow-300 transition-transform" />
+                <ChevronDown className="w-3 h-3 text-slate-400 dark:text-yellow-400/70 group-hover:text-blue-600 dark:group-hover:text-yellow-300 transition-transform" />
               </h2>
               {viewMode === 'week' && (
-                <span className="hidden sm:inline text-[10px] sm:text-[11px] font-mono text-yellow-400/80 bg-neutral-900 border border-yellow-500/30 px-1.5 py-0.5 rounded shrink-0">
+                <span className="hidden sm:inline text-[10px] sm:text-[11px] font-mono text-blue-700 dark:text-yellow-400/80 bg-blue-50 dark:bg-neutral-900 border border-blue-200 dark:border-yellow-500/30 px-1.5 py-0.5 rounded shrink-0">
                   S{weekNum}
                 </span>
               )}
@@ -494,13 +494,13 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
           <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 flex-wrap">
             
             {/* View Mode Toggle: 1G / 3G / 7G */}
-            <div className="flex items-center bg-[#141414] rounded-xl p-1 border border-yellow-500/30 shrink-0">
+            <div className="flex items-center bg-slate-100 dark:bg-[#141414] rounded-xl p-1 border border-slate-200 dark:border-yellow-500/30 shrink-0">
               <button
                 onClick={() => setViewMode('day')}
                 className={`px-2.5 sm:px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs font-bold transition-all touch-manipulation touch-active ${
                   viewMode === 'day'
-                    ? 'bg-yellow-400 text-black shadow-xs font-black'
-                    : 'text-yellow-300/80 hover:text-yellow-300 hover:bg-neutral-800'
+                    ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-black'
+                    : 'text-slate-600 dark:text-yellow-300/80 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-white dark:hover:bg-neutral-800'
                 }`}
                 title="Vista 1 Giorno (Massima leggibilità su smartphone)"
               >
@@ -511,8 +511,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 onClick={() => setViewMode('3days')}
                 className={`px-2.5 sm:px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs font-bold transition-all touch-manipulation touch-active ${
                   viewMode === '3days'
-                    ? 'bg-yellow-400 text-black shadow-xs font-black'
-                    : 'text-yellow-300/80 hover:text-yellow-300 hover:bg-neutral-800'
+                    ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-black'
+                    : 'text-slate-600 dark:text-yellow-300/80 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-white dark:hover:bg-neutral-800'
                 }`}
                 title="Vista 3 Giorni"
               >
@@ -523,8 +523,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 onClick={() => setViewMode('week')}
                 className={`px-2.5 sm:px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs font-bold transition-all touch-manipulation touch-active ${
                   viewMode === 'week'
-                    ? 'bg-yellow-400 text-black shadow-xs font-black'
-                    : 'text-yellow-300/80 hover:text-yellow-300 hover:bg-neutral-800'
+                    ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-black'
+                    : 'text-slate-600 dark:text-yellow-300/80 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-white dark:hover:bg-neutral-800'
                 }`}
                 title="Vista Settimana (7 giorni)"
               >
@@ -535,11 +535,11 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
             {/* Zoom Controls */}
             <div className="flex items-center gap-1 shrink-0">
-              <div className="flex items-center bg-[#141414] rounded-lg p-0.5 border border-yellow-500/30">
+              <div className="flex items-center bg-slate-100 dark:bg-[#141414] rounded-lg p-0.5 border border-slate-200 dark:border-yellow-500/30">
                 <button
                   onClick={handleZoomOut}
                   disabled={cellHeight <= 34}
-                  className="p-1 sm:p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                  className="p-1 sm:p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-md text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-white dark:hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors touch-manipulation"
                   title="Rimpicciolisci zoom"
                   aria-label="Rimpicciolisci zoom"
                 >
@@ -551,7 +551,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     else if (cellHeight <= 68) setCellHeight(84);
                     else setCellHeight(36);
                   }}
-                  className="px-1.5 py-1 text-[10px] font-mono font-bold text-yellow-400 hover:bg-neutral-800 rounded transition-colors touch-manipulation"
+                  className="px-1.5 py-1 text-[10px] font-mono font-bold text-slate-700 dark:text-yellow-400 hover:bg-white dark:hover:bg-neutral-800 rounded transition-colors touch-manipulation"
                   title="Alterna livelli di zoom (Panoramica, Standard, Dettagliato)"
                 >
                   {zoomPercent}%
@@ -559,7 +559,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 <button
                   onClick={handleZoomIn}
                   disabled={cellHeight >= 105}
-                  className="p-1 sm:p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                  className="p-1 sm:p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-md text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-white dark:hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors touch-manipulation"
                   title="Ingrandisci zoom"
                   aria-label="Ingrandisci zoom"
                 >
@@ -572,8 +572,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 onClick={() => setCellHeight(cellHeight <= 40 ? 56 : 36)}
                 className={`px-2.5 py-1.5 min-h-[38px] rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 touch-manipulation touch-active ${
                   cellHeight <= 40
-                    ? 'bg-yellow-400 text-black border-yellow-400 shadow-sm'
-                    : 'bg-[#141414] text-yellow-400 hover:bg-yellow-400/10 border-yellow-500/30'
+                    ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black border-blue-600 dark:border-yellow-400 shadow-sm'
+                    : 'bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-yellow-400 hover:bg-slate-200 dark:hover:bg-yellow-400/10 border-slate-200 dark:border-yellow-500/30'
                 }`}
                 title="Panoramica completa: vedi tutte le ore della giornata senza dover scrollare"
               >
@@ -586,12 +586,12 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             <button
               onClick={() => refreshFromCloud()}
               disabled={isAutoRefreshing}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg border border-yellow-500/30 bg-[#141414] hover:bg-yellow-400/10 text-yellow-400 text-xs font-bold transition-all disabled:opacity-60 cursor-pointer touch-manipulation touch-active"
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg border border-slate-200 dark:border-yellow-500/30 bg-slate-100 dark:bg-[#141414] hover:bg-slate-200 dark:hover:bg-yellow-400/10 text-slate-700 dark:text-yellow-400 text-xs font-bold transition-all disabled:opacity-60 cursor-pointer touch-manipulation touch-active"
               title="Sincronizza ora con Supabase (Auto-refresh attivo ogni 5 min e in tempo reale)"
               aria-label="Sincronizza cloud"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isAutoRefreshing ? 'animate-spin text-yellow-300' : ''}`} />
-              <span className="hidden lg:inline text-[10px] text-yellow-400/80 font-normal">
+              <RefreshCw className={`w-3.5 h-3.5 ${isAutoRefreshing ? 'animate-spin text-blue-600 dark:text-yellow-300' : ''}`} />
+              <span className="hidden lg:inline text-[10px] text-slate-600 dark:text-yellow-400/80 font-normal">
                 {isAutoRefreshing ? 'Sincronizzazione...' : 'Auto-sync (5m)'}
               </span>
             </button>
@@ -601,7 +601,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <button
                 type="button"
                 onClick={onNavigateToTurni}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg border border-yellow-500/40 bg-yellow-400/15 hover:bg-yellow-400 hover:text-black text-yellow-300 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-2xs touch-manipulation touch-active"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg border border-blue-200 dark:border-yellow-500/40 bg-blue-50 dark:bg-yellow-400/15 hover:bg-blue-600 hover:text-white dark:hover:bg-yellow-400 dark:hover:text-black text-blue-700 dark:text-yellow-300 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-2xs touch-manipulation touch-active"
                 title="Apri lo schema riepilogativo settimanale dei turni (tabella e lista)"
               >
                 <Clock className="w-3.5 h-3.5" />
@@ -613,7 +613,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             {/* New Booking Button */}
             <button
               onClick={() => { setSelectedDateForBooking(formatDateToISO(today)); setBookingToEdit(null); setIsBookingModalOpen(true); }}
-              className="flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2 min-h-[44px] bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-black font-black text-xs rounded-xl shadow-sm transition-all whitespace-nowrap ml-auto sm:ml-0 cursor-pointer touch-manipulation touch-active"
+              className="flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2 min-h-[44px] bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 active:scale-95 text-white dark:text-black font-black text-xs rounded-xl shadow-sm transition-all whitespace-nowrap ml-auto sm:ml-0 cursor-pointer touch-manipulation touch-active"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               <span className="hidden sm:inline">Nuova Prenotazione</span>
@@ -623,26 +623,26 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         </div>
 
         {/* Row 2: Filters & Actions */}
-        <div className="flex items-center justify-between px-2 sm:px-4 py-1.5 sm:py-2 gap-1.5 flex-wrap bg-[#080808]">
+        <div className="flex items-center justify-between px-2 sm:px-4 py-1.5 sm:py-2 gap-1.5 flex-wrap bg-slate-50 dark:bg-[#080808] border-t border-slate-200 dark:border-yellow-500/20">
           <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-[160px]">
-            <div className="flex items-center gap-1 bg-[#141414] border border-yellow-500/25 rounded-lg px-1.5 sm:px-2 py-0.5 h-6.5 sm:h-7">
-              <DoorOpen className="w-3 h-3 text-yellow-500/70 shrink-0" />
+            <div className="flex items-center gap-1 bg-white dark:bg-[#141414] border border-slate-200 dark:border-yellow-500/25 rounded-lg px-1.5 sm:px-2 py-0.5 h-6.5 sm:h-7 shadow-2xs">
+              <DoorOpen className="w-3 h-3 text-blue-600 dark:text-yellow-500/70 shrink-0" />
               <select
                 value={selectedRoomFilter}
                 onChange={e => setSelectedRoomFilter(e.target.value)}
-                className="text-[11px] sm:text-xs font-semibold bg-transparent text-yellow-200 focus:outline-none cursor-pointer max-w-[110px] sm:max-w-[130px]"
+                className="text-[11px] sm:text-xs font-semibold bg-transparent text-slate-800 dark:text-yellow-200 focus:outline-none cursor-pointer max-w-[110px] sm:max-w-[130px]"
               >
                 <option value="all">Tutte le Sale ({rooms.length})</option>
                 {rooms.map(r => <option key={r.id} value={r.id}>{r.nome}</option>)}
               </select>
             </div>
 
-            <div className="flex items-center gap-1 bg-[#141414] border border-yellow-500/25 rounded-lg px-1.5 sm:px-2 py-0.5 h-6.5 sm:h-7">
-              <Filter className="w-3 h-3 text-yellow-500/70 shrink-0" />
+            <div className="flex items-center gap-1 bg-white dark:bg-[#141414] border border-slate-200 dark:border-yellow-500/25 rounded-lg px-1.5 sm:px-2 py-0.5 h-6.5 sm:h-7 shadow-2xs">
+              <Filter className="w-3 h-3 text-blue-600 dark:text-yellow-500/70 shrink-0" />
               <select
                 value={selectedTypeFilter}
                 onChange={e => setSelectedTypeFilter(e.target.value as 'all' | 'prove' | 'lezione')}
-                className="text-[11px] sm:text-xs font-semibold bg-transparent text-yellow-200 focus:outline-none cursor-pointer"
+                className="text-[11px] sm:text-xs font-semibold bg-transparent text-slate-800 dark:text-yellow-200 focus:outline-none cursor-pointer"
               >
                 <option value="all">Tutte le Attività</option>
                 <option value="prove">Solo Prove</option>
@@ -655,7 +655,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             {/* Pulsante Pannello Turni (17-20 / 20-23 dinamico) */}
             <button
               onClick={() => setIsShiftsPanelOpen(true)}
-              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-[11px] sm:text-xs rounded-lg shadow-sm transition-all whitespace-nowrap cursor-pointer"
+              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black font-bold text-[11px] sm:text-xs rounded-lg shadow-sm transition-all whitespace-nowrap cursor-pointer"
               title="Apri pannello completo gestione turni presidio sala (17-20 e 20-23 con adattamento dinamico)"
             >
               <CalendarClock className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -672,22 +672,22 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               }}
               className={`flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 font-semibold text-[11px] sm:text-xs rounded-lg border transition-all whitespace-nowrap cursor-pointer ${
                 showShiftsInGrid
-                  ? 'bg-neutral-900 text-yellow-300 border-yellow-500/50 hover:bg-neutral-800'
-                  : 'bg-neutral-950 text-neutral-500 border-neutral-800 hover:text-neutral-300'
+                  ? 'bg-blue-50 dark:bg-neutral-900 text-blue-700 dark:text-yellow-300 border-blue-300 dark:border-yellow-500/50 hover:bg-blue-100 dark:hover:bg-neutral-800'
+                  : 'bg-white dark:bg-neutral-950 text-slate-500 dark:text-neutral-500 border-slate-200 dark:border-neutral-800 hover:text-slate-700 dark:hover:text-neutral-300'
               }`}
               title="Attiva/Disattiva la visualizzazione dei turni operatore direttamente nella griglia del calendario"
             >
-              <Shield className={`w-3 h-3 ${showShiftsInGrid ? 'text-yellow-400' : 'text-neutral-500'}`} />
+              <Shield className={`w-3 h-3 ${showShiftsInGrid ? 'text-blue-600 dark:text-yellow-400' : 'text-slate-400 dark:text-neutral-500'}`} />
               <span className="hidden lg:inline">{showShiftsInGrid ? 'Turni in Griglia: ON' : 'Turni in Griglia: OFF'}</span>
               <span className="lg:hidden">{showShiftsInGrid ? 'In Griglia' : 'No Griglia'}</span>
             </button>
 
             <button
               onClick={() => setIsEquipmentModalOpen(true)}
-              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 font-semibold text-[11px] sm:text-xs rounded-lg border border-yellow-500/30 transition-all whitespace-nowrap cursor-pointer"
+              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-white dark:bg-neutral-900 hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-300 font-semibold text-[11px] sm:text-xs rounded-lg border border-slate-200 dark:border-yellow-500/30 transition-all whitespace-nowrap cursor-pointer"
               title="Prospetto Strumenti"
             >
-              <SlidersHorizontal className="w-3 h-3 text-yellow-400" />
+              <SlidersHorizontal className="w-3 h-3 text-blue-600 dark:text-yellow-400" />
               <span className="hidden sm:inline">Strumenti</span>
             </button>
 
@@ -695,22 +695,22 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <>
                 <button
                   onClick={() => setIsOperatorScheduleModalOpen(true)}
-                  className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-neutral-900 hover:bg-neutral-800 text-yellow-300 font-semibold text-[11px] sm:text-xs rounded-lg border border-yellow-500/30 transition-all whitespace-nowrap"
+                  className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-white dark:bg-neutral-900 hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-300 font-semibold text-[11px] sm:text-xs rounded-lg border border-slate-200 dark:border-yellow-500/30 transition-all whitespace-nowrap"
                   title="PDF Operatori"
                 >
-                  <Printer className="w-3 h-3 text-yellow-400" />
+                  <Printer className="w-3 h-3 text-blue-600 dark:text-yellow-400" />
                   <span className="hidden sm:inline">PDF</span>
                 </button>
 
                 <button
                   onClick={handleRunAutoAssign}
-                  className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-yellow-400/20 hover:bg-yellow-400 text-yellow-300 hover:text-black font-bold text-[11px] sm:text-xs rounded-lg border border-yellow-500/40 transition-all whitespace-nowrap"
+                  className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white dark:bg-yellow-400/20 dark:hover:bg-yellow-400 dark:text-yellow-300 dark:hover:text-black font-bold text-[11px] sm:text-xs rounded-lg border border-blue-200 dark:border-yellow-500/40 transition-all whitespace-nowrap"
                 >
-                  <Sparkles className="w-3 h-3 text-yellow-400" />
+                  <Sparkles className="w-3 h-3 text-blue-600 dark:text-yellow-400" />
                   <span className="hidden sm:inline">Assegna IA</span>
                   <span className="sm:hidden">IA</span>
                   {unassignedCount > 0 && (
-                    <span className="ml-0.5 px-1 py-0.2 rounded-full bg-yellow-400 text-black text-[9px] font-bold leading-none">
+                    <span className="ml-0.5 px-1 py-0.2 rounded-full bg-blue-600 text-white dark:bg-yellow-400 dark:text-black text-[9px] font-bold leading-none">
                       {unassignedCount}
                     </span>
                   )}
@@ -722,8 +722,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
         {/* Row 3 (Optional): Weekdays Quick-Picker for 1G and 3G mode */}
         {viewMode !== 'week' && (
-          <div className="flex items-center gap-1 overflow-x-auto py-1.5 px-2 bg-neutral-950 border-t border-yellow-500/20 no-scrollbar">
-            <span className="text-[10px] text-yellow-500/70 font-bold uppercase tracking-wider shrink-0 mr-1">
+          <div className="flex items-center gap-1 overflow-x-auto py-1.5 px-2 bg-slate-50 dark:bg-neutral-950 border-t border-slate-200 dark:border-yellow-500/20 no-scrollbar">
+            <span className="text-[10px] text-slate-500 dark:text-yellow-500/70 font-bold uppercase tracking-wider shrink-0 mr-1">
               Giorni:
             </span>
             {fullWeekDays.map((d, i) => {
@@ -739,15 +739,15 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   onClick={() => setCurrentDate(d)}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs shrink-0 transition-all ${
                     isSelected
-                      ? 'bg-yellow-400 text-black font-bold shadow-xs'
-                      : 'bg-neutral-900 text-yellow-200/80 hover:bg-neutral-800 hover:text-yellow-300 border border-yellow-500/20'
+                      ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black font-bold shadow-xs'
+                      : 'bg-white dark:bg-neutral-900 text-slate-700 dark:text-yellow-200/80 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-blue-600 dark:hover:text-yellow-300 border border-slate-200 dark:border-yellow-500/20'
                   }`}
                 >
                   <span>{SHORT_DAYS[i]} {d.getDate()}</span>
-                  {isToday && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-black' : 'bg-yellow-400'}`} />}
+                  {isToday && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white dark:bg-black' : 'bg-blue-600 dark:bg-yellow-400'}`} />}
                   {count > 0 && (
                     <span className={`text-[10px] px-1 rounded-full font-bold ${
-                      isSelected ? 'bg-black/20 text-black' : 'bg-yellow-400/20 text-yellow-300'
+                      isSelected ? 'bg-white/20 text-white dark:bg-black/20 dark:text-black' : 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-yellow-400/20 dark:text-yellow-300'
                     }`}>
                       {count}
                     </span>
@@ -761,40 +761,40 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
       {/* -- Operator Shift Balance Banner (Space-optimized for mobile, Admin only) -- */}
       {isAdmin && (
-        <div className="bg-[#0e0e0e] text-white rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 shadow-sm border border-yellow-500/20">
+        <div className="bg-white dark:bg-[#0e0e0e] text-slate-900 dark:text-white rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 shadow-sm border border-slate-200 dark:border-yellow-500/20">
           <div className="flex items-center justify-between gap-1.5 flex-wrap">
             <div className="flex items-center gap-1.5 min-w-0">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-yellow-400/20 text-yellow-400 flex items-center justify-center shrink-0 border border-yellow-500/30">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-blue-50 dark:bg-yellow-400/20 text-blue-600 dark:text-yellow-400 flex items-center justify-center shrink-0 border border-blue-200 dark:border-yellow-500/30">
                 <User className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </div>
-              <h3 className="text-xs sm:text-sm font-semibold text-yellow-100 truncate">
+              <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-yellow-100 truncate">
                 <span className="sm:hidden">Monte Ore:</span>
                 <span className="hidden sm:inline">Monte Ore Operatori &bull; {monthLabel} {yearLabel}</span>
               </h3>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3 text-[11px] sm:text-xs flex-wrap">
               <div className="flex items-center gap-1">
-                <span className="text-neutral-400 text-[10px] sm:text-[11px]">Pren:</span>
-                <strong className="text-yellow-400 font-bold">{monthlyBookings.length}</strong>
+                <span className="text-slate-500 dark:text-neutral-400 text-[10px] sm:text-[11px]">Pren:</span>
+                <strong className="text-blue-600 dark:text-yellow-400 font-bold">{monthlyBookings.length}</strong>
               </div>
-              <span className="text-neutral-600">&bull;</span>
+              <span className="text-slate-300 dark:text-neutral-600">&bull;</span>
               <div className="flex items-center gap-1">
-                <span className="text-neutral-400 text-[10px] sm:text-[11px]">Ore:</span>
-                <strong className="text-yellow-400 font-bold">{totalHoursMonth}h</strong>
+                <span className="text-slate-500 dark:text-neutral-400 text-[10px] sm:text-[11px]">Ore:</span>
+                <strong className="text-blue-600 dark:text-yellow-400 font-bold">{totalHoursMonth}h</strong>
               </div>
-              <span className="text-neutral-600">&bull;</span>
+              <span className="text-slate-300 dark:text-neutral-600">&bull;</span>
               {unassignedCount > 0 ? (
-                <div className="flex items-center gap-0.5 text-amber-300 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30 text-[10px]">
+                <div className="flex items-center gap-0.5 text-amber-700 dark:text-amber-300 font-semibold bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-500/30 text-[10px]">
                   <AlertTriangle className="w-2.5 h-2.5" /><span>{unassignedCount} scoperti</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-0.5 text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30 text-[10px]">
+                <div className="flex items-center gap-0.5 text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/30 text-[10px]">
                   <CheckCircle2 className="w-2.5 h-2.5" /><span>Coperti</span>
                 </div>
               )}
               <button
                 onClick={() => setIsBalanceExpanded(!isBalanceExpanded)}
-                className="flex items-center gap-0.5 text-[10px] sm:text-[11px] font-semibold text-yellow-300 hover:text-yellow-100 bg-neutral-900 hover:bg-neutral-800 px-1.5 py-0.5 rounded border border-yellow-500/25 transition-colors"
+                className="flex items-center gap-0.5 text-[10px] sm:text-[11px] font-semibold text-slate-700 dark:text-yellow-300 hover:text-blue-600 dark:hover:text-yellow-100 bg-slate-100 dark:bg-neutral-900 hover:bg-slate-200 dark:hover:bg-neutral-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-yellow-500/25 transition-colors"
               >
                 <span>{isBalanceExpanded ? 'Chiudi' : 'Dettagli'}</span>
                 {isBalanceExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -803,26 +803,26 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
           </div>
 
           {isBalanceExpanded && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-3 mt-2.5 border-t border-yellow-500/20">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-3 mt-2.5 border-t border-slate-200 dark:border-yellow-500/20">
               {staff.filter(s => s.attivo && (s.ruolo === 'operatore' || s.ruolo === 'entrambi')).map(op => {
                 const hours = operatorHours[op.id] || 0;
                 const maxHours = Math.max(...Object.values(operatorHours), 1);
                 const pct = Math.round((hours / maxHours) * 100);
                 return (
-                  <div key={op.id} className="bg-neutral-950 rounded-lg p-2.5 border border-yellow-500/20 flex items-center justify-between gap-2.5">
+                  <div key={op.id} className="bg-slate-50 dark:bg-neutral-950 rounded-lg p-2.5 border border-slate-200 dark:border-yellow-500/20 flex items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs text-black shrink-0 shadow-xs" style={{ backgroundColor: op.coloreBadge }}>
+                      <div className="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-xs" style={{ backgroundColor: op.coloreBadge }}>
                         {op.nome[0]}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-yellow-100 truncate">{op.nome} {op.cognome}</p>
-                        <p className="text-[10px] text-neutral-400 truncate">{op.turniLavoroPrimario.length > 0 ? `${op.turniLavoroPrimario.length} turni primari` : 'Sempre disp.'}</p>
+                        <p className="text-xs font-semibold text-slate-900 dark:text-yellow-100 truncate">{op.nome} {op.cognome}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-neutral-400 truncate">{op.turniLavoroPrimario.length > 0 ? `${op.turniLavoroPrimario.length} turni primari` : 'Sempre disp.'}</p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-bold text-yellow-400">{hours} ore</p>
-                      <div className="w-12 h-1 bg-neutral-800 rounded-full mt-1 overflow-hidden">
-                        <div className="h-full bg-yellow-400 rounded-full" style={{ width: `${Math.min(100, Math.max(8, pct))}%` }} />
+                      <p className="text-xs font-bold text-blue-600 dark:text-yellow-400">{hours} ore</p>
+                      <div className="w-12 h-1 bg-slate-200 dark:bg-neutral-800 rounded-full mt-1 overflow-hidden">
+                        <div className="h-full bg-blue-600 dark:bg-yellow-400 rounded-full" style={{ width: `${Math.min(100, Math.max(8, pct))}%` }} />
                       </div>
                     </div>
                   </div>
@@ -834,7 +834,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       )}
 
       {/* -- Time Grid with Zoom & Mobile Scroll -- */}
-      <div className="bg-[#0c0c0c] rounded-xl border border-yellow-500/25 shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-[#0c0c0c] rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-sm overflow-hidden flex flex-col">
         
         {/* Scrollable Container with sticky headers & sticky hour column */}
         <div
@@ -847,17 +847,17 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         >
           <div className="w-full min-w-full">
             {/* Day Header: STICKY TOP with integrated Quick Navigation Strip */}
-            <div className="sticky top-0 z-30 bg-neutral-950 shadow-md">
+            <div className="sticky top-0 z-30 bg-white dark:bg-neutral-950 shadow-xs">
               
               {/* Quick Navigation Strip (All buttons grouped together on the same side!) */}
-              <div className="flex items-center gap-2 px-2 sm:px-3 py-1 bg-black/95 border-b border-yellow-500/25 text-xs select-none sticky left-0 min-w-full overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-2 px-2 sm:px-3 py-1 bg-slate-50 dark:bg-black/95 border-b border-slate-200 dark:border-yellow-500/25 text-xs select-none sticky left-0 min-w-full overflow-x-auto no-scrollbar">
                 {/* Unified Navigation Button Cluster */}
-                <div className="flex items-center bg-[#141414] rounded-lg p-0.5 border border-yellow-500/30 shrink-0 shadow-xs">
+                <div className="flex items-center bg-white dark:bg-[#141414] rounded-lg p-0.5 border border-slate-200 dark:border-yellow-500/30 shrink-0 shadow-xs">
                   {/* Mese Precedente */}
                   <button
                     type="button"
                     onClick={handlePrevMonth}
-                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
                     title="Mese precedente (Shift + Freccia Sinistra)"
                   >
                     <ChevronsLeft className="w-3.5 h-3.5" />
@@ -868,7 +868,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={handlePrev}
-                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
                     title="Settimana precedente (Freccia Sinistra)"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
@@ -879,7 +879,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={handleGoToday}
-                    className="px-2.5 py-0.5 rounded-md bg-yellow-400 hover:bg-yellow-300 text-black text-[11px] font-black transition-colors cursor-pointer shadow-xs"
+                    className="px-2.5 py-0.5 rounded-md bg-blue-600 dark:bg-yellow-400 hover:bg-blue-700 dark:hover:bg-yellow-300 text-white dark:text-black text-[11px] font-black transition-colors cursor-pointer shadow-xs"
                     title="Torna alla settimana corrente / Oggi (Tasto T o O)"
                   >
                     Oggi
@@ -889,7 +889,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
                     title="Settimana successiva (Freccia Destra)"
                   >
                     <span>Sett.</span>
@@ -900,7 +900,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={handleNextMonth}
-                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
+                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors text-[11px] font-bold cursor-pointer"
                     title="Mese successivo (Shift + Freccia Destra)"
                   >
                     <span>Mese</span>
@@ -915,28 +915,28 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     setQuickPickerYear(dominantMonth.getFullYear());
                     setIsQuickDatePickerOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-neutral-900/90 hover:bg-yellow-400/20 text-yellow-200 hover:text-yellow-400 border border-yellow-500/40 text-xs font-bold transition-all cursor-pointer group shrink-0"
+                  className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white dark:bg-neutral-900/90 hover:bg-blue-50 dark:hover:bg-yellow-400/20 text-slate-800 dark:text-yellow-200 hover:text-blue-600 dark:hover:text-yellow-400 border border-slate-200 dark:border-yellow-500/40 text-xs font-bold transition-all cursor-pointer group shrink-0 shadow-2xs"
                   title="Clicca per aprire il selettore rapido di Mesi, Anni e Settimane"
                 >
-                  <CalendarDays className="w-3.5 h-3.5 text-yellow-400 group-hover:scale-110 transition-transform" />
+                  <CalendarDays className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400 group-hover:scale-110 transition-transform" />
                   <span className="font-extrabold tracking-tight">{monthLabel} {yearLabel}</span>
-                  <span className="text-[10px] font-mono text-yellow-400 bg-yellow-400/10 px-1 py-0.2 rounded border border-yellow-500/30">
+                  <span className="text-[10px] font-mono text-blue-700 dark:text-yellow-400 bg-blue-50 dark:bg-yellow-400/10 px-1 py-0.2 rounded border border-blue-200 dark:border-yellow-500/30">
                     S{weekNum}
                   </span>
-                  <ChevronDown className="w-3 h-3 text-yellow-400/70" />
+                  <ChevronDown className="w-3 h-3 text-slate-400 dark:text-yellow-400/70" />
                 </button>
               </div>
 
               {/* Day Header Columns Grid */}
               <div
-                className="grid border-b border-yellow-500/25 bg-neutral-950"
+                className="grid border-b border-slate-200 dark:border-yellow-500/25 bg-slate-50 dark:bg-neutral-950"
                 style={{
                   gridTemplateColumns: `clamp(34px, 8.5vw, 50px) repeat(${displayDays.length}, minmax(0, 1fr))`,
                 }}
               >
                 {/* Corner cell: STICKY LEFT */}
-                <div className="sticky left-0 z-30 bg-neutral-950 border-r border-yellow-500/20 py-1.5 sm:py-2 flex items-center justify-center">
-                  <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-400/70" />
+                <div className="sticky left-0 z-30 bg-slate-50 dark:bg-neutral-950 border-r border-slate-200 dark:border-yellow-500/20 py-1.5 sm:py-2 flex items-center justify-center">
+                  <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 dark:text-yellow-400/70" />
                 </div>
 
               {displayDays.map((day, i) => {
@@ -952,26 +952,26 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 return (
                   <div
                     key={ds}
-                    className={`py-1.5 sm:py-2 px-1 text-center border-r border-yellow-500/20 last:border-r-0 cursor-pointer hover:bg-neutral-900 transition-colors flex flex-col justify-between ${
-                      isToday ? 'bg-yellow-400/10' : ''
+                    className={`py-1.5 sm:py-2 px-1 text-center border-r border-slate-200 dark:border-yellow-500/20 last:border-r-0 cursor-pointer hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors flex flex-col justify-between ${
+                      isToday ? 'bg-blue-50/70 dark:bg-yellow-400/10' : ''
                     }`}
                     onClick={() => handleDayClick(ds)}
                   >
                     <div>
-                      <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-yellow-400' : 'text-neutral-400'}`}>
+                      <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-blue-600 dark:text-yellow-400' : 'text-slate-500 dark:text-neutral-400'}`}>
                         {SHORT_DAYS[dayNameIdx]}
                       </p>
                       <div
                         className={`mx-auto mt-0.5 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm ${
-                          isToday ? 'bg-yellow-400 text-black shadow-sm font-bold' : 'text-yellow-100'
+                          isToday ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-bold' : 'text-slate-800 dark:text-yellow-100'
                         }`}
                       >
                         {day.getDate()}
                       </div>
                       {cnt > 0 && (
                         <div className="flex justify-center items-center mt-0.5 gap-0.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />
-                          <span className="text-[8px] sm:text-[9px] font-mono text-yellow-400/80">{cnt}</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-yellow-400 shrink-0" />
+                          <span className="text-[8px] sm:text-[9px] font-mono text-blue-600 dark:text-yellow-400/80">{cnt}</span>
                         </div>
                       )}
                     </div>
@@ -985,16 +985,16 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             setSelectedShiftForEdit(s1);
                             setIsShiftModalOpen(true);
                           }}
-                          className="mt-1 pt-1 border-t border-yellow-500/20 flex items-center justify-center gap-1 cursor-pointer hover:bg-yellow-400/10 px-1 py-0.5 rounded transition-all group/hdr"
+                          className="mt-1 pt-1 border-t border-slate-200 dark:border-yellow-500/20 flex items-center justify-center gap-1 cursor-pointer hover:bg-blue-50 dark:hover:bg-yellow-400/10 px-1 py-0.5 rounded transition-all group/hdr"
                           title={`Turni di oggi:\n• T1 (${s1.oraInizio}-${s1.oraFine}): ${s1.operatoreNome || 'Da assegnare'}\n• T2 (${s2.oraInizio}-${s2.oraFine}): ${s2.operatoreNome || 'Da assegnare'}\n(Clicca per gestire)`}
                         >
-                          <Shield className="w-2.5 h-2.5 text-yellow-400 shrink-0" />
-                          <span className="text-[7.5px] sm:text-[8px] font-bold text-yellow-200/90 group-hover/hdr:text-yellow-300 truncate">
+                          <Shield className="w-2.5 h-2.5 text-blue-600 dark:text-yellow-400 shrink-0" />
+                          <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-700 dark:text-yellow-200/90 group-hover/hdr:text-blue-600 dark:group-hover/hdr:text-yellow-300 truncate">
                             {s1.operatoreNome ? s1.operatoreNome.split(' ')[0] : '⚠️'} &bull; {s2.operatoreNome ? s2.operatoreNome.split(' ')[0] : '⚠️'}
                           </span>
                         </div>
                       ) : (
-                        <div className="mt-1.5 pt-1 border-t border-yellow-500/20 flex flex-col gap-1 w-full" onClick={(e) => e.stopPropagation()}>
+                        <div className="mt-1.5 pt-1 border-t border-slate-200 dark:border-yellow-500/20 flex flex-col gap-1 w-full" onClick={(e) => e.stopPropagation()}>
                           {/* 1° Turno */}
                           <div
                             onClick={() => {
@@ -1003,20 +1003,20 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             }}
                             className={`p-1 rounded-md border text-left cursor-pointer transition-all hover:scale-[1.02] shadow-2xs ${
                               s1.operatoreNome
-                                ? 'bg-neutral-900/90 border-yellow-500/30 hover:border-yellow-400'
-                                : 'bg-amber-500/10 border-amber-500/35 hover:border-amber-400'
+                                ? 'bg-white dark:bg-neutral-900/90 border-slate-200 dark:border-yellow-500/30 hover:border-blue-400 dark:hover:border-yellow-400'
+                                : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/35 hover:border-amber-500'
                             }`}
                             title={`1° Turno (${s1.oraInizio} - ${s1.oraFine}): ${s1.operatoreNome || 'Non assegnato'} (Clicca per visualizzare/modificare)`}
                           >
                             <div className="flex items-center justify-between gap-0.5 leading-none">
-                              <span className="text-[7.5px] font-black px-0.5 py-0.2 rounded bg-yellow-400/25 text-yellow-300">
+                              <span className="text-[7.5px] font-black px-0.5 py-0.2 rounded bg-blue-50 dark:bg-yellow-400/25 text-blue-700 dark:text-yellow-300">
                                 T1
                               </span>
-                              <span className="text-[8px] sm:text-[8.5px] font-mono font-bold text-yellow-200 truncate">
+                              <span className="text-[8px] sm:text-[8.5px] font-mono font-bold text-slate-700 dark:text-yellow-200 truncate">
                                 {s1.oraInizio.slice(0, 5)}-{s1.oraFine.slice(0, 5)}
                               </span>
                               {s1.isAdapted && (
-                                <span className="text-[6.5px] font-bold text-amber-300 bg-amber-400/20 px-0.5 rounded" title={s1.adaptationReason}>
+                                <span className="text-[6.5px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-400/20 px-0.5 rounded" title={s1.adaptationReason}>
                                   +{s1.minutiExtra}m
                                 </span>
                               )}
@@ -1028,12 +1028,12 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                                     className="w-1.5 h-1.5 rounded-full shrink-0"
                                     style={{ backgroundColor: s1.operatoreBadgeColor || '#f59e0b' }}
                                   />
-                                  <span className="text-[8px] sm:text-[8.5px] font-semibold text-white truncate">
+                                  <span className="text-[8px] sm:text-[8.5px] font-semibold text-slate-800 dark:text-white truncate">
                                     {s1.operatoreNome.split(' ')[0]}
                                   </span>
                                 </>
                               ) : (
-                                <span className="text-[7.5px] font-semibold text-amber-400 truncate">
+                                <span className="text-[7.5px] font-semibold text-amber-700 dark:text-amber-400 truncate">
                                   ⚠️ Assegna
                                 </span>
                               )}
@@ -1048,20 +1048,20 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             }}
                             className={`p-1 rounded-md border text-left cursor-pointer transition-all hover:scale-[1.02] shadow-2xs ${
                               s2.operatoreNome
-                                ? 'bg-neutral-900/90 border-yellow-500/30 hover:border-yellow-400'
-                                : 'bg-amber-500/10 border-amber-500/35 hover:border-amber-400'
+                                ? 'bg-white dark:bg-neutral-900/90 border-slate-200 dark:border-yellow-500/30 hover:border-blue-400 dark:hover:border-yellow-400'
+                                : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/35 hover:border-amber-500'
                             }`}
                             title={`2° Turno (${s2.oraInizio} - ${s2.oraFine}): ${s2.operatoreNome || 'Non assegnato'} (Clicca per visualizzare/modificare)`}
                           >
                             <div className="flex items-center justify-between gap-0.5 leading-none">
-                              <span className="text-[7.5px] font-black px-0.5 py-0.2 rounded bg-yellow-400/25 text-yellow-300">
+                              <span className="text-[7.5px] font-black px-0.5 py-0.2 rounded bg-blue-50 dark:bg-yellow-400/25 text-blue-700 dark:text-yellow-300">
                                 T2
                               </span>
-                              <span className="text-[8px] sm:text-[8.5px] font-mono font-bold text-yellow-200 truncate">
+                              <span className="text-[8px] sm:text-[8.5px] font-mono font-bold text-slate-700 dark:text-yellow-200 truncate">
                                 {s2.oraInizio.slice(0, 5)}-{s2.oraFine.slice(0, 5)}
                               </span>
                               {s2.isAdapted && (
-                                <span className="text-[6.5px] font-bold text-amber-300 bg-amber-400/20 px-0.5 rounded" title={s2.adaptationReason}>
+                                <span className="text-[6.5px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-400/20 px-0.5 rounded" title={s2.adaptationReason}>
                                   +{s2.minutiExtra}m
                                 </span>
                               )}
@@ -1073,12 +1073,12 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                                     className="w-1.5 h-1.5 rounded-full shrink-0"
                                     style={{ backgroundColor: s2.operatoreBadgeColor || '#f59e0b' }}
                                   />
-                                  <span className="text-[8px] sm:text-[8.5px] font-semibold text-white truncate">
+                                  <span className="text-[8px] sm:text-[8.5px] font-semibold text-slate-800 dark:text-white truncate">
                                     {s2.operatoreNome.split(' ')[0]}
                                   </span>
                                 </>
                               ) : (
-                                <span className="text-[7.5px] font-semibold text-amber-400 truncate">
+                                <span className="text-[7.5px] font-semibold text-amber-700 dark:text-amber-400 truncate">
                                   ⚠️ Assegna
                                 </span>
                               )}
@@ -1101,7 +1101,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               }}
             >
               {/* Hour labels: STICKY LEFT */}
-              <div className="sticky left-0 z-20 bg-neutral-950 border-r border-yellow-500/20 select-none">
+              <div className="sticky left-0 z-20 bg-slate-50 dark:bg-neutral-950 border-r border-slate-200 dark:border-yellow-500/20 select-none">
                 {Array.from({ length: currentTotalHours + 1 }, (_, i) => {
                   const hourNum = HOUR_START + i;
                   const labelStr = hourNum === 24 ? '00:00' : `${String(hourNum % 24).padStart(2, '0')}:00`;
@@ -1109,9 +1109,9 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     <div
                       key={i}
                       style={{ height: `${cellHeight}px` }}
-                      className="flex items-start justify-end pr-1 sm:pr-1.5 pt-0.5 border-b border-neutral-900 last:border-b-0"
+                      className="flex items-start justify-end pr-1 sm:pr-1.5 pt-0.5 border-b border-slate-200 dark:border-neutral-900 last:border-b-0"
                     >
-                      <span className="text-[8px] sm:text-[10px] font-mono text-yellow-500/70 -translate-y-2.5">
+                      <span className="text-[8px] sm:text-[10px] font-mono text-slate-400 dark:text-yellow-500/70 -translate-y-2.5">
                         {labelStr}
                       </span>
                     </div>
@@ -1221,7 +1221,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 return (
                   <div
                     key={ds}
-                    className={`relative border-r border-yellow-500/20 last:border-r-0 ${isToday ? 'bg-yellow-400/[0.03]' : 'bg-[#0a0a0a]'}`}
+                    className={`relative border-r border-slate-200 dark:border-yellow-500/20 last:border-r-0 ${isToday ? 'bg-blue-50/40 dark:bg-yellow-400/[0.03]' : 'bg-white dark:bg-[#0a0a0a]'}`}
                     style={{ height: `${(currentTotalHours + 1) * cellHeight}px` }}
                     onClick={() => handleDayClick(ds)}
                   >
@@ -1229,7 +1229,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     {Array.from({ length: currentTotalHours + 1 }, (_, i) => (
                       <div
                         key={i}
-                        className="absolute left-0 right-0 border-t border-neutral-800/80"
+                        className="absolute left-0 right-0 border-t border-slate-200 dark:border-neutral-800/80"
                         style={{ top: `${i * cellHeight}px` }}
                       />
                     ))}
@@ -1237,7 +1237,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     {Array.from({ length: currentTotalHours }, (_, i) => (
                       <div
                         key={`h${i}`}
-                        className="absolute left-0 right-0 border-t border-neutral-900/60 border-dashed"
+                        className="absolute left-0 right-0 border-t border-slate-200/60 dark:border-neutral-900/60 border-dashed"
                         style={{ top: `${i * cellHeight + cellHeight / 2}px` }}
                       />
                     ))}
@@ -1263,7 +1263,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                               setSelectedShiftForEdit(s1Col);
                               setIsShiftModalOpen(true);
                             }}
-                            className="pointer-events-auto flex items-center justify-between px-1 sm:px-1.5 py-0.5 bg-neutral-950/95 border-b border-amber-500/40 hover:bg-neutral-900 transition-colors cursor-pointer group/hdr1 select-none shadow-sm"
+                            className="pointer-events-auto flex items-center justify-between px-1 sm:px-1.5 py-0.5 bg-white/95 dark:bg-neutral-950/95 border-b border-amber-400/50 dark:border-amber-500/40 hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors cursor-pointer group/hdr1 select-none shadow-xs"
                             title={`1° Turno Presidio (${s1Col.oraInizio} - ${s1Col.oraFine}): ${s1Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`}
                           >
                             <div className="flex items-center gap-1 min-w-0 flex-1 truncate">
@@ -1271,18 +1271,18 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                                 className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full shrink-0 shadow-xs ring-1 ring-black/70"
                                 style={{ backgroundColor: s1Col.operatoreBadgeColor || (s1Col.operatoreId ? '#f59e0b' : '#ef4444') }}
                               />
-                              <span className="text-[9.5px] sm:text-[10.5px] font-black text-yellow-300 group-hover/hdr1:text-yellow-100 truncate tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                              <span className="text-[9.5px] sm:text-[10.5px] font-black text-slate-800 dark:text-yellow-300 group-hover/hdr1:text-blue-600 dark:group-hover/hdr1:text-yellow-100 truncate tracking-tight dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                                 <span className="opacity-75 font-mono text-[8px] mr-0.5">T1:</span>
                                 {s1Col.operatoreNome ? s1Col.operatoreNome.split(' ')[0] : '⚠️ Non Assegn.'}
                               </span>
                             </div>
                             <div className="hidden sm:flex items-center gap-1 shrink-0 ml-1">
-                              <span className="text-[8px] sm:text-[8.5px] font-mono text-yellow-400/80">
+                              <span className="text-[8px] sm:text-[8.5px] font-mono text-slate-600 dark:text-yellow-400/80">
                                 {s1Col.oraInizio.slice(0, 5)}-{s1Col.oraFine.slice(0, 5)}
                               </span>
                               {s1Col.isAdapted && (
                                 <span
-                                  className="text-[6.5px] sm:text-[7px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40"
+                                  className="text-[6.5px] sm:text-[7px] font-bold px-1 py-0.2 rounded bg-amber-100 dark:bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-400/40"
                                   title={s1Col.adaptationReason}
                                 >
                                   +{s1Col.minutiExtra}m
@@ -1293,29 +1293,29 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
                           {/* Badge Operatore ben visibile al centro del turno (Stile front-end scuro/oro ad alto contrasto) */}
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none p-1 z-[1]">
-                            <div className="flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-neutral-950/85 border border-amber-500/40 backdrop-blur-xs shadow-md shadow-black/90 max-w-[94%]">
+                            <div className="flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-white/90 dark:bg-neutral-950/85 border border-amber-400/50 dark:border-amber-500/40 backdrop-blur-xs shadow-md shadow-slate-200/60 dark:shadow-black/90 max-w-[94%]">
                               <div className="flex items-center gap-1 justify-center mb-0.5">
                                 <span
                                   className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"
                                   style={{ backgroundColor: s1Col.operatoreBadgeColor || '#f59e0b' }}
                                 />
-                                <span className="text-[7.5px] font-black uppercase tracking-wider text-amber-400/90 font-mono">
+                                <span className="text-[7.5px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400/90 font-mono">
                                   Turno 1
                                 </span>
                               </div>
-                              <span className="text-[10.5px] sm:text-xs font-black text-yellow-100 tracking-tight leading-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                              <span className="text-[10.5px] sm:text-xs font-black text-slate-900 dark:text-yellow-100 tracking-tight leading-tight truncate max-w-full dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                                 {s1Col.operatoreNome ? s1Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
                               </span>
                               {s1Col.operatoreNome && s1Col.operatoreNome.split(' ').length > 1 && (
-                                <span className="text-[8.5px] font-bold text-yellow-200/70 leading-none truncate max-w-full hidden sm:block">
+                                <span className="text-[8.5px] font-bold text-slate-600 dark:text-yellow-200/70 leading-none truncate max-w-full hidden sm:block">
                                   {s1Col.operatoreNome.split(' ').slice(1).join(' ')}
                                 </span>
                               )}
-                              <span className="text-[8px] font-mono font-bold text-yellow-400/80 mt-1 leading-none bg-black/70 px-1 py-0.5 rounded border border-yellow-500/25">
+                              <span className="text-[8px] font-mono font-bold text-slate-700 dark:text-yellow-400/80 mt-1 leading-none bg-slate-100 dark:bg-black/70 px-1 py-0.5 rounded border border-slate-200 dark:border-yellow-500/25">
                                 {s1Col.oraInizio.slice(0, 5)} - {s1Col.oraFine.slice(0, 5)}
                               </span>
                               {s1Col.isAdapted && (
-                                <span className="text-[7px] font-bold text-amber-300 bg-amber-500/25 px-1 py-0.2 rounded mt-1 border border-amber-500/40">
+                                <span className="text-[7px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/25 px-1 py-0.2 rounded mt-1 border border-amber-300 dark:border-amber-500/40">
                                   +{s1Col.minutiExtra}m extra
                                 </span>
                               )}
@@ -1341,7 +1341,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                               setSelectedShiftForEdit(s2Col);
                               setIsShiftModalOpen(true);
                             }}
-                            className="pointer-events-auto flex items-center justify-between px-1 sm:px-1.5 py-0.5 bg-neutral-950/95 border-b border-yellow-500/40 hover:bg-neutral-900 transition-colors cursor-pointer group/hdr2 select-none shadow-sm"
+                            className="pointer-events-auto flex items-center justify-between px-1 sm:px-1.5 py-0.5 bg-white/95 dark:bg-neutral-950/95 border-b border-yellow-400/50 dark:border-yellow-500/40 hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors cursor-pointer group/hdr2 select-none shadow-xs"
                             title={`2° Turno Presidio (${s2Col.oraInizio} - ${s2Col.oraFine}): ${s2Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`}
                           >
                             <div className="flex items-center gap-1 min-w-0 flex-1 truncate">
@@ -1349,18 +1349,18 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                                 className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full shrink-0 shadow-xs ring-1 ring-black/70"
                                 style={{ backgroundColor: s2Col.operatoreBadgeColor || (s2Col.operatoreId ? '#eab308' : '#ef4444') }}
                               />
-                              <span className="text-[9.5px] sm:text-[10.5px] font-black text-yellow-300 group-hover/hdr2:text-yellow-100 truncate tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                              <span className="text-[9.5px] sm:text-[10.5px] font-black text-slate-800 dark:text-yellow-300 group-hover/hdr2:text-blue-600 dark:group-hover/hdr2:text-yellow-100 truncate tracking-tight dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                                 <span className="opacity-75 font-mono text-[8px] mr-0.5">T2:</span>
                                 {s2Col.operatoreNome ? s2Col.operatoreNome.split(' ')[0] : '⚠️ Non Assegn.'}
                               </span>
                             </div>
                             <div className="hidden sm:flex items-center gap-1 shrink-0 ml-1">
-                              <span className="text-[8px] sm:text-[8.5px] font-mono text-yellow-400/80">
+                              <span className="text-[8px] sm:text-[8.5px] font-mono text-slate-600 dark:text-yellow-400/80">
                                 {s2Col.oraInizio.slice(0, 5)}-{s2Col.oraFine.slice(0, 5)}
                               </span>
                               {s2Col.isAdapted && (
                                 <span
-                                  className="text-[6.5px] sm:text-[7px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40"
+                                  className="text-[6.5px] sm:text-[7px] font-bold px-1 py-0.2 rounded bg-amber-100 dark:bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-400/40"
                                   title={s2Col.adaptationReason}
                                 >
                                   +{s2Col.minutiExtra}m
@@ -1371,29 +1371,29 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
                           {/* Badge Operatore ben visibile al centro del turno (Stile front-end scuro/oro ad alto contrasto) */}
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none p-1 z-[1]">
-                            <div className="flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-neutral-950/85 border border-yellow-500/40 backdrop-blur-xs shadow-md shadow-black/90 max-w-[94%]">
+                            <div className="flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-white/90 dark:bg-neutral-950/85 border border-yellow-400/50 dark:border-yellow-500/40 backdrop-blur-xs shadow-md shadow-slate-200/60 dark:shadow-black/90 max-w-[94%]">
                               <div className="flex items-center gap-1 justify-center mb-0.5">
                                 <span
                                   className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"
                                   style={{ backgroundColor: s2Col.operatoreBadgeColor || '#eab308' }}
                                 />
-                                <span className="text-[7.5px] font-black uppercase tracking-wider text-yellow-400/90 font-mono">
+                                <span className="text-[7.5px] font-black uppercase tracking-wider text-yellow-600 dark:text-yellow-400/90 font-mono">
                                   Turno 2
                                 </span>
                               </div>
-                              <span className="text-[10.5px] sm:text-xs font-black text-yellow-100 tracking-tight leading-tight truncate max-w-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                              <span className="text-[10.5px] sm:text-xs font-black text-slate-900 dark:text-yellow-100 tracking-tight leading-tight truncate max-w-full dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                                 {s2Col.operatoreNome ? s2Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
                               </span>
                               {s2Col.operatoreNome && s2Col.operatoreNome.split(' ').length > 1 && (
-                                <span className="text-[8.5px] font-bold text-yellow-200/70 leading-none truncate max-w-full hidden sm:block">
+                                <span className="text-[8.5px] font-bold text-slate-600 dark:text-yellow-200/70 leading-none truncate max-w-full hidden sm:block">
                                   {s2Col.operatoreNome.split(' ').slice(1).join(' ')}
                                 </span>
                               )}
-                              <span className="text-[8px] font-mono font-bold text-yellow-400/80 mt-1 leading-none bg-black/70 px-1 py-0.5 rounded border border-yellow-500/25">
+                              <span className="text-[8px] font-mono font-bold text-slate-700 dark:text-yellow-400/80 mt-1 leading-none bg-slate-100 dark:bg-black/70 px-1 py-0.5 rounded border border-slate-200 dark:border-yellow-500/25">
                                 {s2Col.oraInizio.slice(0, 5)} - {s2Col.oraFine.slice(0, 5)}
                               </span>
                               {s2Col.isAdapted && (
-                                <span className="text-[7px] font-bold text-amber-300 bg-amber-500/25 px-1 py-0.2 rounded mt-1 border border-amber-500/40">
+                                <span className="text-[7px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/25 px-1 py-0.2 rounded mt-1 border border-amber-300 dark:border-amber-500/40">
                                   +{s2Col.minutiExtra}m extra
                                 </span>
                               )}
@@ -1407,9 +1407,9 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     {isWeekdayCol && s1Col && s2Col && (
                       <div
                         style={{ top: `${s2TopPx}px` }}
-                        className="absolute left-0 right-0 border-t border-yellow-500/40 border-dashed z-[3] pointer-events-none flex items-center justify-center"
+                        className="absolute left-0 right-0 border-t border-blue-400/50 dark:border-yellow-500/40 border-dashed z-[3] pointer-events-none flex items-center justify-center"
                       >
-                        <span className="text-[7px] sm:text-[7.5px] font-mono font-bold text-yellow-300 bg-neutral-950/95 px-1.5 py-0.2 rounded border border-yellow-500/30 shadow-xs whitespace-nowrap">
+                        <span className="text-[7px] sm:text-[7.5px] font-mono font-bold text-slate-700 dark:text-yellow-300 bg-white dark:bg-neutral-950/95 px-1.5 py-0.2 rounded border border-slate-200 dark:border-yellow-500/30 shadow-xs whitespace-nowrap">
                           Cambio {s1Col.oraFine.slice(0, 5)}
                         </span>
                       </div>
@@ -1562,27 +1562,27 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         </div>
 
         {/* Legend */}
-        <div className="border-t border-yellow-500/20 px-3 sm:px-4 py-2 flex items-center gap-3 flex-wrap bg-neutral-950 text-xs">
+        <div className="border-t border-slate-200 dark:border-yellow-500/20 px-3 sm:px-4 py-2 flex items-center gap-3 flex-wrap bg-slate-50 dark:bg-neutral-950 text-xs">
           {rooms.map(r => {
             const c = ROOM_COLORS[r.id];
             return (
               <div key={r.id} className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-xs shrink-0" style={{ backgroundColor: c?.bg }} />
-                <span className="text-[10px] text-yellow-200/90 font-medium">{r.nome}</span>
+                <span className="text-[10px] text-slate-700 dark:text-yellow-200/90 font-medium">{r.nome}</span>
               </div>
             );
           })}
           {/* Indicatore Turni nella legenda */}
-          <div className="flex items-center gap-1.5 border-l border-yellow-500/25 pl-2.5">
-            <div className="w-3.5 h-3.5 rounded-xs bg-linear-to-b from-neutral-900 via-amber-950/40 to-neutral-950 border border-amber-500/60 flex items-center justify-center">
-              <Shield className="w-2 h-2 text-yellow-400" />
+          <div className="flex items-center gap-1.5 border-l border-slate-200 dark:border-yellow-500/25 pl-2.5">
+            <div className="w-3.5 h-3.5 rounded-xs bg-blue-50 dark:bg-linear-to-b dark:from-neutral-900 dark:via-amber-950/40 dark:to-neutral-950 border border-blue-200 dark:border-amber-500/60 flex items-center justify-center">
+              <Shield className="w-2 h-2 text-blue-600 dark:text-yellow-400" />
             </div>
-            <span className="text-[10px] text-yellow-300 font-medium">Turno Presidio (17-20 / 20-23)</span>
+            <span className="text-[10px] text-slate-700 dark:text-yellow-300 font-medium">Turno Presidio (17-20 / 20-23)</span>
           </div>
 
           <div className="flex items-center gap-1.5 ml-auto">
             <div className="w-2 h-2 rounded-full bg-amber-400 border border-amber-500 shrink-0" />
-            <span className="text-[10px] text-neutral-400">Senza operatore</span>
+            <span className="text-[10px] text-slate-500 dark:text-neutral-400">Senza operatore</span>
           </div>
         </div>
       </div>
@@ -1590,7 +1590,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       {/* Floating + button (mobile) */}
       <button
         onClick={() => { setSelectedDateForBooking(formatDateToISO(today)); setBookingToEdit(null); setIsBookingModalOpen(true); }}
-        className="fixed bottom-4 right-4 w-12 h-12 bg-yellow-400 text-black font-bold rounded-full shadow-2xl shadow-yellow-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 sm:hidden border border-black/20"
+        className="fixed bottom-4 right-4 w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black font-bold rounded-full shadow-2xl shadow-blue-500/30 dark:shadow-yellow-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 sm:hidden border border-black/20"
         title="Nuova Prenotazione"
       >
         <Plus className="w-5 h-5 stroke-[3]" />
@@ -1598,81 +1598,81 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
       {/* Booking Quick Detail Dialog */}
       {activeBookingDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0e0e0e] rounded-xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-yellow-500/30 space-y-4 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#0e0e0e] rounded-xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-200 dark:border-yellow-500/30 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2.5">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${
                   activeBookingDetail.tipo === 'prove'
-                    ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-500/40'
-                    : 'bg-neutral-800 text-neutral-200 border border-neutral-700'
+                    ? 'bg-blue-50 dark:bg-yellow-400/20 text-blue-600 dark:text-yellow-400 border border-blue-200 dark:border-yellow-500/40'
+                    : 'bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-neutral-200 border border-slate-200 dark:border-neutral-700'
                 }`}>
                   {activeBookingDetail.tipo === 'prove' ? <Music2 className="w-5 h-5" /> : <GraduationCap className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h3 className="font-bold text-yellow-100 text-base leading-tight">{activeBookingDetail.clienteNome}</h3>
-                  <p className="text-xs text-neutral-400 font-normal capitalize">
+                  <h3 className="font-bold text-slate-900 dark:text-yellow-100 text-base leading-tight">{activeBookingDetail.clienteNome}</h3>
+                  <p className="text-xs text-slate-500 dark:text-neutral-400 font-normal capitalize">
                     {activeBookingDetail.tipo === 'prove' ? 'Sessione Prove Band' : 'Lezione di Musica'} &bull; {activeBookingDetail.salaNome}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setActiveBookingDetail(null)}
-                className="text-neutral-400 hover:text-yellow-400 p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
+                className="text-slate-400 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-yellow-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors"
               >
                 &#x2715;
               </button>
             </div>
 
-            <div className="bg-neutral-950 rounded-lg p-3.5 space-y-2 text-xs border border-yellow-500/20">
+            <div className="bg-slate-50 dark:bg-neutral-950 rounded-lg p-3.5 space-y-2 text-xs border border-slate-200 dark:border-yellow-500/20">
               <div className="flex items-center justify-between">
-                <span className="text-neutral-400">Data &amp; Orario:</span>
-                <span className="font-semibold text-yellow-300">{activeBookingDetail.data} ({activeBookingDetail.oraInizio} - {activeBookingDetail.oraFine})</span>
+                <span className="text-slate-500 dark:text-neutral-400">Data &amp; Orario:</span>
+                <span className="font-semibold text-slate-900 dark:text-yellow-300">{activeBookingDetail.data} ({activeBookingDetail.oraInizio} - {activeBookingDetail.oraFine})</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-neutral-400">Durata:</span>
-                <span className="font-semibold text-yellow-300">{activeBookingDetail.durataOre} ore</span>
+                <span className="text-slate-500 dark:text-neutral-400">Durata:</span>
+                <span className="font-semibold text-slate-900 dark:text-yellow-300">{activeBookingDetail.durataOre} ore</span>
               </div>
               {activeBookingDetail.tipo === 'lezione' ? (
                 <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Docente / Insegnante:</span>
-                  <span className="font-semibold text-yellow-300 flex items-center gap-1">
-                    <GraduationCap className="w-3.5 h-3.5 text-yellow-400" />
+                  <span className="text-slate-500 dark:text-neutral-400">Docente / Insegnante:</span>
+                  <span className="font-semibold text-slate-900 dark:text-yellow-300 flex items-center gap-1">
+                    <GraduationCap className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400" />
                     {activeBookingDetail.insegnanteNome || 'Insegnante non specificato'}
                   </span>
                 </div>
               ) : activeBookingDetail.operatoreAssegnatoNome ? (
                 <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Operatore Sala:</span>
-                  <span className="font-semibold text-emerald-400 flex items-center gap-1">
+                  <span className="text-slate-500 dark:text-neutral-400">Operatore Sala:</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />{activeBookingDetail.operatoreAssegnatoNome}
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Presidio Sala:</span>
-                  <span className="font-medium text-neutral-300 text-xs flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Coperto da Turni Sala (17:00-23:00)
+                  <span className="text-slate-500 dark:text-neutral-400">Presidio Sala:</span>
+                  <span className="font-medium text-slate-600 dark:text-neutral-300 text-xs flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Coperto da Turni Sala (17:00-23:00)
                   </span>
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-neutral-400">Tariffa:</span>
+                <span className="text-slate-500 dark:text-neutral-400">Tariffa:</span>
                 <div className="flex items-center gap-2">
                   {activeBookingDetail.sconto && activeBookingDetail.sconto > 0 ? (
-                    <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                    <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/20">
                       Sconto -€{activeBookingDetail.sconto}
                     </span>
                   ) : null}
-                  <span className="font-bold text-yellow-400 text-sm">&#x20AC;{activeBookingDetail.tariffaTotale}</span>
+                  <span className="font-bold text-blue-600 dark:text-yellow-400 text-sm">&#x20AC;{activeBookingDetail.tariffaTotale}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-neutral-400">Stato Pagamento:</span>
+                <span className="text-slate-500 dark:text-neutral-400">Stato Pagamento:</span>
                 <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
                   activeBookingDetail.statoPagamento === 'pagato'
-                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                    : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                    ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30'
+                    : 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-500/30'
                 }`}>
                   {activeBookingDetail.statoPagamento === 'pagato' ? 'Pagato' : 'Da Saldare'}
                 </span>
@@ -1683,14 +1683,14 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               const activeClient = clients.find(c => c.id === activeBookingDetail.clienteId);
               const activeResolved = getAllEquipmentForBooking(activeBookingDetail, activeClient);
               return (
-                <div className="bg-neutral-950 border border-yellow-500/20 rounded-xl p-3.5 space-y-3 shadow-sm">
+                <div className="bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-yellow-500/20 rounded-xl p-3.5 space-y-3 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-bold text-yellow-400 uppercase tracking-wider">
-                      <SlidersHorizontal className="w-4 h-4 text-yellow-400" />
+                    <div className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-yellow-400 uppercase tracking-wider">
+                      <SlidersHorizontal className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
                       <span>Strumentazione Richiesta</span>
                     </div>
                     {activeResolved.items.length > 0 && (
-                      <span className="text-[10px] font-bold bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-bold bg-blue-50 dark:bg-yellow-400/20 text-blue-700 dark:text-yellow-300 border border-blue-200 dark:border-yellow-500/30 px-2 py-0.5 rounded-full">
                         {activeResolved.items.length} {activeResolved.items.length === 1 ? 'voce' : 'voci'}
                       </span>
                     )}
@@ -1698,23 +1698,23 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   {activeResolved.items.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
                       {activeResolved.items.map((item, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-[#121212] border border-yellow-500/30 text-yellow-200 shadow-sm">
-                          <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />{item}
+                        <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-white dark:bg-[#121212] border border-slate-200 dark:border-yellow-500/30 text-slate-800 dark:text-yellow-200 shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-yellow-400 shrink-0" />{item}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-neutral-400 italic">Nessuna strumentazione speciale (setup standard).</p>
+                    <p className="text-xs text-slate-400 dark:text-neutral-400 italic">Nessuna strumentazione speciale (setup standard).</p>
                   )}
                 </div>
               );
             })()}
 
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-yellow-500/20 flex-wrap">
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-yellow-500/20 flex-wrap">
               <button
                 type="button"
                 onClick={() => handleDeleteBooking(activeBookingDetail)}
-                className="px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 rounded-lg bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Elimina questa prenotazione"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -1725,14 +1725,14 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveBookingDetail(null)}
-                  className="px-3.5 py-2 rounded-lg border border-yellow-500/30 text-neutral-300 text-xs font-semibold hover:bg-neutral-800 transition-colors cursor-pointer"
+                  className="px-3.5 py-2 rounded-lg border border-slate-300 dark:border-yellow-500/30 text-slate-700 dark:text-neutral-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
                 >
                   Chiudi
                 </button>
                 <button
                   type="button"
                   onClick={e => handleOpenEditBooking(activeBookingDetail, e)}
-                  className="px-4 py-2 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs shadow-sm transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black font-bold text-xs shadow-sm transition-all cursor-pointer"
                 >
                   Modifica / Assegna Operatore
                 </button>
@@ -1769,22 +1769,22 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
       {/* Full Shifts Panel Modal */}
       {isShiftsPanelOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md">
-          <div className="bg-[#0a0a0a] rounded-2xl max-w-6xl w-full p-4 sm:p-6 shadow-2xl border border-yellow-500/40 max-h-[94vh] overflow-y-auto space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-yellow-500/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 dark:bg-black/85 backdrop-blur-md">
+          <div className="bg-white dark:bg-[#0a0a0a] rounded-2xl max-w-6xl w-full p-4 sm:p-6 shadow-2xl border border-slate-200 dark:border-yellow-500/40 max-h-[94vh] overflow-y-auto space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-yellow-500/20">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-yellow-400 text-black flex items-center justify-center font-black">
+                <div className="w-9 h-9 rounded-xl bg-blue-600 dark:bg-yellow-400 text-white dark:text-black flex items-center justify-center font-black">
                   <CalendarClock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-yellow-100 text-lg">Pannello Gestione Turni Presidio Sala</h3>
-                  <p className="text-xs text-neutral-400">Pianificazione Lunedì-Venerdì (17:00-20:00 & 20:00-23:00 con adattamento dinamico)</p>
+                  <h3 className="font-bold text-slate-900 dark:text-yellow-100 text-lg">Pannello Gestione Turni Presidio Sala</h3>
+                  <p className="text-xs text-slate-500 dark:text-neutral-400">Pianificazione Lunedì-Venerdì (17:00-20:00 & 20:00-23:00 con adattamento dinamico)</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsShiftsPanelOpen(false)}
-                className="text-neutral-400 hover:text-yellow-400 p-2 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer text-lg font-bold"
+                className="text-slate-400 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-yellow-400 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer text-lg font-bold"
               >
                 ✕
               </button>
@@ -1796,34 +1796,34 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
       {/* Quick Date / Month & Year Jumper Modal */}
       {isQuickDatePickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
-          <div className="bg-[#0f0f0f] rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-yellow-500/40 space-y-4 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-200 dark:border-yellow-500/40 space-y-4 animate-in zoom-in-95 duration-150">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-yellow-500/20">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-yellow-500/20">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-yellow-400 text-black flex items-center justify-center font-black shadow-md shadow-yellow-500/30">
+                <div className="w-9 h-9 rounded-xl bg-blue-600 dark:bg-yellow-400 text-white dark:text-black flex items-center justify-center font-black shadow-md shadow-blue-500/20 dark:shadow-yellow-500/30">
                   <CalendarDays className="w-5 h-5 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-yellow-100 text-base sm:text-lg">Salto Rapido Calendario</h3>
-                  <p className="text-[11px] text-neutral-400">Scorri all'istante settimane, mesi o scegli una data esatta</p>
+                  <h3 className="font-extrabold text-slate-900 dark:text-yellow-100 text-base sm:text-lg">Salto Rapido Calendario</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-neutral-400">Scorri all'istante settimane, mesi o scegli una data esatta</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsQuickDatePickerOpen(false)}
-                className="text-neutral-400 hover:text-yellow-400 p-1.5 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-yellow-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Year Selector Bar */}
-            <div className="flex items-center justify-between bg-neutral-950 p-1.5 rounded-xl border border-yellow-500/30">
+            <div className="flex items-center justify-between bg-slate-50 dark:bg-neutral-950 p-1.5 rounded-xl border border-slate-200 dark:border-yellow-500/30">
               <button
                 type="button"
                 onClick={() => setQuickPickerYear(y => y - 1)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 text-xs font-bold transition-all cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-slate-100 dark:hover:bg-neutral-800 text-xs font-bold transition-all cursor-pointer"
                 title="Anno precedente"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -1831,11 +1831,11 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               </button>
 
               <div className="flex items-center gap-2">
-                <span className="text-base sm:text-lg font-black text-yellow-300 tracking-tight">
+                <span className="text-base sm:text-lg font-black text-slate-900 dark:text-yellow-300 tracking-tight">
                   {quickPickerYear}
                 </span>
                 {quickPickerYear === today.getFullYear() && (
-                  <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-500/40">
+                  <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-yellow-400/20 text-blue-700 dark:text-yellow-300 border border-blue-200 dark:border-yellow-500/40">
                     Anno Corrente
                   </span>
                 )}
@@ -1844,7 +1844,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <button
                 type="button"
                 onClick={() => setQuickPickerYear(y => y + 1)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-yellow-400 hover:text-yellow-300 hover:bg-neutral-800 text-xs font-bold transition-all cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-slate-700 dark:text-yellow-400 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-slate-100 dark:hover:bg-neutral-800 text-xs font-bold transition-all cursor-pointer"
                 title="Anno successivo"
               >
                 <span>{quickPickerYear + 1}</span>
@@ -1854,7 +1854,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
             {/* Months Grid (12 Months in 4x3) */}
             <div className="space-y-1.5">
-              <p className="text-[11px] font-bold text-yellow-500/80 uppercase tracking-wider">
+              <p className="text-[11px] font-bold text-slate-500 dark:text-yellow-500/80 uppercase tracking-wider">
                 Seleziona Mese:
               </p>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -1871,16 +1871,16 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       }}
                       className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer text-center ${
                         isSelected
-                          ? 'bg-yellow-400 text-black font-black border-yellow-300 ring-2 ring-yellow-400/50 shadow-md shadow-yellow-500/20 scale-[1.03]'
+                          ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black font-black border-blue-500 dark:border-yellow-300 ring-2 ring-blue-300 dark:ring-yellow-400/50 shadow-md shadow-blue-500/20 dark:shadow-yellow-500/20 scale-[1.03]'
                           : isCurrentMonthNow
-                            ? 'bg-yellow-400/15 text-yellow-300 border-yellow-500/60 hover:bg-yellow-400/25 font-bold'
-                            : 'bg-neutral-900 text-neutral-300 border-neutral-800 hover:bg-neutral-800 hover:text-yellow-300 hover:border-yellow-500/30'
+                            ? 'bg-blue-50 dark:bg-yellow-400/15 text-blue-700 dark:text-yellow-300 border-blue-200 dark:border-yellow-500/60 hover:bg-blue-100 dark:hover:bg-yellow-400/25 font-bold'
+                            : 'bg-slate-50 dark:bg-neutral-900 text-slate-700 dark:text-neutral-300 border-slate-200 dark:border-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-blue-600 dark:hover:text-yellow-300 hover:border-blue-300 dark:hover:border-yellow-500/30'
                       }`}
                     >
                       <span className="text-xs font-black uppercase tracking-wider">{mName.substring(0, 3)}</span>
                       <span className="text-[10px] font-medium opacity-85 truncate max-w-full">{mName}</span>
                       {isCurrentMonthNow && !isSelected && (
-                        <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.2 rounded-full font-extrabold bg-yellow-400 text-black mt-0.5">
+                        <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.2 rounded-full font-extrabold bg-blue-600 dark:bg-yellow-400 text-white dark:text-black mt-0.5">
                           Oggi
                         </span>
                       )}
@@ -1891,8 +1891,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             </div>
 
             {/* Week Selector of Active Month */}
-            <div className="pt-2 border-t border-yellow-500/20 space-y-1.5">
-              <p className="text-[11px] font-bold text-yellow-500/80 uppercase tracking-wider">
+            <div className="pt-2 border-t border-slate-200 dark:border-yellow-500/20 space-y-1.5">
+              <p className="text-[11px] font-bold text-slate-500 dark:text-yellow-500/80 uppercase tracking-wider">
                 Salta a una settimana specifica di {MESI_ITALIANI[dominantMonth.getMonth()]}:
               </p>
               <div className="grid grid-cols-5 gap-1.5">
@@ -1910,8 +1910,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       }}
                       className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-all text-center cursor-pointer ${
                         isCurrentActiveWeek
-                          ? 'bg-yellow-400 text-black border-yellow-400 font-black'
-                          : 'bg-neutral-900 hover:bg-yellow-400/20 text-yellow-200 border-neutral-800 hover:border-yellow-500/30'
+                          ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black border-blue-600 dark:border-yellow-400 font-black'
+                          : 'bg-slate-50 dark:bg-neutral-900 hover:bg-blue-50 dark:hover:bg-yellow-400/20 text-slate-700 dark:text-yellow-200 border-slate-200 dark:border-neutral-800 hover:border-blue-300 dark:hover:border-yellow-500/30'
                       }`}
                     >
                       Sett. {wk}
@@ -1922,9 +1922,9 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             </div>
 
             {/* Exact Date Picker & Quick Today Button */}
-            <div className="pt-3 border-t border-yellow-500/20 flex items-center justify-between gap-3 flex-wrap">
+            <div className="pt-3 border-t border-slate-200 dark:border-yellow-500/20 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-neutral-400">Data esatta:</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-neutral-400">Data esatta:</span>
                 <input
                   type="date"
                   value={formatDateToISO(currentDate)}
@@ -1934,7 +1934,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       setIsQuickDatePickerOpen(false);
                     }
                   }}
-                  className="px-2.5 py-1.5 rounded-lg bg-neutral-900 border border-yellow-500/40 text-yellow-300 text-xs font-bold focus:ring-2 focus:ring-yellow-400 cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-yellow-500/40 text-slate-900 dark:text-yellow-300 text-xs font-bold focus:ring-2 focus:ring-blue-500 dark:focus:ring-yellow-400 cursor-pointer"
                 />
               </div>
 
@@ -1944,7 +1944,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   handleGoToday();
                   setIsQuickDatePickerOpen(false);
                 }}
-                className="px-3.5 py-1.5 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs transition-all shadow-md shadow-yellow-500/20 cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black font-extrabold text-xs transition-all shadow-md shadow-blue-500/20 dark:shadow-yellow-500/20 cursor-pointer flex items-center gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Torna a Oggi</span>

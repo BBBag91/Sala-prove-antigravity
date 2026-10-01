@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -423,18 +425,32 @@ html {
    Attiva quando: html.light oppure [data-theme="light"]
    ========================================================================= */
 @media screen {
-  /* ── 1. Sfondo Bianco Assoluto & Superfici Icy-Slate ── */
+  /* ── 1. Sfondo Bianco Assoluto & Superfici nel Tema Chiaro ── */
   html.light,
   html.light #root,
   html.light body,
   html.light .min-h-screen,
   html.light .bg-black,
+  html.light [class*="bg-black"],
   html.light .bg-neutral-950,
+  html.light [class*="bg-neutral-950"],
   html.light .bg-white,
   html.light [class*="bg-[#0e0e0e]"],
   html.light [class*="bg-[#0a0a0a]"],
-  html.light [class*="bg-[#0d0d0d]"] {
+  html.light [class*="bg-[#0d0d0d]"],
+  html.light [class*="bg-[#0c0c0c]"],
+  html.light [class*="bg-[#080808]"],
+  html.light [class*="bg-[#0f0f0f]"] {
     background-color: #ffffff !important;
+  }
+
+  /* Barra di navigazione rapida mobile inferiore in modalità chiara */
+  html.light nav.fixed.bottom-0,
+  html.light nav[aria-label="Navigazione rapida mobile"],
+  html.light .md\:hidden.fixed.bottom-0 {
+    background-color: rgba(255, 255, 255, 0.96) !important;
+    border-top-color: rgba(37, 99, 235, 0.18) !important;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08) !important;
   }
 
   /* Top Navbar con sfondo bianco satinato e bordo blu tenue */
@@ -447,29 +463,27 @@ html {
   }
 
   /* Footer in versione chiara */
-  html.light footer.bg-neutral-950 {
+  html.light footer.bg-neutral-950,
+  html.light footer {
     background-color: #f8fafc !important;
     border-color: rgba(37, 99, 235, 0.14) !important;
     color: #475569 !important;
   }
 
-  /* Superfici secondarie / card container / toolbar / colonne calendario */
+  /* Superfici secondarie / card container / toolbar / navigazione calendario */
   html.light .bg-neutral-900,
-  html.light .bg-neutral-900\/90,
-  html.light .bg-neutral-900\/80,
-  html.light .bg-neutral-900\/50,
+  html.light [class*="bg-neutral-900"],
+  html.light .bg-neutral-850,
+  html.light [class*="bg-neutral-850"],
+  html.light .bg-neutral-800,
+  html.light [class*="bg-neutral-800"],
   html.light [class*="bg-[#141414]"],
   html.light [class*="bg-[#18181b]"],
   html.light .bg-slate-50,
-  html.light .bg-slate-50\/60,
-  html.light .bg-slate-50\/40,
-  html.light .bg-slate-50\/80 {
-    background-color: #f8fafc !important;
-  }
-
-  html.light .bg-neutral-800,
+  html.light [class*="bg-slate-50"],
   html.light .bg-slate-100 {
-    background-color: #f1f5f9 !important;
+    background-color: #f8fafc !important;
+    color: #1e293b !important;
   }
 
   html.light .bg-slate-200 {
@@ -503,7 +517,9 @@ html {
   html.light .bg-yellow-400,
   html.light .bg-yellow-500,
   html.light .bg-amber-400,
-  html.light .bg-indigo-600 {
+  html.light .bg-indigo-600,
+  html.light .bg-blue-600,
+  html.light .bg-blue-700 {
     background-color: #2563eb !important; /* Royal Blue */
     color: #ffffff !important;
     font-weight: 700 !important;
@@ -513,7 +529,9 @@ html {
   html.light .bg-yellow-400 *,
   html.light .bg-yellow-500 *,
   html.light .bg-indigo-600 *,
-  html.light .bg-indigo-700 * {
+  html.light .bg-indigo-700 *,
+  html.light .bg-blue-600 *,
+  html.light .bg-blue-700 * {
     color: #ffffff !important;
     stroke: #ffffff !important;
   }
@@ -523,7 +541,9 @@ html {
   html.light .bg-yellow-400:hover,
   html.light .bg-yellow-500:hover,
   html.light .bg-indigo-600:hover,
-  html.light .hover\:bg-indigo-700:hover {
+  html.light .hover\:bg-indigo-700:hover,
+  html.light .bg-blue-600:hover,
+  html.light .hover\:bg-blue-700:hover {
     background-color: #1d4ed8 !important; /* Deep Blue hover */
     color: #ffffff !important;
   }

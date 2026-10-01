@@ -820,7 +820,7 @@ const AppContent: React.FC = () => {
 
       {/* ── Fixed Mobile Bottom Navigation Bar (Always thumb-accessible on smartphone) ── */}
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-neutral-950/95 border-t border-yellow-500/30 backdrop-blur-md pb-safe shadow-[0_-8px_25px_rgba(0,0,0,0.85)] print:hidden"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-neutral-950/95 border-t border-slate-200 dark:border-yellow-500/30 backdrop-blur-md pb-safe shadow-[0_-8px_25px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_25px_rgba(0,0,0,0.85)] print:hidden"
         aria-label="Navigazione rapida mobile"
       >
         <div className={`grid ${isAdmin ? 'grid-cols-5' : 'grid-cols-3'} items-stretch h-14`}>
@@ -831,12 +831,12 @@ const AppContent: React.FC = () => {
               setIsMobileMenuOpen(false);
             }}
             className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
-              activeTab === 'calendar' ? 'text-yellow-400 font-extrabold' : 'text-neutral-400 hover:text-yellow-300'
+              activeTab === 'calendar' ? 'text-blue-600 dark:text-yellow-400 font-extrabold' : 'text-slate-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-yellow-300'
             }`}
             title="Calendario Prenotazioni"
           >
             {activeTab === 'calendar' && (
-              <span className="absolute top-0 inset-x-4 h-0.5 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
+              <span className="absolute top-0 inset-x-4 h-0.5 bg-blue-600 dark:bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.8)] dark:shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
             )}
             <LayoutDashboard className="w-5 h-5 mb-0.5" />
             <span className="text-[10px] leading-tight">Calendario</span>
@@ -849,12 +849,12 @@ const AppContent: React.FC = () => {
               setIsMobileMenuOpen(false);
             }}
             className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
-              activeTab === 'turni' ? 'text-yellow-400 font-extrabold' : 'text-neutral-400 hover:text-yellow-300'
+              activeTab === 'turni' ? 'text-blue-600 dark:text-yellow-400 font-extrabold' : 'text-slate-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-yellow-300'
             }`}
             title="Schema Riepilogativo Turni"
           >
             {activeTab === 'turni' && (
-              <span className="absolute top-0 inset-x-4 h-0.5 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
+              <span className="absolute top-0 inset-x-4 h-0.5 bg-blue-600 dark:bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.8)] dark:shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
             )}
             <CalendarClock className="w-5 h-5 mb-0.5" />
             <span className="text-[10px] leading-tight">Turni</span>
@@ -869,17 +869,17 @@ const AppContent: React.FC = () => {
                   setIsMobileMenuOpen(false);
                 }}
                 className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
-                  activeTab === 'bookings' ? 'text-yellow-400 font-extrabold' : 'text-neutral-400 hover:text-yellow-300'
+                  activeTab === 'bookings' ? 'text-blue-600 dark:text-yellow-400 font-extrabold' : 'text-slate-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-yellow-300'
                 }`}
                 title="Gestione Prenotazioni"
               >
                 {activeTab === 'bookings' && (
-                  <span className="absolute top-0 inset-x-4 h-0.5 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
+                  <span className="absolute top-0 inset-x-4 h-0.5 bg-blue-600 dark:bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.8)] dark:shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
                 )}
                 <div className="relative">
                   <Music2 className="w-5 h-5 mb-0.5" />
                   {bookings.length > 0 && (
-                    <span className="absolute -top-1 -right-2.5 bg-yellow-400 text-black text-[9px] font-black px-1 rounded-full leading-tight">
+                    <span className="absolute -top-1 -right-2.5 bg-blue-600 dark:bg-yellow-400 text-white dark:text-black text-[9px] font-black px-1 rounded-full leading-tight">
                       {bookings.length}
                     </span>
                   )}
@@ -894,17 +894,17 @@ const AppContent: React.FC = () => {
                   setIsMobileMenuOpen(false);
                 }}
                 className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
-                  activeTab === 'finance' ? 'text-yellow-400 font-extrabold' : 'text-neutral-400 hover:text-yellow-300'
+                  activeTab === 'finance' ? 'text-blue-600 dark:text-yellow-400 font-extrabold' : 'text-slate-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-yellow-300'
                 }`}
                 title="Conti e Spese Mensili"
               >
                 {activeTab === 'finance' && (
-                  <span className="absolute top-0 inset-x-4 h-0.5 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
+                  <span className="absolute top-0 inset-x-4 h-0.5 bg-blue-600 dark:bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.8)] dark:shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
                 )}
                 <div className="relative">
                   <Receipt className="w-5 h-5 mb-0.5" />
                   {expenses.length > 0 && (
-                    <span className="absolute -top-1 -right-2.5 bg-yellow-400 text-black text-[9px] font-black px-1 rounded-full leading-tight">
+                    <span className="absolute -top-1 -right-2.5 bg-blue-600 dark:bg-yellow-400 text-white dark:text-black text-[9px] font-black px-1 rounded-full leading-tight">
                       {expenses.length}
                     </span>
                   )}
@@ -917,8 +917,8 @@ const AppContent: React.FC = () => {
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
                   isMobileMenuOpen || !['calendar', 'turni', 'bookings', 'finance'].includes(activeTab)
-                    ? 'text-yellow-400 font-extrabold'
-                    : 'text-neutral-400 hover:text-yellow-300'
+                    ? 'text-blue-600 dark:text-yellow-400 font-extrabold'
+                    : 'text-slate-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-yellow-300'
                 }`}
                 title="Tutte le altre sezioni ed opzioni"
               >
@@ -931,7 +931,7 @@ const AppContent: React.FC = () => {
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
-                isMobileMenuOpen ? 'text-yellow-400 font-extrabold' : 'text-neutral-400 hover:text-yellow-300'
+                isMobileMenuOpen ? 'text-blue-600 dark:text-yellow-400 font-extrabold' : 'text-slate-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-yellow-300'
               }`}
               title="Profilo ed Opzioni"
             >
