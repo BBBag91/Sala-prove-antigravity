@@ -456,9 +456,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchRole = () => {
-    if (!user) return;
-    const nextRole: UserRole = user.ruolo === 'admin' ? 'user' : 'admin';
-    loginAsRole(nextRole);
+    // Disabilitato per sicurezza: gli utenti standard non possono passare al ruolo amministratore
   };
 
   const logout = async () => {
