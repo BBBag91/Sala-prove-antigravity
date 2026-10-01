@@ -12,11 +12,13 @@ import {
   Printer,
   FileSpreadsheet,
   Palmtree,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { StaffMember } from '../types';
-import { GIORNI_CALENDARIO } from '../utils/dateUtils';
+import { GIORNI_CALENDARIO, MESI_ITALIANI } from '../utils/dateUtils';
 import { getOperatorAccumulatedHours } from '../utils/scheduler';
 import { StaffModal } from './StaffModal';
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
@@ -37,6 +39,37 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
   const [isMonthlyPdfModalOpen, setIsMonthlyPdfModalOpen] = useState(false);
   const [selectedOperatorForSchedule, setSelectedOperatorForSchedule] = useState<string | null>(null);
   const [selectedOperatorForMonthlyCalendar, setSelectedOperatorForMonthlyCalendar] = useState<StaffMember | null>(null);
+  const [selectedDateForEditor, setSelectedDateForEditor] = useState<string | undefined>(undefined);
+
+  // Navigazione mese in mese per la visualizzazione dei turni lavoro primario
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
+  const [viewMonthIndex, setViewMonthIndex] = useState(() => new Date().getMonth());
+
+  const viewMonthStr = `${viewYear}-${String(viewMonthIndex + 1).padStart(2, '0')}`;
+
+  const handlePrevViewMonth = () => {
+    if (viewMonthIndex === 0) {
+      setViewMonthIndex(11);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonthIndex((m) => m - 1);
+    }
+  };
+
+  const handleNextViewMonth = () => {
+    if (viewMonthIndex === 11) {
+      setViewMonthIndex(0);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonthIndex((m) => m + 1);
+    }
+  };
+
+  const handleResetToCurrentMonth = () => {
+    const now = new Date();
+    setViewYear(now.getFullYear());
+    setViewMonthIndex(now.getMonth());
+  };
 
   const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(
     2,
@@ -235,77 +268,218 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
                 )}
               </div>
 
-              {/* Turni Lavoro Primario & Disponibilità Residua 24h */}
+              {/* Turni Lavoro Primario & Disponibilità - Visualizzazione Mese in Mese */}
               {(() => {
-                const memberMonthExceptions = (member.indisponibilitaDate || []).filter((d) =>
-                  d.data.startsWith(currentMonthStr)
+                const memberMonthEntries = (member.indisponibilitaDate || []).filter((d) =>
+                  d.data.startsWith(viewMonthStr)
                 );
-                const countVacationMonth = memberMonthExceptions.filter((d) => d.indisponibileTotale).length;
-                const countCustomHoursMonth = memberMonthExceptions.filter((d) => !d.indisponibileTotale && d.oraInizio).length;
+
+                // Raggruppa per data per supportare più indisponibilità nello stesso giorno
+                const entriesByDate: Record<string, typeof memberMonthEntries> = {};
+                memberMonthEntries.forEach((entry) => {
+                  if (!entriesByDate[entry.data]) entriesByDate[entry.data] = [];
+                  entriesByDate[entry.data].push(entry);
+                });
+                const sortedDates = Object.keys(entriesByDate).sort();
+
+                const countVacationMonth = new Set(
+                  memberMonthEntries.filter((d) => d.indisponibileTotale).map((d) => d.data)
+                ).size;
+                const countCustomHoursMonth = new Set(
+                  memberMonthEntries.filter((d) => !d.indisponibileTotale && d.oraInizio).map((d) => d.data)
+                ).size;
 
                 return (
-                  <div className="space-y-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <span className="font-semibold text-slate-900 flex items-center gap-1.5">
-                        <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
-                        Turni Lavoro Primario & Indisponibilità
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedOperatorForMonthlyCalendar(member)}
-                        className="px-3.5 py-2 min-h-[44px] rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black text-xs font-black flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer touch-manipulation touch-active"
-                        title={`Apri calendario mensile completo per ${member.nome}`}
-                      >
-                        <Calendar className="w-4 h-4 text-black" />
-                        <span>Calendario Mese &amp; Ferie</span>
-                      </button>
+                  <div className="space-y-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                    {/* Header con Navigatore Mese in Mese & Tasto Inserimento Rapido */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-200/80">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-indigo-600" />
+                        <span className="font-bold text-slate-900">
+                          Turni Lavoro Primario &amp; Indisponibilità
+                        </span>
+                      </div>
+
+                      {/* Navigatore Mese in Mese */}
+                      <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
+                        <div className="flex items-center bg-white border border-slate-300 rounded-lg p-0.5 shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={handlePrevViewMonth}
+                            className="p-1 hover:bg-slate-100 rounded text-slate-700 transition-colors cursor-pointer"
+                            title="Mese precedente"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="px-2 font-black text-slate-900 text-xs uppercase tracking-wide min-w-[120px] text-center">
+                            {MESI_ITALIANI[viewMonthIndex]} {viewYear}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleNextViewMonth}
+                            className="p-1 hover:bg-slate-100 rounded text-slate-700 transition-colors cursor-pointer"
+                            title="Mese successivo"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDateForEditor(undefined);
+                            setSelectedOperatorForMonthlyCalendar(member);
+                          }}
+                          className="px-3 py-1.5 min-h-[36px] rounded-lg bg-yellow-400 hover:bg-yellow-300 text-black text-xs font-black flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer touch-manipulation"
+                          title={`Apri calendario ed inserimento rapido per ${member.nome}`}
+                        >
+                          <Calendar className="w-3.5 h-3.5 text-black" />
+                          <span>Calendario Mese &amp; Ferie</span>
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Badge calendario mensile attivo se ci sono eccezioni nel mese corrente */}
-                    {memberMonthExceptions.length > 0 && (
-                      <div className="p-2.5 rounded-xl bg-yellow-400/10 border border-yellow-500/30 flex items-center justify-between text-[11px] text-yellow-300 gap-2 flex-wrap">
+                    {/* Badge di riepilogo del mese visualizzato */}
+                    {sortedDates.length > 0 && (
+                      <div className="p-2 rounded-lg bg-yellow-400/10 border border-yellow-500/25 flex items-center justify-between text-[11px] text-slate-800 gap-2 flex-wrap">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-yellow-200">Mese Attivo:</span>
+                          <span className="font-bold text-slate-700">Mese Attivo:</span>
                           {countVacationMonth > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold flex items-center gap-1">
-                              <Palmtree className="w-3.5 h-3.5" />
+                            <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 font-bold flex items-center gap-1">
+                              <Palmtree className="w-3 h-3 text-rose-600" />
                               {countVacationMonth} gg Ferie/Riposo
                             </span>
                           )}
                           {countCustomHoursMonth > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5" />
-                              {countCustomHoursMonth} turni spec.
+                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-bold flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-blue-600" />
+                              {countCustomHoursMonth} gg con turni primari
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-neutral-400 italic">
+                        <span className="text-[10px] text-slate-500 italic">
                           Priorità su autoassegnazione
                         </span>
                       </div>
                     )}
 
-                    {member.turniLavoroPrimario.length === 0 ? (
-                      <p className="text-slate-500 italic py-1">
-                        Nessun turno di lavoro primario fisso settimanale. (Disponibilità gestita da calendario mensile o libero 24h).
-                      </p>
+                    {/* Elenco dei giorni del mese con le relative indisponibilità/turni */}
+                    {sortedDates.length > 0 ? (
+                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {sortedDates.map((dateStr) => {
+                            const entries = entriesByDate[dateStr];
+                            const isTot = entries.some((e) => e.indisponibileTotale);
+                            const totEntry = entries.find((e) => e.indisponibileTotale);
+                            const slots = entries.filter((e) => !e.indisponibileTotale && e.oraInizio && e.oraFine);
+
+                            const [y, m, d] = dateStr.split('-').map(Number);
+                            const dt = new Date(y, m - 1, d);
+                            const dayName = GIORNI_CALENDARIO.find((g) => g.index === dt.getDay())?.short || 'Giorno';
+
+                            return (
+                              <div
+                                key={dateStr}
+                                onClick={() => {
+                                  setSelectedDateForEditor(dateStr);
+                                  setSelectedOperatorForMonthlyCalendar(member);
+                                }}
+                                className={`flex flex-col justify-between p-2.5 rounded-lg border shadow-2xs cursor-pointer transition-all hover:border-slate-400 ${
+                                  isTot
+                                    ? 'bg-rose-50/70 border-rose-200'
+                                    : slots.length > 1
+                                    ? 'bg-blue-50/70 border-blue-200'
+                                    : 'bg-white border-slate-200'
+                                }`}
+                                title="Clicca per modificare questo giorno"
+                              >
+                                <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                                  <span className="font-bold text-slate-900">
+                                    {dayName} {d} {MESI_ITALIANI[m - 1].slice(0, 3)}
+                                  </span>
+                                  {isTot ? (
+                                    <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded">
+                                      Ferie/Off
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.2 rounded font-mono">
+                                      {slots.length} {slots.length === 1 ? 'fascia' : 'fasce'}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="pt-1.5 space-y-1">
+                                  {isTot ? (
+                                    <p className="text-[11px] font-bold text-rose-800 flex items-center gap-1">
+                                      <Palmtree className="w-3.5 h-3.5 text-rose-600" />
+                                      {totEntry?.motivo || 'Indisponibile tutto il giorno'}
+                                    </p>
+                                  ) : (
+                                    slots.map((s, idx) => (
+                                      <div key={idx} className="flex items-center justify-between text-[11px] font-mono font-medium text-slate-700">
+                                        <span className="flex items-center gap-1">
+                                          <Clock className="w-3 h-3 text-slate-400" />
+                                          {s.oraInizio} - {s.oraFine}
+                                        </span>
+                                        {s.motivo && (
+                                          <span className="text-[10px] text-slate-500 font-sans italic truncate max-w-[120px]">
+                                            {s.motivo}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
-                        {member.turniLavoroPrimario.map((shift) => {
-                          const day = GIORNI_CALENDARIO.find((g) => g.index === shift.giornoSettimana);
-                          return (
-                            <div
-                              key={shift.id}
-                              className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 shadow-2xs"
-                            >
-                              <span className="font-semibold text-slate-900">{day?.short || 'Giorno'}</span>
-                              <span className="font-mono font-medium text-slate-700 flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                {shift.oraInizio} - {shift.oraFine}
-                              </span>
+                      /* Se non ci sono eccezioni per il mese visualizzato, mostra fallback e azione rapida */
+                      <div className="space-y-2 py-1">
+                        <div className="p-3 bg-white rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <p className="text-slate-600 text-xs">
+                            Nessun turno specifico o ferie registrati per <strong>{MESI_ITALIANI[viewMonthIndex]} {viewYear}</strong>.
+                            {member.turniLavoroPrimario.length > 0
+                              ? ' Sono attivi gli orari settimanali standard.'
+                              : ' L\'operatore è libero 24h.'}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDateForEditor(undefined);
+                              setSelectedOperatorForMonthlyCalendar(member);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-black text-xs font-bold shrink-0 flex items-center justify-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Imposta Turni o Ferie per {MESI_ITALIANI[viewMonthIndex].slice(0, 3)}</span>
+                          </button>
+                        </div>
+
+                        {/* Visualizza gli orari settimanali standard ricorsivi se presenti */}
+                        {member.turniLavoroPrimario.length > 0 && (
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                              Orario Standard Settimanale (Ripetuto ogni settimana):
+                            </span>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                              {member.turniLavoroPrimario.map((shift) => {
+                                const day = GIORNI_CALENDARIO.find((g) => g.index === shift.giornoSettimana);
+                                return (
+                                  <div
+                                    key={shift.id}
+                                    className="flex items-center justify-between p-1.5 px-2 bg-white rounded border border-slate-200 text-[11px]"
+                                  >
+                                    <span className="font-semibold text-slate-800">{day?.short || 'Giorno'}</span>
+                                    <span className="font-mono text-slate-600">{shift.oraInizio}-{shift.oraFine}</span>
+                                  </div>
+                                );
+                              })}
                             </div>
-                          );
-                        })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -354,8 +528,14 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
 
       <OperatorMonthlyScheduleModal
         isOpen={!!selectedOperatorForMonthlyCalendar}
-        onClose={() => setSelectedOperatorForMonthlyCalendar(null)}
+        onClose={() => {
+          setSelectedOperatorForMonthlyCalendar(null);
+          setSelectedDateForEditor(undefined);
+        }}
         operator={selectedOperatorForMonthlyCalendar}
+        initialYear={viewYear}
+        initialMonthIndex={viewMonthIndex}
+        initialDateStr={selectedDateForEditor}
       />
 
       {isAdmin && (

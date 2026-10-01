@@ -70,8 +70,8 @@ export function compileMonthlyShiftsData(
 
   eligibleOps.forEach((op) => {
     const monthExceptions = (op.indisponibilitaDate || []).filter((d) => d.data.startsWith(monthStr));
-    const vacationDays = monthExceptions.filter((d) => d.indisponibileTotale).length;
-    const customDays = monthExceptions.filter((d) => !d.indisponibileTotale && d.oraInizio).length;
+    const vacationDays = new Set(monthExceptions.filter((d) => d.indisponibileTotale).map((d) => d.data)).size;
+    const customDays = new Set(monthExceptions.filter((d) => !d.indisponibileTotale && d.oraInizio).map((d) => d.data)).size;
 
     opStatsMap[op.id] = {
       shift1Count: 0,

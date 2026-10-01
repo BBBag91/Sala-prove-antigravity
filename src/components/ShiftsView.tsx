@@ -1089,10 +1089,12 @@ export const ShiftsView: React.FC = () => {
                     const monthExceptions = (op.indisponibilitaDate || []).filter((d) =>
                       d.data.startsWith(currentMonthKey)
                     );
-                    const vacationDays = monthExceptions.filter((d) => d.indisponibileTotale).length;
-                    const customWorkDays = monthExceptions.filter(
-                      (d) => !d.indisponibileTotale && d.oraInizio
-                    ).length;
+                    const vacationDays = new Set(
+                      monthExceptions.filter((d) => d.indisponibileTotale).map((d) => d.data)
+                    ).size;
+                    const customWorkDays = new Set(
+                      monthExceptions.filter((d) => !d.indisponibileTotale && d.oraInizio).map((d) => d.data)
+                    ).size;
 
                     // Calcola turni di questo operatore nella sola settimana corrente
                     let weekShiftsOpCount = 0;
@@ -1186,10 +1188,12 @@ export const ShiftsView: React.FC = () => {
                 const monthExceptions = (op.indisponibilitaDate || []).filter((d) =>
                   d.data.startsWith(currentMonthKey)
                 );
-                const vacationDays = monthExceptions.filter((d) => d.indisponibileTotale).length;
-                const customWorkDays = monthExceptions.filter(
-                  (d) => !d.indisponibileTotale && d.oraInizio
-                ).length;
+                const vacationDays = new Set(
+                  monthExceptions.filter((d) => d.indisponibileTotale).map((d) => d.data)
+                ).size;
+                const customWorkDays = new Set(
+                  monthExceptions.filter((d) => !d.indisponibileTotale && d.oraInizio).map((d) => d.data)
+                ).size;
 
                 let weekShiftsOpCount = 0;
                 computedWeekShifts.forEach(({ shift1, shift2 }) => {

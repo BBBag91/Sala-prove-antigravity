@@ -46,7 +46,7 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.G) return parsed.G;
+        if (parsed.G) return { ...defaultG, ...parsed.G, G1: 3 };
       }
     } catch {}
     return defaultG;
@@ -61,7 +61,7 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
         if (typeof parsed.totaleEntrateMese === 'number') setTotaleEntrateMese(parsed.totaleEntrateMese);
         else setTotaleEntrateMese(totalIncomes);
 
-        if (parsed.G) setG(parsed.G);
+        if (parsed.G) setG({ ...defaultG, ...parsed.G, G1: 3 });
         else setG(defaultG);
         return;
       }
@@ -195,42 +195,20 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
           </div>
         </div>
 
-        {/* Blocco 2: Variabili G (Netto Sala, Gab, Ale, Paolo) */}
+        {/* Blocco 2: Quote e Anticipi Soci (Gab, Ale, Paolo) */}
         <div className="p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
           <div className="flex items-center justify-between pb-2 border-b border-slate-200">
             <span className="text-xs font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-blue-600" />
               Quote e Anticipi Soci
             </span>
-            <span className="text-[11px] font-mono font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded">
-              Variabili G
-            </span>
           </div>
 
           <div className="space-y-2.5">
-            {/* G1: Divisore quote */}
+            {/* Gab */}
             <div className="flex items-center justify-between gap-3 text-xs">
-              <label className="font-bold text-blue-900 w-32">
-                G1 (Divisore):
-              </label>
-              <input
-                type="number"
-                min="1"
-                step="any"
-                value={G.G1 === 0 ? '' : G.G1}
-                placeholder="3"
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 1;
-                  setG((prev) => ({ ...prev, G1: val }));
-                }}
-                className="w-28 px-2.5 py-1.5 text-xs font-mono font-bold rounded-lg border border-blue-300 bg-white text-blue-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-right"
-              />
-            </div>
-
-            {/* G2: Gab */}
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <label className="font-semibold text-slate-700 w-32">
-                G2 (Gab):
+              <label className="font-semibold text-slate-700 w-24">
+                Gab:
               </label>
               <div className="relative flex-1">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">€</span>
@@ -248,10 +226,10 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
               </div>
             </div>
 
-            {/* G3: Ale */}
+            {/* Ale */}
             <div className="flex items-center justify-between gap-3 text-xs">
-              <label className="font-semibold text-slate-700 w-32">
-                G3 (Ale):
+              <label className="font-semibold text-slate-700 w-24">
+                Ale:
               </label>
               <div className="relative flex-1">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">€</span>
@@ -269,10 +247,10 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
               </div>
             </div>
 
-            {/* G4: Paolo */}
+            {/* Paolo */}
             <div className="flex items-center justify-between gap-3 text-xs">
-              <label className="font-semibold text-slate-700 w-32">
-                G4 (Paolo):
+              <label className="font-semibold text-slate-700 w-24">
+                Paolo:
               </label>
               <div className="relative flex-1">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">€</span>
@@ -301,7 +279,7 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
             Risultati & Compensi Spettanti
           </h4>
           <span className="text-[11px] text-slate-500 font-mono">
-            Netto Sala base (E2 / G1) = {output.dettagli.quotaBaseNonArrotondata.toFixed(2)} €
+            Netto Sala base (E2 / 3) = {output.dettagli.quotaBaseNonArrotondata.toFixed(2)} €
           </span>
         </div>
 
@@ -327,11 +305,11 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
           <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 space-y-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">B13 • Netto Sala</span>
             <p className="text-2xl font-bold font-mono text-blue-900">{formatCurrency(output.B13)}</p>
-            <p className="text-[10px] text-blue-600 font-mono">Arrotonda per eccesso (E2 / G1)</p>
+            <p className="text-[10px] text-blue-600 font-mono">Arrotonda per eccesso (E2 / 3)</p>
           </div>
         </div>
 
-        {/* 2. Compensi Netti Soci (B15 Gab, B14 Ale, B16 Paolo) */}
+        {/* 2. Compensi Netti Soci (Gab, Ale, Paolo) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
           {/* Card Gab (B15) */}
           <div className="p-4.5 rounded-xl bg-gradient-to-br from-emerald-50/90 to-emerald-100/50 border border-emerald-200 space-y-2 shadow-2xs">
@@ -345,7 +323,7 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                 </span>
               </div>
               <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-200/60 px-2 py-0.5 rounded-full">
-                B15 (G2: -{G.G2}€)
+                Anticipo: -{G.G2}€
               </span>
             </div>
             <p className="text-3xl font-extrabold font-mono text-emerald-950">
@@ -368,7 +346,7 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                 </span>
               </div>
               <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-200/60 px-2 py-0.5 rounded-full">
-                B14 (G3: -{G.G3}€)
+                Anticipo: -{G.G3}€
               </span>
             </div>
             <p className="text-3xl font-extrabold font-mono text-emerald-950">
@@ -391,7 +369,7 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                 </span>
               </div>
               <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-200/60 px-2 py-0.5 rounded-full">
-                B16 (G4: -{G.G4}€)
+                Anticipo: -{G.G4}€
               </span>
             </div>
             <p className="text-3xl font-extrabold font-mono text-emerald-950">

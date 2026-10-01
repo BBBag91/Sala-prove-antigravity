@@ -89,15 +89,19 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
   };
 
   const handleAddStandardWorkWeek = () => {
-    // Adds Mon-Fri 09:00-17:00
-    const shifts: PrimaryWorkShift[] = [1, 2, 3, 4, 5].map((day) => ({
+    // Adds Mon-Fri 08:30-17:00 (1 sola fascia per giorno lavorativo)
+    const weekdays = [1, 2, 3, 4, 5];
+    const shifts: PrimaryWorkShift[] = weekdays.map((day) => ({
       id: `shift-${Date.now()}-${day}`,
       giornoSettimana: day,
       oraInizio: '08:30',
       oraFine: '17:00',
       descrizione: 'Lavoro primario standard (Ufficio/Azienda)',
     }));
-    setTurniLavoroPrimario((prev) => [...prev, ...shifts]);
+    setTurniLavoroPrimario((prev) => {
+      const nonWeekdays = prev.filter((s) => !weekdays.includes(s.giornoSettimana));
+      return [...nonWeekdays, ...shifts];
+    });
   };
 
   const handleRemoveShift = (id: string) => {

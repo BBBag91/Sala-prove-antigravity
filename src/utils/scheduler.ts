@@ -39,30 +39,34 @@ export function isOperatorFreeFromPrimaryWork(
 
   // 1. Priorità: Verifica eccezione/calendario mensile specifico per questa data (se configurato)
   if (operator.indisponibilitaDate && operator.indisponibilitaDate.length > 0) {
-    const dateEntry = operator.indisponibilitaDate.find((d) => d.data === dateStr);
-    if (dateEntry) {
+    const dateEntries = operator.indisponibilitaDate.filter((d) => d.data === dateStr);
+    if (dateEntries.length > 0) {
       // Spunta di indisponibilità totale (ferie, riposo, impegni, malattia)
-      if (dateEntry.indisponibileTotale) {
+      const totalUnavailable = dateEntries.find((d) => d.indisponibileTotale);
+      if (totalUnavailable) {
         return {
           isFree: false,
-          conflictReason: dateEntry.motivo
-            ? `Indisponibile: ${dateEntry.motivo}`
+          conflictReason: totalUnavailable.motivo
+            ? `Indisponibile: ${totalUnavailable.motivo}`
             : 'Indisponibilità totale (Ferie / Riposo / Impegno)',
         };
       }
-      // Turno primario con orario specifico per questa data
-      if (dateEntry.oraInizio && dateEntry.oraFine) {
-        if (doTimesOverlap(startTime, endTime, dateEntry.oraInizio, dateEntry.oraFine)) {
-          return {
-            isFree: false,
-            conflictReason: `In turno lavoro primario (${dateEntry.oraInizio} - ${dateEntry.oraFine}${
-              dateEntry.motivo ? ` - ${dateEntry.motivo}` : ''
-            })`,
-          };
-        } else {
-          // Ha orario primario specifico in questa data e non si sovrappone al turno sala -> Operatore libero!
-          return { isFree: true };
+
+      // Se ci sono una o più fasce orarie specifiche di indisponibilità per questa data
+      const timeShifts = dateEntries.filter((d) => d.oraInizio && d.oraFine);
+      if (timeShifts.length > 0) {
+        for (const shift of timeShifts) {
+          if (doTimesOverlap(startTime, endTime, shift.oraInizio!, shift.oraFine!)) {
+            return {
+              isFree: false,
+              conflictReason: `In turno lavoro primario (${shift.oraInizio} - ${shift.oraFine}${
+                shift.motivo ? ` - ${shift.motivo}` : ''
+              })`,
+            };
+          }
         }
+        // Nessuna delle fasce orarie specifiche si sovrappone -> Operatore libero!
+        return { isFree: true };
       } else {
         // Giorno registrato senza ore e senza spunta di indisponibilità totale (giorno libero esplicito)
         return { isFree: true };
