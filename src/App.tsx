@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   CalendarClock,
+  MessageSquare,
 } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -34,6 +35,9 @@ import { RoomsView } from './components/RoomsView';
 import { FinanceView } from './components/FinanceView';
 import { AnagraficaView } from './components/AnagraficaView';
 import { UserManagementModal } from './components/UserManagementModal';
+import { MorningBriefingModal } from './components/MorningBriefingModal';
+import { WhatsAppSettingsModal } from './components/WhatsAppSettingsModal';
+import { MorningNotificationWatcher } from './components/MorningNotificationWatcher';
 
 type TabType = 'calendar' | 'turni' | 'bookings' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica';
 
@@ -54,6 +58,8 @@ const AppContent: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isBriefingModalOpen, setIsBriefingModalOpen] = useState(false);
+  const [isWhatsAppSettingsOpen, setIsWhatsAppSettingsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { resetToDemoData, studioInfo, bookings, staff, clients, expenses } = useApp();
@@ -379,6 +385,18 @@ const AppContent: React.FC = () => {
 
             {/* ── Right: User Profile & Actions (Uncluttered, Elegant & Never Overlapping) ── */}
             <div className="hidden md:flex items-center gap-1.5 lg:gap-2 shrink-0">
+              {/* Pulsante Notifica / Riepilogo Mattutino 10:00 & WhatsApp */}
+              <button
+                onClick={() => setIsBriefingModalOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-900 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/15 hover:border-emerald-400 transition-all cursor-pointer shadow-xs shrink-0"
+                title="Riepilogo Giornaliero del Mattino (Ore 10:00) ed invio WhatsApp al gruppo staff"
+              >
+                <span className="text-sm">☕</span>
+                <span className="hidden xl:inline">Riepilogo 10:00</span>
+                <span className="xl:hidden">10:00</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              </button>
+
               {/* Theme Toggle (Versione Scura / Versione Chiara) */}
               <ThemeToggle responsiveLabel={true} />
 
@@ -449,7 +467,31 @@ const AppContent: React.FC = () => {
 
 
 
-                    {/* Reset demo data */}
+                    {/* Riepilogo Mattutino (Ore 10:00) */}
+                    <button
+                      onClick={() => {
+                        setIsBriefingModalOpen(true);
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-neutral-900 transition-colors cursor-pointer"
+                    >
+                      <span className="text-sm">☕</span>
+                      <span>Riepilogo Mattutino (Ore 10:00)</span>
+                    </button>
+
+                    {/* WhatsApp Notifiche Gruppo (Admin) */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setIsWhatsAppSettingsOpen(true);
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-neutral-200 hover:text-emerald-300 hover:bg-neutral-900 transition-colors cursor-pointer"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>Configura WhatsApp Gruppo Staff</span>
+                      </button>
+                    )}
                     {isAdmin && (
                       <button
                         onClick={() => {
@@ -503,6 +545,15 @@ const AppContent: React.FC = () => {
 
             {/* ── Mobile Right Actions (Compact, Clean & Responsive) ── */}
             <div className="flex md:hidden items-center gap-1.5 shrink-0">
+              {/* Mobile Quick Briefing Button */}
+              <button
+                onClick={() => setIsBriefingModalOpen(true)}
+                className="w-9 h-9 rounded-lg bg-neutral-900 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-sm shadow-xs touch-manipulation touch-active"
+                title="Riepilogo del Mattino (Ore 10:00)"
+              >
+                ☕
+              </button>
+
               {/* Mobile Quick Theme Toggle */}
               <ThemeToggle compact={true} />
 
@@ -726,6 +777,35 @@ const AppContent: React.FC = () => {
                       Admin
                     </span>
                   </button>
+                  {/* Mobile: Riepilogo Mattutino 10:00 & WhatsApp */}
+                  <div className="pt-2 pb-1 border-t border-yellow-500/20 mt-2 space-y-1">
+                    <button
+                      onClick={() => {
+                        setIsBriefingModalOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all touch-manipulation touch-active"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-base">☕</span>
+                        <span>Riepilogo Mattutino (Ore 10:00)</span>
+                      </div>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsWhatsAppSettingsOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-neutral-200 hover:text-emerald-300 hover:bg-neutral-900 border border-transparent transition-all touch-manipulation touch-active"
+                    >
+                      <div className="flex items-center gap-3">
+                        <MessageSquare className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Notifiche WhatsApp Gruppo</span>
+                      </div>
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -935,6 +1015,23 @@ const AppContent: React.FC = () => {
           </p>
         </div>
       </footer>
+
+      {/* Watcher automatico orario 10:00 per notifiche browser & WhatsApp */}
+      <MorningNotificationWatcher
+        onOpenBriefingModal={() => setIsBriefingModalOpen(true)}
+      />
+
+      {/* Modal Riepilogo Mattutino 10:00 */}
+      <MorningBriefingModal
+        isOpen={isBriefingModalOpen}
+        onClose={() => setIsBriefingModalOpen(false)}
+      />
+
+      {/* Modal Impostazioni Notifiche & WhatsApp */}
+      <WhatsAppSettingsModal
+        isOpen={isWhatsAppSettingsOpen}
+        onClose={() => setIsWhatsAppSettingsOpen(false)}
+      />
 
       {/* Modal Gestione Utenti (Admin only) */}
       {isAdmin && (

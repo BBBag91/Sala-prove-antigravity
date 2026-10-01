@@ -10,6 +10,16 @@ export const DEFAULT_STUDIO_INFO: StudioInfo = {
   email: 'info@soundstudio.it',
   codiceFiscalePiva: 'CF: 97845610152',
   sitoWeb: 'www.soundstudio.it',
+  whatsappConfig: {
+    enabled: true,
+    provider: 'manual',
+    orarioNotifica: '10:00',
+    chatId: '',
+    includiStatoPagamenti: true,
+    includiDotazione: false,
+    autoSendMorning: false,
+    browserNotificationEnabled: true,
+  },
 };
 
 export const INITIAL_ROOMS: Room[] = [

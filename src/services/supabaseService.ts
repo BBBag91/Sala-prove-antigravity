@@ -221,6 +221,7 @@ export const mapStudioInfoToDb = (s: StudioInfo) => ({
   codice_fiscale_piva: s.codiceFiscalePiva || '',
   sito_web: s.sitoWeb || '',
   note: s.note || '',
+  whatsapp_config: s.whatsappConfig || null,
   updated_at: new Date().toISOString(),
 });
 
@@ -235,6 +236,7 @@ export const mapStudioInfoFromDb = (s: any): StudioInfo => ({
   codiceFiscalePiva: s.codice_fiscale_piva || '',
   sitoWeb: s.sito_web || '',
   note: s.note || '',
+  whatsappConfig: s.whatsapp_config || undefined,
 });
 
 export const mapShiftToDb = (s: WorkShift) => ({

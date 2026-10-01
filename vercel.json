@@ -2,5 +2,11 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "outputDirectory": "dist",
-  "framework": "vite"
+  "framework": "vite",
+  "crons": [
+    {
+      "path": "/api/cron-daily-briefing",
+      "schedule": "0 8 * * *"
+    }
+  ]
 }

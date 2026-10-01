@@ -46,6 +46,7 @@ import { EquipmentOverviewModal, getAllEquipmentForBooking } from './EquipmentOv
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
 import { ShiftQuickModal } from './ShiftQuickModal';
 import { ShiftsView } from './ShiftsView';
+import { MorningBriefingModal } from './MorningBriefingModal';
 
 // -- Constants ------------------------------------------------------------------
 const HOUR_START = 9;
@@ -150,6 +151,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   const [selectedShiftForEdit, setSelectedShiftForEdit] = useState<DailyShiftComputed | null>(null);
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isShiftsPanelOpen, setIsShiftsPanelOpen] = useState(false);
+  const [isDailyBriefingOpen, setIsDailyBriefingOpen] = useState(false);
   const [showShiftsInGrid, setShowShiftsInGrid] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('salaprove_show_shifts_grid_v1');
@@ -609,6 +611,18 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 <span className="sm:hidden">Turni</span>
               </button>
             )}
+
+            {/* Riepilogo Giornaliero Mattutino & WhatsApp */}
+            <button
+              type="button"
+              onClick={() => setIsDailyBriefingOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-2xs touch-manipulation touch-active"
+              title="Apri riepilogo giornaliero (ore 10:00) ed invia su WhatsApp al gruppo staff"
+            >
+              <span className="text-sm leading-none">☕</span>
+              <span className="hidden md:inline">Riepilogo 10:00</span>
+              <span className="md:hidden">10:00</span>
+            </button>
 
             {/* New Booking Button */}
             <button
@@ -1765,6 +1779,13 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
           setSelectedShiftForEdit(null);
         }}
         shiftComputed={selectedShiftForEdit}
+      />
+
+      {/* Modal Riepilogo Mattutino (Ore 10:00) */}
+      <MorningBriefingModal
+        isOpen={isDailyBriefingOpen}
+        onClose={() => setIsDailyBriefingOpen(false)}
+        initialDate={formatDateToISO(currentDate)}
       />
 
       {/* Full Shifts Panel Modal */}

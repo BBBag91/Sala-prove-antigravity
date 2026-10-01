@@ -16,8 +16,11 @@ CREATE TABLE IF NOT EXISTS public.studio_info (
   codice_fiscale_piva TEXT DEFAULT '98765432100',
   sito_web TEXT DEFAULT 'https://salaprove.it',
   note TEXT DEFAULT '',
+  whatsapp_config JSONB DEFAULT NULL,
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE public.studio_info ADD COLUMN IF NOT EXISTS whatsapp_config JSONB DEFAULT NULL;
 
 -- 2. Tabella Sale Prove
 CREATE TABLE IF NOT EXISTS public.rooms (

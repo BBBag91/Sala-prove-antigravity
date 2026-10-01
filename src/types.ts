@@ -104,6 +104,25 @@ export interface Client {
   note?: string;
 }
 
+export type WhatsAppProvider = 'ultramsg' | 'greenapi' | 'whapi' | 'webhook' | 'manual';
+
+export interface WhatsAppNotificationConfig {
+  enabled: boolean;
+  provider: WhatsAppProvider;
+  instanceId?: string; // Es. 'instance12345' (UltraMsg) o idInstance (GreenAPI)
+  token?: string; // Token API o apiTokenInstance
+  chatId?: string; // Group ID, es. '120363024829182391@g.us'
+  groupName?: string; // Nome leggibile del gruppo WhatsApp (es. 'Staff Sala Prove')
+  groupInviteLink?: string; // Link di invito (es. 'https://chat.whatsapp.com/...')
+  webhookUrl?: string; // URL webhook personalizzato (es. Zapier, Make, server proprio)
+  orarioNotifica?: string; // Default: '10:00'
+  includiStatoPagamenti?: boolean;
+  includiDotazione?: boolean;
+  autoSendMorning?: boolean; // Invio automatico se il gateway è configurato
+  browserNotificationEnabled?: boolean; // Notifica desktop del browser alle 10:00
+  lastAutoSentDate?: string; // YYYY-MM-DD ultimo invio automatico eseguito
+}
+
 export interface StudioInfo {
   nome: string; // Nome personalizzabile della sala prove / struttura
   sottotitolo?: string;
@@ -115,6 +134,7 @@ export interface StudioInfo {
   codiceFiscalePiva?: string;
   sitoWeb?: string;
   note?: string;
+  whatsappConfig?: WhatsAppNotificationConfig;
 }
 
 export interface Room {

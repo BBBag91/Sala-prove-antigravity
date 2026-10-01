@@ -1,0 +1,24 @@
+name: Notifica WhatsApp Mattutina (10:00)
+
+on:
+  schedule:
+    # 08:00 UTC = 10:00 CEST (Ora italiana legale) / 09:00 CET (Ora solare)
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Permette di testare l'invio manualmente con 1 clic dalla scheda Actions su GitHub
+
+jobs:
+  dispatch-briefing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Esegui invio riepilogo giornaliero su WhatsApp
+        run: |
+          echo "Avvio invio automatico riepilogo sala prove..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "https://gestione-sala-prove-musicale.vercel.app/api/cron-daily-briefing")
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "Risposta endpoint (HTTP $HTTP_STATUS): $BODY"
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Attenzione: codice risposta $HTTP_STATUS"
+          else
+            echo "Notifica elaborata correttamente."
+          fi
