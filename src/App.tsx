@@ -406,8 +406,8 @@ const AppContent: React.FC = () => {
                     <div className="w-5 h-5 rounded-full bg-yellow-400/20 flex items-center justify-center text-[11px]">
                       {isAdmin ? '👑' : '👤'}
                     </div>
-                    {/* Indicatore riepilogo mattutino */}
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-neutral-900 animate-pulse" />
+                    {/* Indicatore riepilogo mattutino - solo admin */}
+                    {isAdmin && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-neutral-900 animate-pulse" />}
                   </div>
                   <span className="font-semibold text-white truncate max-w-[80px] lg:max-w-[110px] xl:max-w-[140px]">
                     {user.nome || (isAdmin ? 'Admin' : 'Utente')}
@@ -460,7 +460,8 @@ const AppContent: React.FC = () => {
 
 
 
-                    {/* Riepilogo Mattutino (Ore 10:00) */}
+                    {/* Riepilogo Mattutino (Ore 10:00) - Solo Admin */}
+                    {isAdmin && (
                     <button
                       onClick={() => {
                         setIsBriefingModalOpen(true);
@@ -471,6 +472,7 @@ const AppContent: React.FC = () => {
                       <span className="text-sm">☕</span>
                       <span>Riepilogo Mattutino (Ore 10:00)</span>
                     </button>
+                    )}
 
                     {/* WhatsApp Notifiche Gruppo (Admin) */}
                     {isAdmin && (
