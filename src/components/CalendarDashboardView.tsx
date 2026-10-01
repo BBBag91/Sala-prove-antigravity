@@ -441,7 +441,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 className="px-2.5 sm:px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs font-black text-white dark:text-black bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 transition-all shadow-xs cursor-pointer touch-manipulation touch-active"
                 title="Torna alla data corrente (Tasto T o O)"
               >
-                Oggi
+                <span className="text-white dark:text-black font-black">Oggi</span>
               </button>
 
               {/* Settimana Successiva */}
@@ -882,7 +882,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     className="px-2.5 py-0.5 rounded-md bg-blue-600 dark:bg-yellow-400 hover:bg-blue-700 dark:hover:bg-yellow-300 text-white dark:text-black text-[11px] font-black transition-colors cursor-pointer shadow-xs"
                     title="Torna alla settimana corrente / Oggi (Tasto T o O)"
                   >
-                    Oggi
+                    <span className="text-white dark:text-black font-black">Oggi</span>
                   </button>
 
                   {/* Settimana Successiva */}
@@ -966,7 +966,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                           isToday ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-bold' : 'text-slate-800 dark:text-yellow-100'
                         }`}
                       >
-                        {day.getDate()}
+                        <span className={isToday ? 'text-white dark:text-black' : ''}>{day.getDate()}</span>
                       </div>
                       {cnt > 0 && (
                         <div className="flex justify-center items-center mt-0.5 gap-0.5">

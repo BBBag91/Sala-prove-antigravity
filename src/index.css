@@ -597,7 +597,6 @@ html {
 
   /* ── 4. Tipografia: Navy Profondo & Accenti Blu ── */
   /* Titoli e testo ad alto contrasto: Navy Midnight */
-  html.light .text-white,
   html.light .text-yellow-50,
   html.light .text-yellow-100,
   html.light .text-slate-900,
@@ -644,6 +643,41 @@ html {
   html.light [class*="text-yellow-"][class*="/70"],
   html.light [class*="text-yellow-"][class*="/80"] {
     color: #64748b !important; /* Slate 500 */
+  }
+
+  /* ── 4.1. TUTTI GLI ELEMENTI E SCRITTE EVIDENZIATI IN BLU: BIANCHI AL 100% ── */
+  html.light .text-white,
+  html.light [class*="text-white"],
+  html.light .bg-blue-600,
+  html.light .bg-blue-700,
+  html.light .bg-blue-500,
+  html.light .bg-blue-800,
+  html.light [class*="bg-blue-600"],
+  html.light [class*="bg-blue-700"],
+  html.light [class*="bg-blue-500"],
+  html.light [class*="bg-blue-800"],
+  html.light .bg-indigo-600,
+  html.light .bg-indigo-700,
+  html.light .bg-yellow-400,
+  html.light .bg-yellow-500,
+  html.light button.bg-blue-600,
+  html.light button[class*="bg-blue-600"],
+  html.light div.bg-blue-600,
+  html.light span.bg-blue-600,
+  html.light .bg-blue-600 *,
+  html.light .bg-blue-700 *,
+  html.light .bg-blue-500 *,
+  html.light .bg-blue-800 *,
+  html.light [class*="bg-blue-600"] *,
+  html.light [class*="bg-blue-700"] *,
+  html.light [class*="bg-blue-500"] *,
+  html.light [class*="bg-blue-800"] *,
+  html.light .bg-indigo-600 *,
+  html.light .bg-indigo-700 *,
+  html.light .bg-yellow-400 *,
+  html.light .bg-yellow-500 * {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
   }
 
   /* ── 5. Form Elements: Input Bianchi con Bordi e Focus Blu ── */

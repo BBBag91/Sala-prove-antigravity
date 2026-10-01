@@ -447,17 +447,19 @@ const AppContent: React.FC = () => {
                       </button>
                     )}
 
-                    {/* Role switcher for quick test */}
-                    <button
-                      onClick={() => {
-                        switchRole();
-                        setIsUserMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-neutral-200 hover:text-yellow-300 hover:bg-neutral-900 transition-colors cursor-pointer"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-                      <span>{isAdmin ? 'Simula Utente Standard' : 'Simula Amministratore'}</span>
-                    </button>
+                    {/* Role switcher for quick test (solo per Admin) */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          switchRole();
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-neutral-200 hover:text-yellow-300 hover:bg-neutral-900 transition-colors cursor-pointer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                        <span>Simula Utente Standard</span>
+                      </button>
+                    )}
 
                     {/* Reset demo data */}
                     {isAdmin && (
@@ -616,16 +618,18 @@ const AppContent: React.FC = () => {
                   <ThemeToggle compact={false} showLabel={true} />
                 </div>
 
-                <button
-                  onClick={() => {
-                    switchRole();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-yellow-300 text-xs font-semibold border border-yellow-500/20 transition-all touch-manipulation touch-active cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-yellow-400" />
-                  <span>{isAdmin ? 'Simula Utente Standard' : 'Simula Amministratore'}</span>
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      switchRole();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-yellow-300 text-xs font-semibold border border-yellow-500/20 transition-all touch-manipulation touch-active cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-yellow-400" />
+                    <span>Simula Utente Standard</span>
+                  </button>
+                )}
               </div>
             </div>
 

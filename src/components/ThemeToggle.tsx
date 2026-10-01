@@ -52,20 +52,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           {isDark ? 'Tema Chiaro' : 'Tema Scuro'}
         </span>
       )}
-
-      {!compact && (
-        <span
-          className={`text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded tracking-wide ${
-            responsiveLabel ? 'hidden 2xl:inline-block' : 'inline-block'
-          } ${
-            isDark
-              ? 'bg-yellow-400/20 text-yellow-300'
-              : 'bg-blue-100 text-blue-700'
-          }`}
-        >
-          {isDark ? 'Dark' : 'Light'}
-        </span>
-      )}
     </button>
   );
 };
