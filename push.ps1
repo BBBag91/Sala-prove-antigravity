@@ -12,7 +12,7 @@ Write-Host "📦 Aggiunta file modificati..." -ForegroundColor Cyan
 & $git add .
 
 Write-Host "✍️  Commit: $Message" -ForegroundColor Cyan
-& $git commit -m $Message
+& $git commit -m "$Message"
 
 Write-Host "🚀 Push su GitHub (main)..." -ForegroundColor Cyan
 & $git push origin main
