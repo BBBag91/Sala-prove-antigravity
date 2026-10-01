@@ -309,8 +309,14 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
     },
   };
 
-  // Proviamo prima con gemini-2.5-flash, altrimenti fallback a gemini-1.5-flash
-  const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+  // Modelli Gemini attivi e veloci per estrazione testo da immagini
+  const modelsToTry = [
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-flash-latest',
+    'gemini-3.8-flash',
+    'gemini-3.1-flash-lite',
+  ];
   let lastError: any = null;
 
   for (const model of modelsToTry) {

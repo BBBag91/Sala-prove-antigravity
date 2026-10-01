@@ -52,7 +52,7 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
 
   // Gestione API Key
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [apiKeyInput, setApiKeyInput] = useState(() => getGeminiApiKey());
   const [apiKeyTesting, setApiKeyTesting] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState<{ valid?: boolean; message?: string } | null>(null);
   const [hasConfiguredKey, setHasConfiguredKey] = useState(hasGeminiApiKey());
@@ -674,14 +674,14 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Incolla la tua Gemini API Key (inizia per AIzaSy...)
+                  Incolla la tua Gemini API Key (es. AQ.Ab8... o AIzaSy...)
                 </label>
                 <input
                   type="text"
                   required
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder="AIzaSy..."
+                  placeholder="AQ.Ab8... oppure AIzaSy..."
                   className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 />
               </div>

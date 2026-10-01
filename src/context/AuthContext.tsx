@@ -360,19 +360,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { success: true };
           }
 
-          // Se le credenziali falliscono ma corrispondono al test preset locale, consenti accesso demo
-          const isPresetAdmin = (trimmedEmail === 'admin@app.com' || trimmedEmail === 'admin') && (trimmedPass === 'admin' || trimmedPass === 'admin123');
-          const isPresetUser = (trimmedEmail === 'utente@app.com' || trimmedEmail === 'user' || trimmedEmail === 'utente') && (trimmedPass === 'user' || trimmedPass === 'user123');
+          // Se le credenziali falliscono su Supabase (es. email non confermata o mismatch credenziali),
+          // consenti comunque l'accesso immediato con le credenziali predefinite
+          const isPresetAdmin =
+            (trimmedEmail === 'admin@salaprove.it' || trimmedEmail === 'admin@app.com' || trimmedEmail === 'admin') &&
+            (trimmedPass === 'adminPassword123!' || trimmedPass === 'admin' || trimmedPass === 'admin123');
 
-          if (!isPresetAdmin && !isPresetUser) {
-            if (error.message.includes('Invalid login credentials')) {
-              return {
-                success: false,
-                error: 'Email o password non corretti. Verifica le credenziali o creane una nuova.',
-              };
-            }
-            return { success: false, error: error.message };
+          const isPresetUser =
+            (trimmedEmail === 'utente@salaprove.it' || trimmedEmail === 'utente@app.com' || trimmedEmail === 'utente' || trimmedEmail === 'user') &&
+            (trimmedPass === 'utentePassword123!' || trimmedPass === 'user' || trimmedPass === 'user123' || trimmedPass === 'utente123' || trimmedPass === 'utente');
+
+          if (isPresetAdmin) {
+            saveUser(PRESET_ACCOUNTS.admin.user);
+            return { success: true };
           }
+
+          if (isPresetUser) {
+            saveUser(PRESET_ACCOUNTS.user.user);
+            return { success: true };
+          }
+
+          if (error.message.includes('Invalid login credentials')) {
+            return {
+              success: false,
+              error: 'Email o password non corretti. Verifica le credenziali o usa gli account predefiniti.',
+            };
+          }
+          return { success: false, error: error.message };
         }
       } catch (err: any) {
         console.warn('Errore chiamata Supabase auth:', err);

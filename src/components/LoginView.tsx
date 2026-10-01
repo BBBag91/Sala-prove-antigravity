@@ -144,6 +144,64 @@ export const LoginView: React.FC = () => {
           </form>
         </div>
 
+        {/* ── Credenziali di Accesso / Quick-fill ── */}
+        <div className="bg-neutral-950/90 border border-yellow-500/20 rounded-2xl p-4 sm:p-5 backdrop-blur shadow-xl space-y-3">
+          <div className="flex items-center justify-between text-xs text-neutral-400 font-medium pb-2 border-b border-neutral-800">
+            <span className="flex items-center gap-1.5 text-yellow-400 font-bold">
+              <KeyRound className="w-3.5 h-3.5" /> Credenziali Registrate
+            </span>
+            <span className="text-[10px] text-neutral-500">Clicca per compilare subito</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Admin Box */}
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('admin@salaprove.it');
+                setPassword('adminPassword123!');
+              }}
+              className="p-3 rounded-xl bg-neutral-900/90 hover:bg-neutral-850 border border-yellow-500/30 hover:border-yellow-400 text-left transition-all group cursor-pointer"
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-bold text-xs text-yellow-300 flex items-center gap-1">
+                  👑 Amministratore
+                </span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-400/20 text-yellow-300 font-mono font-bold">
+                  ADMIN
+                </span>
+              </div>
+              <p className="text-[11px] text-neutral-300 font-mono truncate">admin@salaprove.it</p>
+              <div className="flex items-center justify-between mt-1 text-[10px] text-neutral-400 font-mono">
+                <span>Pass: <strong className="text-yellow-400/90">adminPassword123!</strong></span>
+              </div>
+            </button>
+
+            {/* Operatore Box */}
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('utente@salaprove.it');
+                setPassword('utentePassword123!');
+              }}
+              className="p-3 rounded-xl bg-neutral-900/90 hover:bg-neutral-850 border border-emerald-500/30 hover:border-emerald-400 text-left transition-all group cursor-pointer"
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-bold text-xs text-emerald-400 flex items-center gap-1">
+                  👤 Operatore
+                </span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold">
+                  USER
+                </span>
+              </div>
+              <p className="text-[11px] text-neutral-300 font-mono truncate">utente@salaprove.it</p>
+              <div className="flex items-center justify-between mt-1 text-[10px] text-neutral-400 font-mono">
+                <span>Pass: <strong className="text-emerald-400/90">utentePassword123!</strong></span>
+              </div>
+            </button>
+          </div>
+        </div>
+
         {/* Footer info */}
         <p className="text-center text-[11px] text-neutral-500">
           Autenticazione basata su sessione sicura Supabase Auth con token JWT.
