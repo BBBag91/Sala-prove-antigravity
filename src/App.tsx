@@ -199,9 +199,9 @@ const AppContent: React.FC = () => {
                   <Music2 className="w-4 h-4 text-black stroke-[2.5]" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white leading-tight flex items-center gap-1">
-                    <span className="hidden sm:inline shrink-0">SALA PROVE</span>
-                    <span className="text-yellow-400 font-bold truncate max-w-[90px] sm:max-w-[130px] lg:max-w-[160px] 2xl:max-w-[220px]">
+                  <h1 className="text-xs sm:text-sm font-bold tracking-tight leading-tight flex items-center gap-1">
+                    <span className="hidden sm:inline shrink-0 bg-blue-600 text-white dark:bg-yellow-400 dark:text-black px-1.5 py-0.5 rounded-md">SALA PROVE</span>
+                    <span className="text-blue-600 dark:text-yellow-400 font-bold truncate max-w-[90px] sm:max-w-[130px] lg:max-w-[160px] 2xl:max-w-[220px]">
                       <span className="sm:hidden">• </span>{studioInfo.nome}
                     </span>
                   </h1>

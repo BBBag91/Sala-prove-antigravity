@@ -575,7 +575,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 className={`px-2.5 py-1.5 min-h-[38px] rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 touch-manipulation touch-active ${
                   cellHeight <= 40
                     ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black border-blue-600 dark:border-yellow-400 shadow-sm'
-                    : 'bg-slate-100 dark:bg-[#141414] text-slate-700 dark:text-yellow-400 hover:bg-slate-200 dark:hover:bg-yellow-400/10 border-slate-200 dark:border-yellow-500/30'
+                    : 'bg-blue-50 dark:bg-[#141414] text-blue-700 dark:text-yellow-400 hover:bg-blue-100 dark:hover:bg-yellow-400/10 border-blue-200 dark:border-yellow-500/30'
                 }`}
                 title="Panoramica completa: vedi tutte le ore della giornata senza dover scrollare"
               >
@@ -588,12 +588,12 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             <button
               onClick={() => refreshFromCloud()}
               disabled={isAutoRefreshing}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg border border-slate-200 dark:border-yellow-500/30 bg-slate-100 dark:bg-[#141414] hover:bg-slate-200 dark:hover:bg-yellow-400/10 text-slate-700 dark:text-yellow-400 text-xs font-bold transition-all disabled:opacity-60 cursor-pointer touch-manipulation touch-active"
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg border border-blue-200 dark:border-yellow-500/30 bg-blue-50 dark:bg-[#141414] hover:bg-blue-100 dark:hover:bg-yellow-400/10 text-blue-700 dark:text-yellow-400 text-xs font-bold transition-all disabled:opacity-60 cursor-pointer touch-manipulation touch-active"
               title="Sincronizza ora con Supabase (Auto-refresh attivo ogni 5 min e in tempo reale)"
               aria-label="Sincronizza cloud"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isAutoRefreshing ? 'animate-spin text-blue-600 dark:text-yellow-300' : ''}`} />
-              <span className="hidden lg:inline text-[10px] text-slate-600 dark:text-yellow-400/80 font-normal">
+              <RefreshCw className={`w-3.5 h-3.5 ${isAutoRefreshing ? 'animate-spin text-blue-600 dark:text-yellow-300' : 'text-blue-600 dark:text-yellow-400'}`} />
+              <span className="hidden lg:inline text-[10px] text-blue-600 dark:text-yellow-400/80 font-normal">
                 {isAutoRefreshing ? 'Sincronizzazione...' : 'Auto-sync (5m)'}
               </span>
             </button>
