@@ -326,10 +326,10 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 text-neutral-400 hover:text-white p-1.5 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer"
+            className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl bg-neutral-800 text-white hover:bg-red-500/80 hover:text-white transition-all cursor-pointer border border-neutral-700 hover:border-red-500/50"
             title="Chiudi"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
