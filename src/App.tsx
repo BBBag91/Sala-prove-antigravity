@@ -199,10 +199,10 @@ const AppContent: React.FC = () => {
                   <Music2 className="w-4 h-4 text-black stroke-[2.5]" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
-                    <span className="shrink-0">SALA PROVE</span>
-                    <span className="text-yellow-400 font-bold truncate max-w-[100px] sm:max-w-[130px] lg:max-w-[160px] 2xl:max-w-[220px]">
-                      • {studioInfo.nome}
+                  <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white leading-tight flex items-center gap-1">
+                    <span className="hidden sm:inline shrink-0">SALA PROVE</span>
+                    <span className="text-yellow-400 font-bold truncate max-w-[90px] sm:max-w-[130px] lg:max-w-[160px] 2xl:max-w-[220px]">
+                      <span className="sm:hidden">• </span>{studioInfo.nome}
                     </span>
                   </h1>
                   <p className="text-[10px] text-yellow-400/60 leading-tight truncate hidden 2xl:block">
@@ -536,50 +536,20 @@ const AppContent: React.FC = () => {
               </button>
             </div>
 
-            {/* ── Mobile Right Actions (Compact, Clean & Responsive) ── */}
+            {/* ── Mobile Right Actions ── */}
             <div className="flex md:hidden items-center gap-1.5 shrink-0">
-              {/* Mobile Quick Briefing Button */}
-              <button
-                onClick={() => setIsBriefingModalOpen(true)}
-                className="w-9 h-9 rounded-lg bg-neutral-900 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-sm shadow-xs touch-manipulation touch-active"
-                title="Riepilogo del Mattino (Ore 10:00)"
-              >
-                ☕
-              </button>
-
-              {/* Mobile Quick Theme Toggle */}
+              {/* Theme Toggle */}
               <ThemeToggle compact={true} />
 
-              {/* Mobile Role badge */}
-              <div
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold border select-none ${
-                  isAdmin
-                    ? 'bg-yellow-400/15 border-yellow-500/40 text-yellow-300'
-                    : 'bg-neutral-900 border-neutral-700 text-neutral-300'
-                }`}
-              >
-                {isAdmin ? (
-                  <>
-                    <Shield className="w-3 h-3 text-yellow-400" />
-                    <span>Admin</span>
-                  </>
-                ) : (
-                  <>
-                    <User className="w-3 h-3 text-neutral-400" />
-                    <span>Utente</span>
-                  </>
-                )}
-              </div>
-
-              {/* Mobile Menu Toggle Button (44px comfortable touch target) */}
+              {/* Mobile Menu Toggle (44px touch target) */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className={`w-11 h-11 rounded-xl border flex items-center justify-center transition-all touch-manipulation touch-active cursor-pointer ${
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all touch-manipulation cursor-pointer ${
                   isMobileMenuOpen
                     ? 'bg-yellow-400 text-black border-yellow-400 shadow-md shadow-yellow-500/30'
                     : 'bg-neutral-900 text-yellow-400 border-yellow-500/30 hover:bg-neutral-800'
                 }`}
-                aria-label="Apri menu sezioni ed opzioni"
+                aria-label="Apri menu"
               >
                 {isMobileMenuOpen ? (
                   <X className="w-5 h-5 stroke-[2.5]" />
