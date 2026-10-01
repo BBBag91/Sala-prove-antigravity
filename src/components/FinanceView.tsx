@@ -16,6 +16,7 @@ import { useApp } from '../context/AppContext';
 import { Expense, ExpenseCategory } from '../types';
 import { formatCurrency, formatDateItalian, MESI_ITALIANI } from '../utils/dateUtils';
 import { EXPENSE_CATEGORIES, ExpenseModal } from './ExpenseModal';
+import { CompensiFineMeseSection } from './CompensiFineMeseSection';
 
 export const FinanceView: React.FC = () => {
   const { expenses, bookings, clients, deleteExpense, updateExpense } = useApp();
@@ -234,6 +235,15 @@ export const FinanceView: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* ── Sezione Compensi Fine Mese (Logica Excel) ── */}
+      <CompensiFineMeseSection
+        currentMonthName={MESI_ITALIANI[currentMonth]}
+        currentYear={currentYear}
+        monthStr={monthStr}
+        totalIncomes={totalIncomes}
+        totalExpenses={totalExpenses}
+      />
 
       {/* Ripartizione Spese per Categoria (Visual Breakdown) */}
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
