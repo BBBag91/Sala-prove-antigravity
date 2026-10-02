@@ -691,6 +691,16 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         const hasMoved = targetDate !== booking.data || targetOraInizio !== booking.oraInizio;
 
         if (hasMoved) {
+          if (dragState.hasConflict) {
+            alert(
+              `Spostamento non consentito:\n\nLa sala "${booking.salaNome}" risulta già occupata il ${targetDate} nella fascia oraria ${targetOraInizio} - ${targetOraFine} da:\n${dragState.conflictNames
+                .map((c) => `• ${c}`)
+                .join('\n')}\n\nNon è possibile sovrapporre due eventi nella stessa sala.`
+            );
+            setDragState(null);
+            return;
+          }
+
           const previousBooking = { ...booking };
           const durHours = (targetEndMins - targetStartMins) / 60;
           const updated: Booking = {

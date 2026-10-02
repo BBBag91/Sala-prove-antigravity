@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { X, Calendar, AlertCircle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { X, Calendar, AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig } from '../types';
@@ -329,6 +329,67 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setTariffaTotale(Math.max(0, base - disc));
   };
 
+  // Calcolo delle sale già occupate/in conflitto nella data e orari correnti
+  const overlappingBookingsByRoom = useMemo(() => {
+    const map = new Map<string, Booking[]>();
+    if (!data || !oraInizio || !oraFine) return map;
+
+    const startM = timeToMinutes(oraInizio);
+    let endM = timeToMinutes(oraFine);
+    if (endM <= startM) endM += 24 * 60;
+
+    bookings.forEach((b) => {
+      // Ignora la stessa prenotazione se siamo in modalità modifica
+      if (bookingToEdit && b.id === bookingToEdit.id) return;
+      if (b.data !== data) return;
+
+      const bStart = timeToMinutes(b.oraInizio);
+      let bEnd = timeToMinutes(b.oraFine);
+      if (bEnd <= bStart) bEnd += 24 * 60;
+
+      // Sovrapposizione temporale parziale o totale: startM < bEnd && endM > bStart
+      if (startM < bEnd && endM > bStart) {
+        const list = map.get(b.salaId) || [];
+        list.push(b);
+        map.set(b.salaId, list);
+      }
+    });
+
+    return map;
+  }, [bookings, bookingToEdit, data, oraInizio, oraFine]);
+
+  // Sale disponibili (libere nell'orario selezionato)
+  const availableRooms = useMemo(() => {
+    return rooms.filter((r) => !overlappingBookingsByRoom.has(r.id));
+  }, [rooms, overlappingBookingsByRoom]);
+
+  // Sale occupate con dettaglio dei conflitti
+  const occupiedRooms = useMemo(() => {
+    return rooms
+      .filter((r) => overlappingBookingsByRoom.has(r.id))
+      .map((r) => ({
+        room: r,
+        conflicts: overlappingBookingsByRoom.get(r.id) || [],
+      }));
+  }, [rooms, overlappingBookingsByRoom]);
+
+  // Se la sala selezionata è già occupata, reimposta automaticamente alla prima sala libera
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!salaId) {
+      if (availableRooms.length > 0) {
+        setSalaId(availableRooms[0].id);
+      }
+      return;
+    }
+    if (overlappingBookingsByRoom.has(salaId)) {
+      const firstFree = availableRooms[0];
+      if (firstFree) {
+        setSalaId(firstFree.id);
+      }
+    }
+  }, [isOpen, availableRooms, overlappingBookingsByRoom, salaId]);
+
   if (!isOpen) return null;
 
   const durationHours = calculateDurationHours(oraInizio, oraFine);
@@ -355,6 +416,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       : (selectedClient?.id || '');
 
     if (!finalClienteNome || !selectedRoom) return;
+
+    // Controllo bloccante univocità sala: nessuna sovrapposizione oraria ammessa
+    if (overlappingBookingsByRoom.has(salaId)) {
+      const conflicts = overlappingBookingsByRoom.get(salaId) || [];
+      alert(
+        `Impossibile inserire la prenotazione:\n\nLa sala "${selectedRoom.nome}" risulta già occupata il ${data} nella fascia oraria ${oraInizio} - ${oraFine} da:\n${conflicts
+          .map((c) => `• ${c.clienteNome} (${c.oraInizio} - ${c.oraFine})`)
+          .join('\n')}\n\nDue eventi non possono coincidere o occupare la stessa sala nello stesso intervallo. Seleziona una sala libera tra quelle disponibili.`
+      );
+      return;
+    }
 
     const teacher = tipo === 'lezione' ? staff.find((s) => s.id === insegnanteId) : undefined;
     const finalOperatoreId = bookingToEdit?.operatoreAssegnatoId;
@@ -611,8 +683,59 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 max-h-[82vh] overflow-y-auto">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex flex-col max-h-[86vh]">
+          {/* Top Full-Width Action Bar */}
+          <div className="w-full px-5 sm:px-6 py-3 bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 flex items-center justify-between gap-3 shrink-0 shadow-xs">
+            {bookingToEdit ? (
+              !isAdmin && bookingToEdit.data < formatDateToISO(new Date()) ? (
+                <div
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
+                  title="Nel profilo utente non è consentito cancellare eventi passati (solo giorno stesso o futuri)"
+                >
+                  <Trash2 className="w-3.5 h-3.5 opacity-50" />
+                  <span className="hidden sm:inline">Eliminazione disabilitata (evento passato)</span>
+                  <span className="sm:hidden">Passato</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleDeleteCurrentBooking}
+                  className="px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 hover:text-rose-400 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Elimina questa prenotazione"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Elimina Prenotazione</span>
+                  <span className="sm:hidden">Elimina</span>
+                </button>
+              )
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-neutral-400">
+                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                <span className="hidden sm:inline">Nuova prenotazione sala</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 text-sm font-bold transition-all cursor-pointer shadow-xs"
+              >
+                Annulla
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black text-sm shadow-md shadow-blue-500/25 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{bookingToEdit ? 'Salva Modifiche' : 'Conferma Prenotazione'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Form Scrollable Body */}
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
           {/* Tipo prenotazione: Prove vs Lezione */}
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
@@ -746,22 +869,79 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                Sala Prove *
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Sala Prove *
+                </label>
+                {data && oraInizio && oraFine && (
+                  <span
+                    className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                      availableRooms.length > 0
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                        : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                    }`}
+                  >
+                    {availableRooms.length} su {rooms.length} {availableRooms.length === 1 ? 'libera' : 'libere'}
+                  </span>
+                )}
+              </div>
               <select
                 required
                 value={salaId}
                 onChange={(e) => setSalaId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                className={`w-full px-3.5 py-2.5 rounded-lg border text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all ${
+                  overlappingBookingsByRoom.has(salaId)
+                    ? 'border-red-500 bg-red-50 text-red-900 ring-2 ring-red-400'
+                    : 'border-slate-300 bg-white text-slate-800'
+                }`}
               >
-                <option value="">-- Seleziona sala --</option>
-                {rooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.nome} {tipo !== 'lezione' ? `(€${r.tariffaOraria}/h)` : ''} - Capienza: {r.capienza}
+                <option value="">-- Seleziona sala ({availableRooms.length} disponibili) --</option>
+                {/* Sale Disponibili */}
+                {availableRooms.map((r) => (
+                  <option key={r.id} value={r.id} className="font-bold text-slate-900">
+                    ✓ {r.nome} {tipo !== 'lezione' ? `(€${r.tariffaOraria}/h)` : ''} - Capienza: {r.capienza}
                   </option>
                 ))}
+                {/* Sale già occupate: disabilitate e non selezionabili */}
+                {occupiedRooms.length > 0 && (
+                  <optgroup label="── Sale già occupate in questo orario (Non selezionabili) ──">
+                    {occupiedRooms.map(({ room: r, conflicts }) => (
+                      <option
+                        key={r.id}
+                        value={r.id}
+                        disabled
+                        className="text-slate-400 bg-slate-100 italic"
+                      >
+                        🚫 {r.nome} - OCCUPATA ({conflicts.map((c) => `${c.clienteNome} ${c.oraInizio}-${c.oraFine}`).join(', ')})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
+
+              {/* Avviso in tempo reale se la sala scelta ha un conflitto */}
+              {salaId && overlappingBookingsByRoom.has(salaId) && (
+                <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-300 text-red-800 text-xs flex items-start gap-2 animate-in fade-in duration-150">
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold">Sala già occupata in questa fascia oraria!</strong>
+                    <span>
+                      {(overlappingBookingsByRoom.get(salaId) || []).map((c) => `${c.clienteNome} (${c.oraInizio} - ${c.oraFine})`).join(', ')}
+                    </span>
+                    <span className="block mt-1 font-semibold text-red-900">
+                      Scegli un'altra sala libera dall'elenco per confermare.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Notifica se tutte le sale sono sature nell'orario */}
+              {availableRooms.length === 0 && rooms.length > 0 && (
+                <div className="mt-2 p-2.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Tutte le sale risultano occupate tra le {oraInizio} e le {oraFine}. Cambia orario o data.</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1106,46 +1286,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             />
           </div>
 
-          {/* Footer actions */}
-          <div className="pt-3 border-t border-slate-200 flex items-center justify-between gap-3 flex-wrap">
-            {bookingToEdit ? (
-              !isAdmin && bookingToEdit.data < formatDateToISO(new Date()) ? (
-                <div
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
-                  title="Nel profilo utente non è consentito cancellare eventi passati (solo giorno stesso o futuri)"
-                >
-                  <Trash2 className="w-3.5 h-3.5 opacity-50" />
-                  <span>Eliminazione disabilitata (evento passato)</span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleDeleteCurrentBooking}
-                  className="px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                  title="Elimina questa prenotazione"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Elimina Prenotazione</span>
-                </button>
-              )
-            ) : <div />}
-
-            <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-semibold transition-colors cursor-pointer"
-              >
-                Annulla
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                {bookingToEdit ? 'Salva Modifiche' : 'Conferma Prenotazione'}
-              </button>
-            </div>
           </div>
         </form>
       </div>
