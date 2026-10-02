@@ -196,15 +196,15 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
         {/* Scrollable Body */}
         <div className="overflow-y-auto p-4 sm:p-6 space-y-5 flex-1">
           {/* Sezione 1: Selezione ESCLUSIVA dell'insegnante */}
-          <div className="p-4 rounded-xl bg-neutral-950 border border-neutral-800 space-y-3">
+          <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-neutral-950 border-2 border-blue-200 dark:border-neutral-800 space-y-3 shadow-xs">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <label className="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
+              <label className="text-xs font-black text-blue-700 dark:text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
                 <User className="w-4 h-4" />
                 <span>Seleziona Insegnante</span>
-                <span className="text-[10px] font-normal text-neutral-400 lowercase">(solo docenti abilitati)</span>
+                <span className="text-[10px] font-normal text-blue-600/80 dark:text-neutral-400 lowercase">(solo docenti abilitati)</span>
               </label>
               {teachersOnly.length > 0 && (
-                <span className="text-[11px] text-neutral-400 font-medium">
+                <span className="text-[11px] text-blue-700/80 dark:text-neutral-400 font-bold">
                   {teachersOnly.length} {teachersOnly.length === 1 ? 'docente registrato' : 'docenti registrati'}
                 </span>
               )}
@@ -217,26 +217,33 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
                 <p className="text-[11px]">Un amministratore può configurare il ruolo insegnante dalla sezione Staff.</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
+                {/* Select Insegnante con Sfondo Blu ad alta visibilità */}
                 <select
                   value={selectedTeacherId}
                   onChange={(e) => setSelectedTeacherId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-900 border border-neutral-700 hover:border-yellow-500/50 text-sm font-bold text-white focus:border-yellow-400 focus:outline-hidden cursor-pointer transition-colors"
+                  style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+                  className="w-full px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm sm:text-base border-2 border-blue-400 dark:border-blue-300 shadow-md shadow-blue-500/25 focus:ring-4 focus:ring-blue-400/40 focus:outline-hidden cursor-pointer transition-all"
                 >
                   {teachersOnly.map((t) => (
-                    <option key={t.id} value={t.id} className="bg-neutral-900 text-white font-medium">
+                    <option
+                      key={t.id}
+                      value={t.id}
+                      style={{ backgroundColor: '#1e3a8a', color: '#ffffff' }}
+                      className="bg-blue-900 text-white font-bold py-2"
+                    >
                       🎓 {t.nome} {t.cognome} {t.materieInsegnamento ? `(${t.materieInsegnamento})` : ''}
                     </option>
                   ))}
                 </select>
 
                 {selectedTeacher && (
-                  <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-300">
-                    <span className="font-semibold">
-                      Docente attivo: <strong>{selectedTeacher.nome} {selectedTeacher.cognome}</strong>
+                  <div className="flex items-center justify-between text-xs sm:text-sm px-3.5 py-2.5 rounded-xl bg-blue-100/90 dark:bg-blue-950/70 border-2 border-blue-300 dark:border-blue-800 text-blue-950 dark:text-blue-100 shadow-xs">
+                    <span className="font-bold">
+                      Docente attivo: <strong className="font-black text-blue-900 dark:text-blue-300 underline underline-offset-2">{selectedTeacher.nome} {selectedTeacher.cognome}</strong>
                     </span>
                     {selectedTeacher.materieInsegnamento && (
-                      <span className="text-[11px] font-mono bg-purple-900/50 px-2 py-0.5 rounded text-purple-200">
+                      <span className="text-xs font-mono font-bold bg-blue-600 text-white px-2.5 py-0.5 rounded-md shadow-xs">
                         {selectedTeacher.materieInsegnamento}
                       </span>
                     )}
