@@ -897,3 +897,73 @@ html {
   }
 }
 
+/* =========================================================================
+   PULSANTI DI CHIUSURA MODALE (X): VISIBILI CON SFONDO E BORDO IN TUTTI I TEMI
+   ========================================================================= */
+button[title*="Chiudi"],
+button[title*="chiudi"],
+button[aria-label*="Chiudi"],
+button[aria-label*="chiudi"],
+button[aria-label*="Close"],
+button[aria-label*="close"],
+.modal-close-btn {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border: 1px solid #334155 !important;
+  border-radius: 0.75rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 1 !important;
+  transition: all 0.15s ease-in-out !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+button[title*="Chiudi"] svg,
+button[title*="chiudi"] svg,
+button[aria-label*="Chiudi"] svg,
+button[aria-label*="chiudi"] svg,
+button[aria-label*="Close"] svg,
+button[aria-label*="close"] svg,
+.modal-close-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  opacity: 1 !important;
+}
+
+button[title*="Chiudi"]:hover,
+button[title*="chiudi"]:hover,
+button[aria-label*="Chiudi"]:hover,
+button[aria-label*="chiudi"]:hover,
+button[aria-label*="Close"]:hover,
+button[aria-label*="close"]:hover,
+.modal-close-btn:hover {
+  background-color: #ef4444 !important; /* Rosso vivace */
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+button[title*="Chiudi"]:hover svg,
+button[title*="chiudi"]:hover svg,
+button[aria-label*="Chiudi"]:hover svg,
+button[aria-label*="chiudi"]:hover svg,
+button[aria-label*="Close"]:hover svg,
+button[aria-label*="close"]:hover svg,
+.modal-close-btn:hover svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* In tema chiaro: testo titoli e contenuti dei modali ad alto contrasto e nitidi */
+html.light .fixed [class*="bg-neutral-950"] h2,
+html.light .fixed [class*="bg-neutral-900"] h2,
+html.light .fixed [class*="bg-neutral-950"] h3,
+html.light .fixed [class*="bg-neutral-900"] h3 {
+  color: #0f172a !important;
+}
+
+html.light .fixed [class*="bg-neutral-950"] p,
+html.light .fixed [class*="bg-neutral-900"] p {
+  color: #475569 !important;
+}
+

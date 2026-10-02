@@ -178,22 +178,22 @@ export const MorningBriefingModal: React.FC<MorningBriefingModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(true)}
-                className="p-2 rounded-lg text-neutral-400 hover:text-yellow-400 hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl bg-neutral-800 text-white hover:bg-neutral-700 hover:text-yellow-400 transition-all cursor-pointer border border-neutral-700 shadow-xs"
                 title="Configura Notifiche & WhatsApp"
               >
-                <Settings2 className="w-5 h-5" />
+                <Settings2 className="w-4 h-4 text-white" />
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="modal-close-btn shrink-0 flex items-center justify-center w-8 h-8 rounded-xl bg-neutral-800 text-white hover:bg-red-500 hover:text-white transition-all cursor-pointer border border-neutral-700 hover:border-red-500/50 shadow-xs"
                 title="Chiudi"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 text-white stroke-[2.5]" />
               </button>
             </div>
           </div>
