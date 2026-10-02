@@ -11,6 +11,7 @@ interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialDate?: string;
+  initialStartTime?: string;
   initialRoomId?: string;
   initialType?: BookingType;
   bookingToEdit?: Booking | null;
@@ -20,6 +21,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   isOpen,
   onClose,
   initialDate,
+  initialStartTime,
   initialRoomId,
   initialType,
   bookingToEdit,
@@ -33,8 +35,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [tipo, setTipo] = useState<BookingType>('prove');
   const [insegnanteId, setInsegnanteId] = useState('');
   const [data, setData] = useState(initialDate || formatDateToISO(new Date()));
-  const [oraInizio, setOraInizio] = useState('18:00');
-  const [oraFine, setOraFine] = useState('20:00');
+  const [oraInizio, setOraInizio] = useState(initialStartTime || '18:00');
+  const [oraFine, setOraFine] = useState(() => {
+    const start = initialStartTime || '18:00';
+    const startM = timeToMinutes(start);
+    const endM = Math.min(24 * 60, startM + (initialType === 'lezione' ? 60 : 120));
+    return minutesToTime(endM);
+  });
   const [ripetizioneSettimanale, setRipetizioneSettimanale] = useState(false);
   const [repeatOption, setRepeatOption] = useState<string>('per_sempre');
   const [repeatWeeks, setRepeatWeeks] = useState(4);
@@ -130,9 +137,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setSalaId(initialRoomId || rooms[0]?.id || '');
       setTipo(defaultTipo);
       setInsegnanteId('');
+      const start = initialStartTime || '18:00';
+      const startM = timeToMinutes(start);
+      const durationM = defaultTipo === 'lezione' ? 60 : 120;
+      const endM = Math.min(24 * 60, startM + durationM);
+      const end = minutesToTime(endM);
+
       setData(defaultDate);
-      setOraInizio('18:00');
-      setOraFine(defaultTipo === 'lezione' ? '19:00' : '20:00');
+      setOraInizio(start);
+      setOraFine(end);
       setRipetizioneSettimanale(false);
       setRepeatOption('per_sempre');
       setRepeatWeeks(4);
@@ -151,7 +164,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setRichiesteStrumentazione('');
       setNote('');
     }
-  }, [bookingToEdit, initialDate, initialRoomId, isOpen, clients, rooms]);
+  }, [bookingToEdit, initialDate, initialStartTime, initialRoomId, initialType, isOpen, clients, rooms]);
 
   const handleToggleRipetizione = (checked: boolean) => {
     setRipetizioneSettimanale(checked);

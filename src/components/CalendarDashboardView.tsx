@@ -141,6 +141,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   const [isOperatorScheduleModalOpen, setIsOperatorScheduleModalOpen] = useState(false);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedDateForBooking, setSelectedDateForBooking] = useState<string>('');
+  const [selectedStartTimeForBooking, setSelectedStartTimeForBooking] = useState<string>('18:00');
   const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
   const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
   const [autoAssignResult, setAutoAssignResult] = useState<AutoAssignResult | null>(null);
@@ -322,8 +323,20 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     return true;
   });
 
-  const handleDayClick = (dateStr: string) => {
+  const handleDayClick = (dateStr: string, e?: React.MouseEvent<HTMLDivElement>) => {
+    let startHourStr = '18:00';
+    if (e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickY = Math.max(0, e.clientY - rect.top);
+      const clickedMinutesFromStart = (clickY / cellHeight) * 60;
+      const totalMins = HOUR_START * 60 + Math.floor(clickedMinutesFromStart / 30) * 30;
+      const clampedMins = Math.max(HOUR_START * 60, Math.min(23 * 60, totalMins));
+      const h = Math.floor(clampedMins / 60);
+      const m = clampedMins % 60;
+      startHourStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
     setSelectedDateForBooking(dateStr);
+    setSelectedStartTimeForBooking(startHourStr);
     setBookingToEdit(null);
     setIsBookingModalOpen(true);
   };
@@ -600,7 +613,12 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
             {/* New Booking Button */}
             <button
-              onClick={() => { setSelectedDateForBooking(formatDateToISO(today)); setBookingToEdit(null); setIsBookingModalOpen(true); }}
+              onClick={() => {
+                setSelectedDateForBooking(formatDateToISO(today));
+                setSelectedStartTimeForBooking('18:00');
+                setBookingToEdit(null);
+                setIsBookingModalOpen(true);
+              }}
               className="flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2 min-h-[44px] bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 active:scale-95 text-white dark:text-black font-black text-xs rounded-xl shadow-sm transition-all whitespace-nowrap ml-auto sm:ml-0 cursor-pointer touch-manipulation touch-active"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
@@ -1211,7 +1229,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     key={ds}
                     className={`relative border-r border-slate-200 dark:border-yellow-500/20 last:border-r-0 ${isToday ? 'bg-blue-50/40 dark:bg-yellow-400/[0.03]' : 'bg-white dark:bg-[#0a0a0a]'}`}
                     style={{ height: `${(currentTotalHours + 1) * cellHeight}px` }}
-                    onClick={() => handleDayClick(ds)}
+                    onClick={(e) => handleDayClick(ds, e)}
                   >
                     {/* Hour lines */}
                     {Array.from({ length: currentTotalHours + 1 }, (_, i) => (
@@ -1731,7 +1749,13 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       )}
 
       {/* Modals */}
-      <BookingModal isOpen={isBookingModalOpen} onClose={() => setIsBookingModalOpen(false)} initialDate={selectedDateForBooking} bookingToEdit={bookingToEdit} />
+      <BookingModal
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        initialDate={selectedDateForBooking}
+        initialStartTime={selectedStartTimeForBooking}
+        bookingToEdit={bookingToEdit}
+      />
       <AutoAssignModal isOpen={isAutoAssignModalOpen} onClose={() => setIsAutoAssignModalOpen(false)} result={autoAssignResult} />
       <EquipmentOverviewModal
         isOpen={isEquipmentModalOpen}
