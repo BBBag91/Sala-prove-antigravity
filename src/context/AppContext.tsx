@@ -171,7 +171,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (remote.bookings.length > 0) setBookings(remote.bookings);
           if (remote.expenses.length > 0) setExpenses(remote.expenses);
           if (remote.incomes.length > 0) setIncomes(remote.incomes);
-          if (remote.studioInfo) setStudioInfo(remote.studioInfo);
+          if (remote.studioInfo) {
+            setStudioInfo((prev) => {
+              if (!remote.studioInfo.whatsappConfig && prev?.whatsappConfig) {
+                const merged = { ...remote.studioInfo, whatsappConfig: prev.whatsappConfig };
+                supabaseService.upsertStudioInfo(merged).catch(console.error);
+                return merged;
+              }
+              return remote.studioInfo;
+            });
+          }
           if (remote.shifts && remote.shifts.length > 0) setShifts(remote.shifts);
           setIsCloudConnected(true);
         }
@@ -222,7 +231,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (remote.bookings) setBookings(remote.bookings);
         if (remote.expenses.length > 0) setExpenses(remote.expenses);
         if (remote.incomes.length > 0) setIncomes(remote.incomes);
-        if (remote.studioInfo) setStudioInfo(remote.studioInfo);
+        if (remote.studioInfo) {
+          setStudioInfo((prev) => {
+            if (!remote.studioInfo.whatsappConfig && prev?.whatsappConfig) {
+              const merged = { ...remote.studioInfo, whatsappConfig: prev.whatsappConfig };
+              supabaseService.upsertStudioInfo(merged).catch(console.error);
+              return merged;
+            }
+            return remote.studioInfo;
+          });
+        }
         if (remote.shifts && remote.shifts.length > 0) setShifts(remote.shifts);
         setIsCloudConnected(true);
         setLastCloudRefresh(new Date());

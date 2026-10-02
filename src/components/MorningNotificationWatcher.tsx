@@ -16,12 +16,16 @@ export const MorningNotificationWatcher: React.FC<MorningNotificationWatcherProp
   onOpenBriefingModal,
 }) => {
   const { studioInfo, updateStudioInfo, bookings, shifts, staff, rooms } = useApp();
-  const lastCheckedDateRef = useRef<string>('');
+  // Guard in-memory: evita invii concorrenti mentre una chiamata API è ancora in volo
+  const isSendingRef = useRef<boolean>(false);
 
   useEffect(() => {
     const checkSchedule = async () => {
       const config = studioInfo.whatsappConfig;
       if (!config || !config.enabled) return;
+
+      // Evita invii concorrenti (due tick ravvicinati con API in volo)
+      if (isSendingRef.current) return;
 
       const now = new Date();
       const todayStr = formatDateToISO(now);
@@ -33,19 +37,21 @@ export const MorningNotificationWatcher: React.FC<MorningNotificationWatcherProp
       const currentHours = now.getHours();
       const currentMinutes = now.getMinutes();
 
-      // Verifica se siamo nell'orario previsto o successivo
+      // Verifica se siamo nell'orario previsto o successivo (include apertura tardiva)
       const isPastTargetTime =
         currentHours > targetHours ||
         (currentHours === targetHours && currentMinutes >= targetMinutes);
 
-      // Evita verifiche ripetute nello stesso minuto se già eseguito oggi
-      if (config.lastAutoSentDate === todayStr || lastCheckedDateRef.current === todayStr) {
-        return;
-      }
+      if (!isPastTargetTime) return;
 
-      if (isPastTargetTime) {
-        lastCheckedDateRef.current = todayStr;
+      // Guard principale: usa solo lastAutoSentDate persistito su cloud.
+      // Garantisce che, anche aprendo l'app ore dopo le 10:00, il messaggio
+      // venga comunque inviato se non è ancora stato inviato oggi.
+      if (config.lastAutoSentDate === todayStr) return;
 
+      isSendingRef.current = true;
+
+      try {
         // Calcola dati del giorno
         const todayBookings = bookings.filter((b) => b.data === todayStr);
         const dailyShifts = computeDailyShifts(todayStr, todayBookings, shifts, staff);
@@ -84,6 +90,7 @@ export const MorningNotificationWatcher: React.FC<MorningNotificationWatcherProp
           const result = await sendWhatsAppViaApi(config, message);
           if (result.success) {
             console.log('[MorningNotificationWatcher] Notifica WhatsApp inviata con successo al gruppo!');
+            // Persiste la data su cloud: guard definitivo per oggi
             updateStudioInfo({
               ...studioInfo,
               whatsappConfig: {
@@ -93,12 +100,26 @@ export const MorningNotificationWatcher: React.FC<MorningNotificationWatcherProp
             });
           } else {
             console.warn('[MorningNotificationWatcher] Errore invio automatico WhatsApp:', result.error);
+            // Non persistiamo lastAutoSentDate → al prossimo tick (60s) riproverà
+          }
+        } else {
+          // Solo notifica browser: segna come completato per non ri-mostrare ogni minuto
+          if (config.browserNotificationEnabled) {
+            updateStudioInfo({
+              ...studioInfo,
+              whatsappConfig: {
+                ...config,
+                lastAutoSentDate: todayStr,
+              },
+            });
           }
         }
+      } finally {
+        isSendingRef.current = false;
       }
     };
 
-    // Controlla all'avvio
+    // Controlla subito all'avvio (gestisce apertura tardiva dopo le 10:00)
     checkSchedule();
 
     // Controlla ogni 60 secondi

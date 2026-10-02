@@ -68,11 +68,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Unauthorized: CRON_SECRET mismatch' });
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://qapmpppmejfcekqdzrgz.supabase.co';
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_publishable_vbdUnCY1YehkXPcdNsLsOw_YHaHCz1K';
 
   if (!supabaseUrl || !supabaseKey) {
-    return res.status(500).json({ error: 'Supabase credentials not configured in environment variables' });
+    return res.status(500).json({ error: 'Supabase credentials not configured' });
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -89,7 +89,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 2. Fetch studio info
     const { data: studioData } = await supabase.from('studio_info').select('*').limit(1).single();
     const studioInfo = studioData || {};
-    const config = studioInfo.whatsapp_config;
+    
+    // Recupero configurazione WhatsApp: prima colonna dedicata, poi fallback da note
+    let config = studioInfo.whatsapp_config;
+    if (!config && studioInfo.note && studioInfo.note.includes('__WA_CFG__:')) {
+      try {
+        const match = studioInfo.note.match(/__WA_CFG__:([\s\S]*?)__END_WA_CFG__/);
+        if (match && match[1]) {
+          config = JSON.parse(match[1]);
+        }
+      } catch (e) {
+        console.warn('[cron] Errore parsing fallback config WhatsApp da note:', e);
+      }
+    }
 
     if (!config || !config.enabled) {
       return res.status(200).json({ message: 'WhatsApp notifications are disabled in studio_info' });
@@ -228,10 +240,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 11. Se invio riuscito, persisti lastAutoSentDate su Supabase
     if (sendResult.success) {
       const updatedConfig = { ...config, lastAutoSentDate: todayStr };
-      await supabase
+      
+      // Prova prima con la colonna whatsapp_config
+      const { error: updateErr } = await supabase
         .from('studio_info')
         .update({ whatsapp_config: updatedConfig })
         .eq('id', studioInfo.id);
+
+      // Se la colonna non esiste, salva nel blocco note come fallback
+      if (updateErr && (updateErr.code === 'PGRST204' || updateErr.message?.includes('whatsapp_config'))) {
+        const cleanBaseNote = (studioInfo.note || '').replace(/__WA_CFG__:[\s\S]*?__END_WA_CFG__/g, '').trim();
+        const encodedWa = `__WA_CFG__:${JSON.stringify(updatedConfig)}__END_WA_CFG__`;
+        const noteWithConfig = cleanBaseNote ? `${cleanBaseNote}\n${encodedWa}` : encodedWa;
+        await supabase
+          .from('studio_info')
+          .update({ note: noteWithConfig })
+          .eq('id', studioInfo.id);
+      }
     }
 
     return res.status(200).json(sendResult);

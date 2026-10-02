@@ -209,35 +209,62 @@ export const mapIncomeFromDb = (i: any): ManualIncome => ({
   metodoPagamento: i.metodo_pagamento || undefined,
 });
 
-export const mapStudioInfoToDb = (s: StudioInfo) => ({
-  id: 'main',
-  nome: s.nome,
-  sottotitolo: s.sottotitolo || '',
-  indirizzo: s.indirizzo || '',
-  telefono: s.telefono || '',
-  email: s.email || '',
-  citta: s.citta || '',
-  cap: s.cap || '',
-  codice_fiscale_piva: s.codiceFiscalePiva || '',
-  sito_web: s.sitoWeb || '',
-  note: s.note || '',
-  whatsapp_config: s.whatsappConfig || null,
-  updated_at: new Date().toISOString(),
-});
+export const mapStudioInfoToDb = (s: StudioInfo, includeWaConfigCol: boolean = true) => {
+  let noteWithConfig = s.note || '';
+  if (s.whatsappConfig) {
+    const cleanBaseNote = (s.note || '').replace(/__WA_CFG__:[\s\S]*?__END_WA_CFG__/g, '').trim();
+    const encodedWa = `__WA_CFG__:${JSON.stringify(s.whatsappConfig)}__END_WA_CFG__`;
+    noteWithConfig = cleanBaseNote ? `${cleanBaseNote}\n${encodedWa}` : encodedWa;
+  }
+  const result: any = {
+    id: 'main',
+    nome: s.nome,
+    sottotitolo: s.sottotitolo || '',
+    indirizzo: s.indirizzo || '',
+    telefono: s.telefono || '',
+    email: s.email || '',
+    citta: s.citta || '',
+    cap: s.cap || '',
+    codice_fiscale_piva: s.codiceFiscalePiva || '',
+    sito_web: s.sitoWeb || '',
+    note: noteWithConfig,
+    updated_at: new Date().toISOString(),
+  };
+  if (includeWaConfigCol) {
+    result.whatsapp_config = s.whatsappConfig || null;
+  }
+  return result;
+};
 
-export const mapStudioInfoFromDb = (s: any): StudioInfo => ({
-  nome: s.nome || 'Sala Prove Antigravity',
-  sottotitolo: s.sottotitolo || '',
-  indirizzo: s.indirizzo || '',
-  telefono: s.telefono || '',
-  email: s.email || '',
-  citta: s.citta || '',
-  cap: s.cap || '',
-  codiceFiscalePiva: s.codice_fiscale_piva || '',
-  sitoWeb: s.sito_web || '',
-  note: s.note || '',
-  whatsappConfig: s.whatsapp_config || undefined,
-});
+export const mapStudioInfoFromDb = (s: any): StudioInfo => {
+  let waConfig = s.whatsapp_config || undefined;
+  let cleanNote = s.note || '';
+  if (!waConfig && cleanNote.includes('__WA_CFG__:')) {
+    try {
+      const match = cleanNote.match(/__WA_CFG__:([\s\S]*?)__END_WA_CFG__/);
+      if (match && match[1]) {
+        waConfig = JSON.parse(match[1]);
+      }
+    } catch (e) {
+      console.warn('[mapStudioInfoFromDb] Errore parsing fallback whatsapp_config da note:', e);
+    }
+  }
+  cleanNote = cleanNote.replace(/__WA_CFG__:[\s\S]*?__END_WA_CFG__/g, '').trim();
+
+  return {
+    nome: s.nome || 'Sala Prove Antigravity',
+    sottotitolo: s.sottotitolo || '',
+    indirizzo: s.indirizzo || '',
+    telefono: s.telefono || '',
+    email: s.email || '',
+    citta: s.citta || '',
+    cap: s.cap || '',
+    codiceFiscalePiva: s.codice_fiscale_piva || '',
+    sitoWeb: s.sito_web || '',
+    note: cleanNote,
+    whatsappConfig: waConfig,
+  };
+};
 
 export const mapShiftToDb = (s: WorkShift) => ({
   id: s.id,
@@ -442,8 +469,17 @@ export const supabaseService = {
   // Studio Info
   async upsertStudioInfo(info: StudioInfo) {
     if (!supabase) return;
-    const { error } = await supabase.from('studio_info').upsert(mapStudioInfoToDb(info));
-    if (error) console.error('[Supabase] Errore upsertStudioInfo:', error);
+    const dbObj = mapStudioInfoToDb(info, true);
+    const { error } = await supabase.from('studio_info').upsert(dbObj);
+    if (error) {
+      if (error.code === 'PGRST204' || error.message?.includes('whatsapp_config')) {
+        const fallbackObj = mapStudioInfoToDb(info, false);
+        const { error: err2 } = await supabase.from('studio_info').upsert(fallbackObj);
+        if (err2) console.error('[Supabase] Errore fallback upsertStudioInfo:', err2);
+      } else {
+        console.error('[Supabase] Errore upsertStudioInfo:', error);
+      }
+    }
   },
 
   // Caricamento / Sincronizzazione massiva iniziale (Local -> Supabase)
@@ -469,7 +505,13 @@ export const supabaseService = {
       incomesRes,
       shiftsRes,
     ] = await Promise.all([
-      supabase.from('studio_info').upsert(mapStudioInfoToDb(data.studioInfo)),
+      (async () => {
+        let res = await supabase.from('studio_info').upsert(mapStudioInfoToDb(data.studioInfo, true));
+        if (res.error && (res.error.code === 'PGRST204' || res.error.message?.includes('whatsapp_config'))) {
+          res = await supabase.from('studio_info').upsert(mapStudioInfoToDb(data.studioInfo, false));
+        }
+        return res;
+      })(),
       supabase.from('rooms').upsert(data.rooms.map(mapRoomToDb)),
       supabase.from('staff').upsert(data.staff.map(mapStaffToDb)),
       supabase.from('clients').upsert(data.clients.map(mapClientToDb)),
