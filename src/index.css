@@ -987,8 +987,8 @@ html.light .fixed [class*="bg-neutral-900"] h3 {
   color: #0f172a !important;
 }
 
-html.light .fixed [class*="bg-neutral-950"] p,
-html.light .fixed [class*="bg-neutral-900"] p {
+html.light .fixed [class*="bg-neutral-950"] p:not(.user-email-text),
+html.light .fixed [class*="bg-neutral-900"] p:not(.user-email-text) {
   color: #475569 !important;
 }
 
@@ -1023,11 +1023,105 @@ html.light .admin-header-btn-blue svg {
   stroke: #ffffff !important;
 }
 
+/* Badge ADMIN ad altissimo contrasto (pillola bianca con testo blu) */
 .admin-badge-pill,
+span.admin-badge-pill,
 html.light .admin-badge-pill,
-html.dark .admin-badge-pill {
+html.light span.admin-badge-pill,
+html.light [class*="bg-blue-600"] .admin-badge-pill,
+html.light [class*="bg-blue-600"] span.admin-badge-pill,
+html.dark .admin-badge-pill,
+html.dark span.admin-badge-pill {
   background-color: #ffffff !important;
   color: #1d4ed8 !important;
   font-weight: 800 !important;
+  border: 1px solid #ffffff !important;
+  display: inline-block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Email utente leggibile su sfondo blu */
+.user-email-text,
+html.light .user-email-text,
+html.light [class*="bg-blue-600"] .user-email-text,
+html.light [class*="bg-blue-600"] p.user-email-text {
+  color: #dbeafe !important;
+  opacity: 0.95 !important;
+}
+
+/* =========================================================================
+   PULSANTE TEMA GRAFICO (CHIARO/SCURO) AD ALTA VISIBILITA'
+   ========================================================================= */
+.theme-toggle-btn,
+button.theme-toggle-btn,
+html.light .theme-toggle-btn,
+html.light button.theme-toggle-btn,
+html.light [class*="bg-blue-600"] .theme-toggle-btn,
+html.light [class*="bg-blue-600"] button.theme-toggle-btn {
+  background-color: #ffffff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.theme-toggle-btn *,
+.theme-toggle-btn span,
+.theme-toggle-btn svg,
+html.light .theme-toggle-btn *,
+html.light .theme-toggle-btn span,
+html.light .theme-toggle-btn svg,
+html.light [class*="bg-blue-600"] .theme-toggle-btn *,
+html.light [class*="bg-blue-600"] .theme-toggle-btn span,
+html.light [class*="bg-blue-600"] .theme-toggle-btn svg {
+  color: #1d4ed8 !important;
+  stroke: #1d4ed8 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* In tema scuro */
+html.dark .theme-toggle-btn,
+html.dark button.theme-toggle-btn,
+html:not(.light) .theme-toggle-btn,
+html:not(.light) button.theme-toggle-btn {
+  background-color: #171717 !important;
+  color: #fde047 !important;
+  border: 1px solid rgba(234, 179, 8, 0.35) !important;
+}
+
+html.dark .theme-toggle-btn *,
+html.dark .theme-toggle-btn span,
+html.dark .theme-toggle-btn svg,
+html:not(.light) .theme-toggle-btn *,
+html:not(.light) .theme-toggle-btn span,
+html:not(.light) .theme-toggle-btn svg {
+  color: #fde047 !important;
+  stroke: #fde047 !important;
+}
+
+/* Pulsante di chiusura X nel drawer mobile sempre blu con icona bianca */
+.modal-close-btn-blue,
+button.modal-close-btn-blue,
+html.light .modal-close-btn-blue,
+html.light button.modal-close-btn-blue,
+html.dark .modal-close-btn-blue,
+html.dark button.modal-close-btn-blue {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  border: 1px solid #1d4ed8 !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+}
+
+.modal-close-btn-blue svg,
+button.modal-close-btn-blue svg,
+html.light .modal-close-btn-blue svg,
+html.light button.modal-close-btn-blue svg,
+html.dark .modal-close-btn-blue svg,
+html.dark button.modal-close-btn-blue svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 

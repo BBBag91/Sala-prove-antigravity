@@ -584,10 +584,12 @@ const AppContent: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-11 h-11 rounded-xl text-neutral-400 hover:text-yellow-400 hover:bg-neutral-900 border border-yellow-500/20 flex items-center justify-center touch-manipulation touch-active"
+                className="modal-close-btn-blue w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white border border-blue-500 shadow-md flex items-center justify-center touch-manipulation touch-active cursor-pointer"
                 aria-label="Chiudi menu"
+                title="Chiudi menu"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-white stroke-[2.5]" style={{ stroke: '#ffffff', color: '#ffffff' }} />
               </button>
             </div>
 
@@ -608,25 +610,36 @@ const AppContent: React.FC = () => {
                     {user.avatar || (isAdmin ? '👑' : '👤')}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white">{user.nome}</h4>
-                    <p className={`text-[10px] font-mono truncate max-w-[130px] ${isAdmin ? 'text-blue-100' : 'text-neutral-400'}`}>{user.email}</p>
+                    <h4 className="text-xs font-bold text-white" style={{ color: '#ffffff' }}>{user.nome}</h4>
+                    <p
+                      className={`user-email-text text-[10px] font-mono truncate max-w-[130px] ${isAdmin ? 'text-blue-100 font-medium' : 'text-neutral-400'}`}
+                      style={isAdmin ? { color: '#dbeafe' } : undefined}
+                    >
+                      {user.email}
+                    </p>
                   </div>
                 </div>
-                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                  isAdmin ? 'bg-white text-blue-700 border-white shadow-2xs' : 'bg-neutral-800 border-neutral-700 text-neutral-300'
-                }`}>
+                <span
+                  className={`admin-badge-pill text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border shadow-xs ${
+                    isAdmin ? 'bg-white text-blue-700 border-white' : 'bg-neutral-800 border-neutral-700 text-neutral-300'
+                  }`}
+                  style={isAdmin ? { backgroundColor: '#ffffff', color: '#1d4ed8', borderColor: '#ffffff' } : undefined}
+                >
                   {isAdmin ? 'ADMIN' : 'UTENTE'}
                 </span>
               </div>
 
               {/* Quick actions inside drawer */}
-              <div className="pt-2 border-t border-neutral-800 space-y-2">
+              <div className="pt-2 border-t border-white/20 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-neutral-300">Tema Grafico:</span>
+                  <span
+                    className="text-xs font-bold"
+                    style={{ color: '#ffffff' }}
+                  >
+                    Tema Grafico:
+                  </span>
                   <ThemeToggle compact={false} showLabel={true} />
                 </div>
-
-
               </div>
             </div>
 

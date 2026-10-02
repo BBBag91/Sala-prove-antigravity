@@ -23,7 +23,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       onClick={toggleTheme}
       aria-label={isDark ? 'Passa al tema Chiaro (Sfondo Bianco & Blu)' : 'Passa al tema Scuro (Nero & Giallo)'}
       title={isDark ? 'Passa al tema Chiaro (Sfondo Bianco & Blu)' : 'Passa al tema Scuro (Nero & Giallo)'}
-      className={`relative inline-flex items-center gap-1.5 sm:gap-2 rounded-lg transition-all cursor-pointer select-none touch-manipulation touch-active shrink-0 ${
+      className={`theme-toggle-btn relative inline-flex items-center gap-1.5 sm:gap-2 rounded-lg transition-all cursor-pointer select-none touch-manipulation touch-active shrink-0 ${
         compact
           ? 'w-9 h-9 sm:w-10 sm:h-10 justify-center p-0'
           : responsiveLabel
@@ -34,12 +34,16 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           ? 'bg-neutral-900/90 text-yellow-300 border border-yellow-500/35 hover:border-yellow-400 hover:bg-neutral-800 shadow-sm'
           : 'bg-white text-blue-600 border border-blue-200 hover:border-blue-400 hover:bg-blue-50 shadow-sm'
       } ${className}`}
+      style={!isDark ? { backgroundColor: '#ffffff', color: '#1d4ed8', borderColor: '#bfdbfe' } : undefined}
     >
       <div className="relative flex items-center justify-center w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0">
         {isDark ? (
           <Sun className="w-4 h-4 text-yellow-400 animate-in spin-in-90 zoom-in duration-200" />
         ) : (
-          <Moon className="w-4 h-4 text-blue-600 animate-in spin-in-90 zoom-in duration-200" />
+          <Moon
+            className="w-4 h-4 text-blue-600 animate-in spin-in-90 zoom-in duration-200"
+            style={{ color: '#1d4ed8', stroke: '#1d4ed8' }}
+          />
         )}
       </div>
 
@@ -48,6 +52,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           className={`text-xs font-bold whitespace-nowrap ${
             responsiveLabel ? 'hidden 2xl:inline' : 'inline'
           }`}
+          style={!isDark ? { color: '#1d4ed8' } : undefined}
         >
           {isDark ? 'Tema Chiaro' : 'Tema Scuro'}
         </span>
