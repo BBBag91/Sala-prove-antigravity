@@ -572,19 +572,20 @@ const AppContent: React.FC = () => {
           {/* Drawer content */}
           <div className="fixed inset-y-0 right-0 max-w-xs w-full bg-neutral-950 border-l border-yellow-500/30 p-4 shadow-2xl flex flex-col z-50 overflow-y-auto animate-in slide-in-from-right duration-200">
             {/* Drawer Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-yellow-500/20">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-bold shadow-sm shadow-yellow-500/30">
-                  <Music2 className="w-4 h-4 stroke-[2.5]" />
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-neutral-800 gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-yellow-400/10 border border-blue-200/80 dark:border-yellow-500/30 flex items-center justify-center text-blue-600 dark:text-yellow-400 shrink-0 shadow-2xs">
+                  <Music2 className="w-5 h-5 stroke-[2.5]" />
                 </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white leading-tight">SALA PROVE</h3>
-                  <p className="text-[10px] text-yellow-400/80 truncate max-w-[150px]">{studioInfo.nome}</p>
+                <div className="min-w-0">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">SALA PROVE</h3>
+                  <p className="text-[10px] text-blue-600 dark:text-yellow-400/80 font-bold truncate max-w-[150px]">{studioInfo.nome}</p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="modal-close-btn-blue w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white border border-blue-500 shadow-md flex items-center justify-center touch-manipulation touch-active cursor-pointer"
+                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
                 aria-label="Chiudi menu"
                 title="Chiudi menu"
                 style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}

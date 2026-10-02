@@ -113,33 +113,36 @@ export const MonthlyShiftsPdfModal: React.FC<MonthlyShiftsPdfModalProps> = ({
       <div className="bg-[#0c0c0c] rounded-2xl max-w-4xl w-full border border-yellow-500/30 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden text-yellow-100 my-auto">
         
         {/* Modal Header */}
-        <div className="px-5 py-4 border-b border-yellow-500/20 bg-neutral-950 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-yellow-400 text-black flex items-center justify-center font-black shadow-md shrink-0">
+        <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900/90 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-yellow-400/10 border border-blue-200/80 dark:border-yellow-500/30 text-blue-600 dark:text-yellow-400 flex items-center justify-center font-black shadow-2xs shrink-0">
               <Printer className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black text-yellow-100 tracking-tight">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-snug truncate">
                   Stampa PDF Turni Stabiliti del Mese
                 </h2>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-yellow-400" />
-                  Area Riservata Amministratore
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-yellow-400/20 dark:text-yellow-300 border border-blue-200 dark:border-yellow-500/30 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-blue-600 dark:text-yellow-400" />
+                  Area Amministratore
                 </span>
               </div>
-              <p className="text-xs text-neutral-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-neutral-400 font-normal truncate mt-0.5">
                 Genera il documento PDF ufficiale con il resoconto completo di tutti gli operatori e le fasce orarie stabilite.
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-neutral-400 hover:text-yellow-300 rounded-lg hover:bg-neutral-900 transition-colors shrink-0"
+            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+            style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
             title="Chiudi"
+            aria-label="Chiudi finestra"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
           </button>
         </div>
 

@@ -156,23 +156,23 @@ export const MorningBriefingModal: React.FC<MorningBriefingModalProps> = ({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150">
         <div className="relative w-full max-w-3xl bg-neutral-900 border border-yellow-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
           {/* Header */}
-          <div className="px-5 py-3.5 border-b border-yellow-500/20 bg-neutral-950 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-yellow-400 text-black flex items-center justify-center font-bold shadow-md shadow-yellow-500/20 shrink-0">
+          <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900/90 flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-yellow-400/10 border border-blue-200/80 dark:border-yellow-500/30 text-blue-600 dark:text-yellow-400 flex items-center justify-center font-bold shadow-2xs shrink-0 text-lg">
                 ☕
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-snug truncate">
                     Riepilogo del Mattino (Ore {config?.orarioNotifica || '10:00'})
                   </h2>
                   {isToday && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-400 text-black">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-yellow-400 dark:text-black border border-blue-200 dark:border-yellow-400">
                       Oggi
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-neutral-400 capitalize">
+                <p className="text-xs text-slate-500 dark:text-neutral-400 font-normal truncate mt-0.5 capitalize">
                   {dataLabel} • {studioInfo.nome}
                 </p>
               </div>
@@ -182,20 +182,21 @@ export const MorningBriefingModal: React.FC<MorningBriefingModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(true)}
-                className="modal-header-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl !bg-blue-600 !text-white hover:!bg-blue-700 transition-all cursor-pointer border border-blue-500 shadow-md shadow-blue-500/25"
-                style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+                className="modal-header-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 shadow-md shadow-blue-500/25"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
                 title="Configura Notifiche & WhatsApp"
               >
-                <Settings2 className="w-5 h-5 !text-white stroke-[2.2]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
+                <Settings2 className="w-5 h-5 text-white stroke-[2.2]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl !bg-blue-600 !text-white hover:!bg-red-600 transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
-                style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
                 title="Chiudi"
+                aria-label="Chiudi finestra"
               >
-                <X className="w-5 h-5 !text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
+                <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </button>
             </div>
           </div>

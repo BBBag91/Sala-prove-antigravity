@@ -117,34 +117,38 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
       <div className="bg-[#0e0e0e] rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-yellow-500/30 space-y-4 max-h-[92vh] overflow-y-auto text-white">
         
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-yellow-500/20 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-yellow-400 text-black flex items-center justify-center font-black shadow-md text-sm">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-neutral-800 pb-3.5 gap-3 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-yellow-400/10 border border-blue-200/80 dark:border-yellow-500/30 text-blue-600 dark:text-yellow-400 flex items-center justify-center font-black shadow-2xs text-sm shrink-0">
               T{shiftComputed.turnoNumero}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-yellow-100 text-base sm:text-lg">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg tracking-tight leading-snug truncate">
                   {shiftComputed.nomeTurno}
                 </h3>
                 {shiftComputed.isAdapted && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-amber-400/20 dark:text-amber-300 border border-blue-200 dark:border-amber-500/30 flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
                     +{shiftComputed.minutiExtra}m Dinamici
                   </span>
                 )}
               </div>
-              <p className="text-xs text-neutral-400 capitalize mt-0.5 flex items-center gap-1.5">
-                <Calendar className="w-3 h-3 text-yellow-400/70" />
+              <p className="text-xs text-slate-500 dark:text-neutral-400 capitalize mt-0.5 flex items-center gap-1.5 truncate">
+                <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400/70" />
                 {dateFormatted}
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="text-neutral-400 hover:text-yellow-400 p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
+            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+            style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+            title="Chiudi"
+            aria-label="Chiudi finestra"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
           </button>
         </div>
 

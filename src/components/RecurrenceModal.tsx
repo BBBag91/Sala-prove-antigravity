@@ -120,27 +120,29 @@ export const RecurrenceModal: React.FC<RecurrenceModalProps> = ({
       <div className="bg-[#121212] border border-yellow-500/30 text-white rounded-3xl w-full max-w-sm sm:max-w-md p-5 sm:p-6 shadow-2xl relative space-y-6">
         
         {/* ── Top Bar: Cancel (X) & Confirm (✓) ── */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-neutral-800 pb-3.5">
           <button
             type="button"
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-neutral-800 text-neutral-300 hover:text-white hover:bg-neutral-700 flex items-center justify-center transition-colors"
+            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+            style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
             title="Annulla"
+            aria-label="Chiudi finestra"
           >
-            <X className="w-5 h-5 stroke-[2.5]" />
+            <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
           </button>
 
-          <span className="text-sm font-bold text-yellow-400 tracking-wide uppercase">
+          <span className="text-base font-bold text-slate-900 dark:text-yellow-400 tracking-wide uppercase">
             Ricorrenza
           </span>
 
           <button
             type="button"
             onClick={handleConfirm}
-            className="w-10 h-10 rounded-full bg-yellow-400 text-black hover:bg-yellow-300 flex items-center justify-center font-bold transition-transform active:scale-95 shadow-lg shadow-yellow-500/30"
+            className="shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white transition-all cursor-pointer border border-emerald-500 shadow-md shadow-emerald-500/25"
             title="Conferma ripetizione"
           >
-            <Check className="w-5 h-5 stroke-[3]" />
+            <Check className="w-5 h-5 text-white stroke-[3]" />
           </button>
         </div>
 

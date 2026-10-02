@@ -305,32 +305,34 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="relative w-full max-w-2xl bg-neutral-900 border border-yellow-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{maxHeight:'calc(100dvh - 16px)' }}>
         {/* Header */}
-        <div className="px-4 py-3 border-b border-yellow-500/20 bg-neutral-950 flex items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 shrink-0 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shadow-md">
-              <MessageSquare className="w-4 h-4 text-emerald-400" />
+        <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900/90 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+            <div className="w-10 h-10 shrink-0 rounded-xl bg-emerald-50 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-2xs">
+              <MessageSquare className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="text-sm font-bold text-white tracking-tight leading-tight">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-snug truncate">
                   Notifica WhatsApp
                 </h2>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 shrink-0">
                   Ore {orarioNotifica}
                 </span>
               </div>
-              <p className="text-[11px] text-neutral-400 truncate">
+              <p className="text-xs text-slate-500 dark:text-neutral-400 font-normal truncate mt-0.5">
                 Imposta il gruppo per il riepilogo automatico
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl !bg-blue-600 !text-white hover:!bg-red-600 transition-all cursor-pointer border border-blue-500 shadow-md shadow-blue-500/25"
-            style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+            style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
             title="Chiudi"
+            aria-label="Chiudi finestra"
           >
-            <X className="w-5 h-5 !text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
+            <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
           </button>
         </div>
 

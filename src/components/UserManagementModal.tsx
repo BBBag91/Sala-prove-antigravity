@@ -87,30 +87,34 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-[#0e0e0e] border border-yellow-500/30 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-yellow-500/20 bg-neutral-950 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-yellow-400/20 border border-yellow-500/40 text-yellow-400 flex items-center justify-center">
+        <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900/90 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-yellow-400/10 border border-blue-200/80 dark:border-yellow-500/30 text-blue-600 dark:text-yellow-400 flex items-center justify-center shrink-0 shadow-2xs">
               <Shield className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-white">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-snug truncate">
                   Gestione Utenti &amp; Accessi
                 </h2>
-                <span className="px-2 py-0.5 rounded-full bg-yellow-400 text-black text-[10px] font-extrabold uppercase">
+                <span className="px-2 py-0.5 rounded-full bg-blue-600 dark:bg-yellow-400 text-white dark:text-black text-[10px] font-extrabold uppercase">
                   Area Admin
                 </span>
               </div>
-              <p className="text-xs text-neutral-400">
+              <p className="text-xs text-slate-500 dark:text-neutral-400 font-normal truncate mt-0.5">
                 Crea nuovi account collegati a Supabase Auth e controlla i permessi RBAC
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-yellow-400 hover:bg-neutral-800 transition-colors"
+            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+            style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+            title="Chiudi"
+            aria-label="Chiudi finestra"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
           </button>
         </div>
 

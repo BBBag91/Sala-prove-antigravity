@@ -482,37 +482,40 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white rounded-2xl max-w-5xl w-full border border-slate-200 shadow-2xl flex flex-col max-h-[94vh] overflow-hidden text-slate-900 my-auto">
-        {/* Top Header - Sfondo chiaro, nessun riquadro nero */}
-        <div className="px-5 py-3.5 border-b border-slate-200 bg-white flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
+        {/* Top Header */}
+        <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900/90 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-xs shrink-0 text-base"
-              style={{ backgroundColor: operator.coloreBadge || '#3b82f6' }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-2xs shrink-0 text-base"
+              style={{ backgroundColor: operator.coloreBadge || '#2563eb' }}
             >
               {operator.nome[0]}
               {operator.cognome[0]}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-snug truncate">
                   Calendario Lavoro Primario &amp; Indisponibilità
                 </h2>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-yellow-400/20 dark:text-yellow-300 border border-blue-200 dark:border-yellow-500/30">
                   {operator.nome} {operator.cognome}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-neutral-400 font-normal truncate mt-0.5">
                 Visualizzazione mese in mese con inserimento rapido di turni multipli o indisponibilità giornaliera.
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors shrink-0 cursor-pointer"
+            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+            style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
             title="Chiudi"
+            aria-label="Chiudi finestra"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
           </button>
         </div>
 
