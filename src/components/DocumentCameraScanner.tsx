@@ -359,10 +359,12 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
                   stopCameraStream();
                   setMode('idle');
                 }}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md transition-colors"
+                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
                 title="Chiudi fotocamera"
+                aria-label="Chiudi fotocamera"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </button>
             </div>
           </div>
@@ -643,9 +645,12 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
               <button
                 type="button"
                 onClick={() => setIsApiKeyModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-200 transition-colors"
+                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                title="Chiudi"
+                aria-label="Chiudi finestra"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </button>
             </div>
 

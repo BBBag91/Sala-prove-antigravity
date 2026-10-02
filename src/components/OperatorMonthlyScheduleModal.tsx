@@ -798,10 +798,12 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
                   <button
                     type="button"
                     onClick={() => setActiveDateStr(null)}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg ml-1 cursor-pointer"
+                    className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25 ml-1"
+                    style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
                     title="Chiudi editor giorno"
+                    aria-label="Chiudi editor giorno"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
                   </button>
                 </div>
               </div>
@@ -1073,9 +1075,12 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
                 <button
                   type="button"
                   onClick={() => setShowVacationRangeModal(false)}
-                  className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                  style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                  title="Chiudi"
+                  aria-label="Chiudi finestra"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
                 </button>
               </div>
 

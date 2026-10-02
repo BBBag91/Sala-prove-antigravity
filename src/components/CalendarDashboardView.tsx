@@ -2015,10 +2015,14 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setActiveBookingDetail(null)}
-                className="text-slate-400 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-yellow-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors"
+                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                title="Chiudi"
+                aria-label="Chiudi finestra"
               >
-                &#x2715;
+                <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </button>
             </div>
 
@@ -2243,9 +2247,12 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsShiftsPanelOpen(false)}
-                className="text-slate-400 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-yellow-400 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer text-lg font-bold"
+                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                title="Chiudi"
+                aria-label="Chiudi finestra"
               >
-                ✕
+                <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </button>
             </div>
             <Suspense fallback={<div className="p-8 text-center text-sm text-yellow-400">Caricamento turni in corso...</div>}>
@@ -2273,9 +2280,12 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsQuickDatePickerOpen(false)}
-                className="text-slate-400 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-yellow-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                title="Chiudi"
+                aria-label="Chiudi finestra"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </button>
             </div>
 
