@@ -107,16 +107,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ message: 'WhatsApp notifications are disabled in studio_info' });
     }
 
-    // 3. Controlla se il messaggio è già stato inviato oggi (guard idempotente)
-    if (config.lastAutoSentDate === todayStr) {
+    const isForce = req.query?.force === 'true' || req.query?.force === '1';
+
+    // 3. Controlla se il messaggio è già stato inviato oggi (guard idempotente, bypassabile con ?force=true)
+    if (!isForce && config.lastAutoSentDate === todayStr) {
       return res.status(200).json({ message: `Messaggio già inviato oggi (${todayStr}), skip.` });
     }
 
-    // 4. Verifica orario target (default 10:00 ora italiana)
+    // 4. Verifica orario target (default 10:00 ora italiana, bypassabile con ?force=true)
     const targetTimeStr: string = config.orarioNotifica || '10:00';
     const [targetHours, targetMinutes] = targetTimeStr.split(':').map((n: string) => parseInt(n, 10));
 
-    if (currentHourIT < targetHours || (currentHourIT === targetHours && nowInRome.getMinutes() < targetMinutes)) {
+    if (!isForce && (currentHourIT < targetHours || (currentHourIT === targetHours && nowInRome.getMinutes() < targetMinutes))) {
       return res.status(200).json({
         message: `Troppo presto: ora italiana ${currentHourIT}:${String(nowInRome.getMinutes()).padStart(2,'0')}, target ${targetTimeStr}. Skip.`
       });
