@@ -37,9 +37,9 @@ interface AppContextType {
   deleteRoom: (id: string) => void;
 
   // Staff actions
-  addStaff: (member: Omit<StaffMember, 'id'>) => void;
-  updateStaff: (member: StaffMember) => void;
-  deleteStaff: (id: string) => void;
+  addStaff: (member: Omit<StaffMember, 'id'>) => Promise<StaffMember>;
+  updateStaff: (member: StaffMember) => Promise<void>;
+  deleteStaff: (id: string) => Promise<void>;
 
   // Shift actions (Turni Presidio Sala Prove)
   assignOperatorToShift: (date: string, turnoNumero: 1 | 2, operatorId?: string, syncToBookings?: boolean) => void;
@@ -166,7 +166,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .then((remote) => {
         if (remote) {
           if (remote.rooms.length > 0) setRooms(remote.rooms);
-          if (remote.staff.length > 0) setStaff(remote.staff);
+          if (remote.staff.length > 0) {
+            setStaff((prevLocal) => {
+              const remoteIds = new Set(remote.staff.map((s) => s.id));
+              const pendingLocal = prevLocal.filter((localMember) => !remoteIds.has(localMember.id));
+              return pendingLocal.length > 0 ? [...remote.staff, ...pendingLocal] : remote.staff;
+            });
+          }
           if (remote.clients.length > 0) setClients(remote.clients);
           if (remote.bookings.length > 0) setBookings(remote.bookings);
           if (remote.expenses.length > 0) setExpenses(remote.expenses);
@@ -226,7 +232,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const remote = await supabaseService.fetchAll();
       if (remote) {
         if (remote.rooms.length > 0) setRooms(remote.rooms);
-        if (remote.staff.length > 0) setStaff(remote.staff);
+        if (remote.staff.length > 0) {
+          setStaff((prevLocal) => {
+            const remoteIds = new Set(remote.staff.map((s) => s.id));
+            const pendingLocal = prevLocal.filter((localMember) => !remoteIds.has(localMember.id));
+            return pendingLocal.length > 0 ? [...remote.staff, ...pendingLocal] : remote.staff;
+          });
+        }
         if (remote.clients.length > 0) setClients(remote.clients);
         if (remote.bookings) setBookings(remote.bookings);
         if (remote.expenses.length > 0) setExpenses(remote.expenses);
@@ -367,18 +379,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Staff CRUD
-  const addStaff = (memberData: Omit<StaffMember, 'id'>) => {
+  const addStaff = async (memberData: Omit<StaffMember, 'id'>): Promise<StaffMember> => {
     const newMember: StaffMember = {
       ...memberData,
       id: `staff-${Date.now()}`,
     };
     setStaff((prev) => [...prev, newMember]);
     if (configured) {
-      supabaseService.upsertStaff(newMember).catch(console.error);
+      const res = await supabaseService.upsertStaff(newMember);
+      if (res?.error) {
+        console.error('[AppContext] Errore salvataggio operatore su Supabase:', res.error);
+        throw res.error;
+      }
     }
+    return newMember;
   };
 
-  const updateStaff = (updated: StaffMember) => {
+  const updateStaff = async (updated: StaffMember): Promise<void> => {
     setStaff((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
     // Sync name in bookings
     setBookings((prev) =>
@@ -389,11 +406,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
     );
     if (configured) {
-      supabaseService.upsertStaff(updated).catch(console.error);
+      const res = await supabaseService.upsertStaff(updated);
+      if (res?.error) {
+        console.error('[AppContext] Errore aggiornamento operatore su Supabase:', res.error);
+        throw res.error;
+      }
     }
   };
 
-  const deleteStaff = (id: string) => {
+  const deleteStaff = async (id: string): Promise<void> => {
     setStaff((prev) => prev.filter((s) => s.id !== id));
     // Clear assignment in bookings
     setBookings((prev) =>
@@ -404,7 +425,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
     );
     if (configured) {
-      supabaseService.deleteStaff(id).catch(console.error);
+      await supabaseService.deleteStaff(id).catch(console.error);
     }
   };
 

@@ -37,7 +37,7 @@ async function seed() {
 
   // 3. Staff
   console.log('Caricamento operatori / staff...');
-  const { error: errStaff } = await client.from('staff').upsert(INITIAL_STAFF.map(mapStaffToDb));
+  const { error: errStaff } = await client.from('staff').upsert(INITIAL_STAFF.map((s) => mapStaffToDb(s)));
   if (errStaff) console.error('Errore staff:', errStaff);
   else console.log(`✓ ${INITIAL_STAFF.length} membri staff caricati!`);
 

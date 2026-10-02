@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -28,6 +28,7 @@ import {
   Shield,
   X,
   RotateCcw,
+  Move,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -37,6 +38,8 @@ import {
   parseISODate,
   MESI_ITALIANI,
   timeToMinutes,
+  minutesToTime,
+  formatDateItalian,
 } from '../utils/dateUtils';
 import { AutoAssignResult, getOperatorAccumulatedHours } from '../utils/scheduler';
 import { computeDailyShifts, isWeekdayDate } from '../utils/shiftUtils';
@@ -106,7 +109,7 @@ interface CalendarDashboardViewProps {
 export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   onNavigateToTurni,
 }) => {
-  const { rooms, staff, bookings, clients, runAutoAssignment, deleteBooking, refreshFromCloud, isAutoRefreshing, shifts } = useApp();
+  const { rooms, staff, bookings, clients, runAutoAssignment, updateBooking, deleteBooking, refreshFromCloud, isAutoRefreshing, shifts } = useApp();
   const { isAdmin } = useAuth();
 
   const today = new Date();
@@ -162,6 +165,52 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   // Quick Date/Month Picker state
   const [isQuickDatePickerOpen, setIsQuickDatePickerOpen] = useState(false);
   const [quickPickerYear, setQuickPickerYear] = useState<number>(() => today.getFullYear());
+
+  // Drag-to-move booking on grid state
+  const gridScrollContainerRef = useRef<HTMLDivElement>(null);
+  const dragJustEndedRef = useRef(false);
+  const dragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDragRef = useRef<{
+    booking: Booking;
+    startX: number;
+    startY: number;
+    grabOffsetY: number;
+    pointerId: number;
+  } | null>(null);
+
+  const [dragState, setDragState] = useState<{
+    isDragging: boolean;
+    booking: Booking;
+    currentPointerX: number;
+    currentPointerY: number;
+    targetDate: string;
+    targetStartMins: number;
+    targetEndMins: number;
+    targetOraInizio: string;
+    targetOraFine: string;
+    hasConflict: boolean;
+    conflictNames: string[];
+    grabOffsetY: number;
+  } | null>(null);
+
+  const [moveToast, setMoveToast] = useState<{
+    visible: boolean;
+    bookingTitle: string;
+    roomName: string;
+    targetDate: string;
+    targetOraInizio: string;
+    targetOraFine: string;
+    previousBooking: Booking;
+  } | null>(null);
+
+  // Auto-dismiss move confirmation toast after 7 seconds
+  useEffect(() => {
+    if (!moveToast?.visible) return;
+    const timer = setTimeout(() => {
+      setMoveToast(null);
+    }, 7000);
+    return () => clearTimeout(timer);
+  }, [moveToast]);
 
   // Full week starting on Monday of currentDate
   const weekStart = getMondayOf(currentDate);
@@ -324,6 +373,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   });
 
   const handleDayClick = (dateStr: string, e?: React.MouseEvent<HTMLDivElement>) => {
+    if (dragJustEndedRef.current) return;
     let startHourStr = '18:00';
     if (e) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -413,6 +463,258 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     }
     return `${monthLabel} ${yearLabel}`;
   })();
+
+  // Calcolo della posizione target durante il drag & drop sulla griglia del calendario
+  const calculateDragTarget = useCallback(
+    (booking: Booking, clientX: number, clientY: number, grabOffsetY: number) => {
+      const dayElements = Array.from(
+        document.querySelectorAll<HTMLElement>('[data-day-column]')
+      );
+      let matchedCol: HTMLElement | null = null;
+      for (const colEl of dayElements) {
+        const rect = colEl.getBoundingClientRect();
+        if (clientX >= rect.left && clientX <= rect.right) {
+          matchedCol = colEl;
+          break;
+        }
+      }
+      if (!matchedCol && dayElements.length > 0) {
+        const firstRect = dayElements[0].getBoundingClientRect();
+        const lastRect = dayElements[dayElements.length - 1].getBoundingClientRect();
+        if (clientX < firstRect.left) {
+          matchedCol = dayElements[0];
+        } else if (clientX > lastRect.right) {
+          matchedCol = dayElements[dayElements.length - 1];
+        }
+      }
+
+      const targetDate = matchedCol?.dataset.dayColumn || booking.data;
+      const colRect = matchedCol?.getBoundingClientRect();
+      const colTop = colRect ? colRect.top : 0;
+      const relativeY = Math.max(0, clientY - colTop - grabOffsetY);
+      const rawMinutesFromHourStart = (relativeY / cellHeight) * 60;
+      const rawMidnightMins = HOUR_START * 60 + rawMinutesFromHourStart;
+
+      // Snap a scatti precisi di 15 minuti
+      let snappedStartMins = Math.round(rawMidnightMins / 15) * 15;
+
+      // Durata della prenotazione
+      let startM = timeToMinutes(booking.oraInizio);
+      let endM = timeToMinutes(booking.oraFine);
+      if (endM <= startM) endM += 24 * 60;
+      const durMins = Math.max(15, endM - startM);
+
+      const minMins = HOUR_START * 60;
+      const maxMins = (HOUR_START + currentTotalHours) * 60 - durMins;
+      snappedStartMins = Math.max(minMins, Math.min(maxMins, snappedStartMins));
+      const snappedEndMins = snappedStartMins + durMins;
+
+      const targetOraInizio = minutesToTime(snappedStartMins);
+      const targetOraFine = minutesToTime(snappedEndMins);
+
+      // Rilevamento conflitti nella stessa sala nel giorno di destinazione
+      const conflicts = bookings.filter((other) => {
+        if (other.id === booking.id) return false;
+        if (other.data !== targetDate) return false;
+        if (other.salaId !== booking.salaId) return false;
+        const oStart = timeToMinutes(other.oraInizio);
+        let oEnd = timeToMinutes(other.oraFine);
+        if (oEnd <= oStart) oEnd += 24 * 60;
+        return oStart < snappedEndMins && oEnd > snappedStartMins;
+      });
+
+      return {
+        targetDate,
+        targetStartMins: snappedStartMins,
+        targetEndMins: snappedEndMins,
+        targetOraInizio,
+        targetOraFine,
+        hasConflict: conflicts.length > 0,
+        conflictNames: conflicts.map((c) => c.clienteNome),
+      };
+    },
+    [cellHeight, currentTotalHours, bookings]
+  );
+
+  const startDrag = useCallback(
+    (booking: Booking, clientX: number, clientY: number, grabOffsetY: number) => {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try {
+          navigator.vibrate(35);
+        } catch {}
+      }
+      const targetInfo = calculateDragTarget(booking, clientX, clientY, grabOffsetY);
+      setDragState({
+        isDragging: true,
+        booking,
+        currentPointerX: clientX,
+        currentPointerY: clientY,
+        grabOffsetY,
+        ...targetInfo,
+      });
+      document.body.style.userSelect = 'none';
+    },
+    [calculateDragTarget]
+  );
+
+  const handleBookingPointerDown = (
+    booking: Booking,
+    e: React.PointerEvent<HTMLDivElement>
+  ) => {
+    if (e.button !== 0) return;
+    const cardRect = e.currentTarget.getBoundingClientRect();
+    const grabOffsetY = Math.min(
+      Math.max(8, e.clientY - cardRect.top),
+      cardRect.height - 8
+    );
+
+    pendingDragRef.current = {
+      booking,
+      startX: e.clientX,
+      startY: e.clientY,
+      grabOffsetY,
+      pointerId: e.pointerId,
+    };
+
+    if (dragTimerRef.current) clearTimeout(dragTimerRef.current);
+    // Pressione prolungata per 200ms attiva lo spostamento (drag & drop)
+    dragTimerRef.current = setTimeout(() => {
+      if (pendingDragRef.current) {
+        startDrag(
+          pendingDragRef.current.booking,
+          pendingDragRef.current.startX,
+          pendingDragRef.current.startY,
+          pendingDragRef.current.grabOffsetY
+        );
+      }
+    }, 200);
+  };
+
+  useEffect(() => {
+    const handleWindowPointerMove = (e: PointerEvent) => {
+      if (pendingDragRef.current && !dragState?.isDragging) {
+        const dx = Math.abs(e.clientX - pendingDragRef.current.startX);
+        const dy = Math.abs(e.clientY - pendingDragRef.current.startY);
+        // Se il cursore si muove oltre 6px prima del timeout, attiva lo spostamento immediatamente
+        if (dx > 6 || dy > 6) {
+          if (dragTimerRef.current) {
+            clearTimeout(dragTimerRef.current);
+            dragTimerRef.current = null;
+          }
+          startDrag(
+            pendingDragRef.current.booking,
+            e.clientX,
+            e.clientY,
+            pendingDragRef.current.grabOffsetY
+          );
+        }
+      }
+
+      if (dragState?.isDragging) {
+        e.preventDefault();
+
+        // Autoscroll fluido quando ci si avvicina ai bordi superiore o inferiore della griglia
+        if (gridScrollContainerRef.current) {
+          const containerRect = gridScrollContainerRef.current.getBoundingClientRect();
+          const edgeThreshold = 40;
+          if (e.clientY < containerRect.top + edgeThreshold) {
+            gridScrollContainerRef.current.scrollTop -= 12;
+          } else if (e.clientY > containerRect.bottom - edgeThreshold) {
+            gridScrollContainerRef.current.scrollTop += 12;
+          }
+        }
+
+        const targetInfo = calculateDragTarget(
+          dragState.booking,
+          e.clientX,
+          e.clientY,
+          dragState.grabOffsetY
+        );
+
+        setDragState((prev) =>
+          prev
+            ? {
+                ...prev,
+                currentPointerX: e.clientX,
+                currentPointerY: e.clientY,
+                ...targetInfo,
+              }
+            : null
+        );
+      }
+    };
+
+    const handleWindowPointerUp = () => {
+      if (dragTimerRef.current) {
+        clearTimeout(dragTimerRef.current);
+        dragTimerRef.current = null;
+      }
+      pendingDragRef.current = null;
+
+      if (dragState?.isDragging) {
+        document.body.style.userSelect = '';
+        dragJustEndedRef.current = true;
+        setTimeout(() => {
+          dragJustEndedRef.current = false;
+        }, 300);
+
+        const { booking, targetDate, targetOraInizio, targetOraFine, targetStartMins, targetEndMins } =
+          dragState;
+        const hasMoved = targetDate !== booking.data || targetOraInizio !== booking.oraInizio;
+
+        if (hasMoved) {
+          const previousBooking = { ...booking };
+          const durHours = (targetEndMins - targetStartMins) / 60;
+          const updated: Booking = {
+            ...booking,
+            data: targetDate,
+            oraInizio: targetOraInizio,
+            oraFine: targetOraFine,
+            durataOre: durHours,
+          };
+          updateBooking(updated);
+
+          setMoveToast({
+            visible: true,
+            bookingTitle: booking.clienteNome || 'Prenotazione',
+            roomName: booking.salaNome,
+            targetDate,
+            targetOraInizio,
+            targetOraFine,
+            previousBooking,
+          });
+        }
+
+        setDragState(null);
+      }
+    };
+
+    const handleWindowPointerCancel = () => {
+      if (dragTimerRef.current) {
+        clearTimeout(dragTimerRef.current);
+        dragTimerRef.current = null;
+      }
+      pendingDragRef.current = null;
+      if (dragState?.isDragging) {
+        document.body.style.userSelect = '';
+        setDragState(null);
+        dragJustEndedRef.current = true;
+        setTimeout(() => {
+          dragJustEndedRef.current = false;
+        }, 250);
+      }
+    };
+
+    window.addEventListener('pointermove', handleWindowPointerMove, { passive: false });
+    window.addEventListener('pointerup', handleWindowPointerUp);
+    window.addEventListener('pointercancel', handleWindowPointerCancel);
+
+    return () => {
+      window.removeEventListener('pointermove', handleWindowPointerMove);
+      window.removeEventListener('pointerup', handleWindowPointerUp);
+      window.removeEventListener('pointercancel', handleWindowPointerCancel);
+    };
+  }, [dragState, calculateDragTarget, startDrag, updateBooking]);
 
   return (
     <div className="space-y-3 print:hidden">
@@ -844,6 +1146,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         
         {/* Scrollable Container with sticky headers & sticky hour column */}
         <div
+          ref={gridScrollContainerRef}
           className="overflow-auto relative"
           style={{
             maxHeight: cellHeight <= 38 && viewMode === 'week' ? 'none' : 'calc(100vh - 210px)',
@@ -1227,6 +1530,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 return (
                   <div
                     key={ds}
+                    data-day-column={ds}
                     className={`relative border-r border-slate-200 dark:border-yellow-500/20 last:border-r-0 ${isToday ? 'bg-blue-50/40 dark:bg-yellow-400/[0.03]' : 'bg-white dark:bg-[#0a0a0a]'}`}
                     style={{ height: `${(currentTotalHours + 1) * cellHeight}px` }}
                     onClick={(e) => handleDayClick(ds, e)}
@@ -1247,6 +1551,40 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                         style={{ top: `${i * cellHeight + cellHeight / 2}px` }}
                       />
                     ))}
+
+                    {/* Ghost Drop Target Preview when dragging onto this day column */}
+                    {dragState && dragState.isDragging && dragState.targetDate === ds && (
+                      <div
+                        className={`absolute rounded-md sm:rounded-lg border-2 z-[25] pointer-events-none transition-all duration-75 flex flex-col justify-between p-1 sm:p-1.5 shadow-2xl backdrop-blur-xs ${
+                          dragState.hasConflict
+                            ? 'border-red-500 bg-red-500/30 dark:bg-red-950/60 text-red-900 dark:text-red-200 ring-2 ring-red-500/40'
+                            : 'border-blue-500 dark:border-yellow-400 bg-blue-500/25 dark:bg-yellow-400/25 text-slate-900 dark:text-yellow-100 ring-4 ring-blue-500/30 dark:ring-yellow-400/30'
+                        } border-dashed animate-pulse`}
+                        style={{
+                          top: `${((dragState.targetStartMins - HOUR_START * 60) / 60) * cellHeight + 1}px`,
+                          height: `${Math.max(24, ((dragState.targetEndMins - dragState.targetStartMins) / 60) * cellHeight - 2)}px`,
+                          left: '2px',
+                          right: '2px',
+                        }}
+                      >
+                        <div className="flex items-center justify-between text-[9px] sm:text-[11px] font-black truncate drop-shadow-sm">
+                          <span className="truncate">📍 {dragState.booking.clienteNome}</span>
+                          <span className="font-mono bg-black/85 text-white px-1.5 py-0.5 rounded text-[8.5px] sm:text-[9.5px] shrink-0 ml-1">
+                            {dragState.targetOraInizio} - {dragState.targetOraFine}
+                          </span>
+                        </div>
+                        {dragState.hasConflict ? (
+                          <div className="flex items-center gap-1 text-[8px] sm:text-[9px] font-bold text-red-700 dark:text-red-300 bg-white/90 dark:bg-black/90 px-1 py-0.5 rounded mt-auto truncate border border-red-300 dark:border-red-700">
+                            <AlertTriangle className="w-2.5 h-2.5 text-red-500 shrink-0" />
+                            <span className="truncate">Sovrapposizione ({dragState.conflictNames.join(', ')})</span>
+                          </div>
+                        ) : (
+                          <div className="text-[7.5px] sm:text-[9px] font-bold text-blue-900 dark:text-yellow-200/95 truncate mt-auto drop-shadow-xs">
+                            Rilascia qui ({dragState.booking.salaNome})
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Sfondi Turni Operatore (Background Blocks: 17:00-20:00 e 20:00-23:00 con adattamento dinamico) */}
                     {showShiftsInGrid && isWeekdayCol && s1Col && s2Col && (
@@ -1476,20 +1814,31 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                         }
                       }
 
+                      const isBeingDragged = dragState?.isDragging && dragState.booking.id === b.id;
+
                       return (
                         <div
                           key={b.id}
-                          onClick={e => { e.stopPropagation(); setActiveBookingDetail(b); }}
-                          className="absolute rounded-md sm:rounded-lg cursor-pointer overflow-hidden transition-all hover:brightness-110 hover:z-30 hover:shadow-xl select-none group border border-black/30 shadow-md"
+                          data-booking-id={b.id}
+                          onPointerDown={(e) => handleBookingPointerDown(b, e)}
+                          onClick={e => {
+                            e.stopPropagation();
+                            if (dragJustEndedRef.current) return;
+                            setActiveBookingDetail(b);
+                          }}
+                          className={`absolute rounded-md sm:rounded-lg cursor-grab active:cursor-grabbing overflow-hidden transition-all hover:brightness-110 hover:z-30 hover:shadow-xl select-none group border border-black/30 shadow-md ${
+                            isBeingDragged ? 'opacity-30 scale-95 ring-2 ring-blue-500 dark:ring-yellow-400 z-30' : ''
+                          }`}
                           style={{
                             top: `${topPx + 1}px`,
                             height: `${heightPx - 2}px`,
                             left: `${leftPct + 0.5}%`,
                             width: `${widthPct - 1}%`,
                             backgroundColor: colors.bg,
-                            zIndex: 10,
+                            zIndex: isBeingDragged ? 40 : 10,
+                            touchAction: 'none',
                           }}
-                          title={`${b.clienteNome} • ${b.oraInizio}-${b.oraFine} • ${b.salaNome}`}
+                          title={`${b.clienteNome} • ${b.oraInizio}-${b.oraFine} • ${b.salaNome} (Tieni premuto e trascina per spostare)`}
                         >
                           {isNarrow ? (
                             <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden py-1 px-0.5 select-none relative">
@@ -1662,27 +2011,38 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   </span>
                 </div>
               )}
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 dark:text-neutral-400">Tariffa:</span>
-                <div className="flex items-center gap-2">
-                  {activeBookingDetail.sconto && activeBookingDetail.sconto > 0 ? (
-                    <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/20">
-                      Sconto -€{activeBookingDetail.sconto}
+              {activeBookingDetail.tipo !== 'lezione' ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 dark:text-neutral-400">Tariffa:</span>
+                    <div className="flex items-center gap-2">
+                      {activeBookingDetail.sconto && activeBookingDetail.sconto > 0 ? (
+                        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/20">
+                          Sconto -€{activeBookingDetail.sconto}
+                        </span>
+                      ) : null}
+                      <span className="font-bold text-blue-600 dark:text-yellow-400 text-sm">&#x20AC;{activeBookingDetail.tariffaTotale}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 dark:text-neutral-400">Stato Pagamento:</span>
+                    <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                      activeBookingDetail.statoPagamento === 'pagato'
+                        ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30'
+                        : 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-500/30'
+                    }`}>
+                      {activeBookingDetail.statoPagamento === 'pagato' ? 'Pagato' : 'Da Saldare'}
                     </span>
-                  ) : null}
-                  <span className="font-bold text-blue-600 dark:text-yellow-400 text-sm">&#x20AC;{activeBookingDetail.tariffaTotale}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-neutral-400">Quota Sala Docente:</span>
+                  <span className="font-bold text-purple-700 dark:text-purple-400 text-xs bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
+                    5€ / ora (Conti Mensili)
+                  </span>
                 </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 dark:text-neutral-400">Stato Pagamento:</span>
-                <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                  activeBookingDetail.statoPagamento === 'pagato'
-                    ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30'
-                    : 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-500/30'
-                }`}>
-                  {activeBookingDetail.statoPagamento === 'pagato' ? 'Pagato' : 'Da Saldare'}
-                </span>
-              </div>
+              )}
             </div>
 
             {(() => {
@@ -1970,6 +2330,58 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Floating Drag Indicator Pill */}
+      {dragState && dragState.isDragging && (
+        <div
+          className="fixed pointer-events-none z-[9999] -translate-x-1/2 -translate-y-14 px-3 py-1.5 rounded-full shadow-2xl text-xs font-bold flex items-center gap-2 backdrop-blur-md border border-white/20 transition-transform duration-75 select-none bg-slate-900/95 text-white dark:bg-yellow-400 dark:text-neutral-950 ring-2 ring-black/20"
+          style={{
+            left: `${dragState.currentPointerX}px`,
+            top: `${dragState.currentPointerY}px`,
+          }}
+        >
+          <CalendarClock className="w-4 h-4 shrink-0 text-blue-400 dark:text-black animate-pulse" />
+          <span className="truncate max-w-[120px]">{dragState.booking.clienteNome}</span>
+          <span className="font-mono bg-white/20 dark:bg-black/20 px-1.5 py-0.5 rounded font-black">
+            {dragState.targetOraInizio} - {dragState.targetOraFine}
+          </span>
+          {dragState.hasConflict && (
+            <span className="text-red-400 dark:text-red-900 flex items-center gap-0.5 font-black text-[11px] bg-red-500/20 dark:bg-red-950/20 px-1 rounded">
+              <AlertTriangle className="w-3 h-3 text-red-400 dark:text-red-700" /> Sovrapposizione
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Floating Toast Notification for Moved Booking with Undo */}
+      {moveToast && moveToast.visible && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 bg-slate-900/95 dark:bg-neutral-900/95 backdrop-blur-md text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 dark:border-yellow-500/40 animate-in fade-in slide-in-from-bottom duration-200 max-w-[94vw]">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="text-xs sm:text-sm">
+            <span className="font-bold">{moveToast.bookingTitle}</span> spostata a{' '}
+            <span className="font-semibold text-blue-300 dark:text-yellow-300">
+              {formatDateItalian(moveToast.targetDate, false)} ore {moveToast.targetOraInizio} - {moveToast.targetOraFine}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              updateBooking(moveToast.previousBooking);
+              setMoveToast(null);
+            }}
+            className="ml-2 px-2.5 py-1 text-xs font-bold bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center gap-1 cursor-pointer border border-white/20 shrink-0"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Annulla
+          </button>
+          <button
+            type="button"
+            onClick={() => setMoveToast(null)}
+            className="text-white/60 hover:text-white p-1 ml-1 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
     </div>

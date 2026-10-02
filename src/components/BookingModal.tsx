@@ -295,10 +295,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // Recalculate price automatically if not manually set
   useEffect(() => {
+    if (tipo === 'lezione') {
+      setTariffaBase(0);
+      setTariffaTotale(0);
+      setSconto(0);
+      return;
+    }
     const room = rooms.find((r) => r.id === salaId);
     if (!room) return;
     const hours = calculateDurationHours(oraInizio, oraFine);
-    const rate = tipo === 'lezione' && room.tariffaLezione ? room.tariffaLezione : room.tariffaOraria;
+    const rate = room.tariffaOraria;
     const base = Math.round(hours * rate);
     setTariffaBase(base);
     if (!customTariffa) {
@@ -353,6 +359,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const finalOperatoreNome = bookingToEdit?.operatoreAssegnatoNome;
 
     const clientDisplayName = finalClienteNome;
+    const finalTariffaTotale = tipo === 'lezione' ? 0 : Number(tariffaTotale);
+    const finalSconto = tipo === 'lezione' ? 0 : (Number(sconto) || 0);
+    const finalStatoPagamento = tipo === 'lezione' ? 'pagato' : statoPagamento;
 
     const isRecurring = ripetizioneSettimanale || recurrenceConfig.attiva;
     const activeConfig: RecurrenceConfig | undefined = isRecurring
@@ -394,10 +403,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           recurrenceConfig: activeConfig,
           operatoreAssegnatoId: finalOperatoreId,
           operatoreAssegnatoNome: finalOperatoreNome,
-          tariffaTotale: Number(tariffaTotale),
-          sconto: Number(sconto) || 0,
-          statoPagamento,
-          metodoPagamento: statoPagamento === 'pagato' ? metodoPagamento : undefined,
+          tariffaTotale: finalTariffaTotale,
+          sconto: finalSconto,
+          statoPagamento: finalStatoPagamento,
+          metodoPagamento: finalStatoPagamento === 'pagato' && tipo !== 'lezione' ? metodoPagamento : undefined,
           richiesteStrumentazione,
           note,
         });
@@ -425,8 +434,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             recurrenceConfig: activeConfig,
             operatoreAssegnatoId: finalOperatoreId,
             operatoreAssegnatoNome: finalOperatoreNome,
-            tariffaTotale: Number(tariffaTotale),
-            sconto: Number(sconto) || 0,
+            tariffaTotale: finalTariffaTotale,
+            sconto: finalSconto,
             statoPagamento: 'da_saldare',
             richiesteStrumentazione,
             note,
@@ -453,10 +462,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           recurrenceConfig: undefined,
           operatoreAssegnatoId: finalOperatoreId,
           operatoreAssegnatoNome: finalOperatoreNome,
-          tariffaTotale: Number(tariffaTotale),
-          sconto: Number(sconto) || 0,
-          statoPagamento,
-          metodoPagamento: statoPagamento === 'pagato' ? metodoPagamento : undefined,
+          tariffaTotale: finalTariffaTotale,
+          sconto: finalSconto,
+          statoPagamento: finalStatoPagamento,
+          metodoPagamento: finalStatoPagamento === 'pagato' && tipo !== 'lezione' ? metodoPagamento : undefined,
           richiesteStrumentazione,
           note,
         });
@@ -486,8 +495,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               durataOre: durationHours,
               operatoreAssegnatoId: finalOperatoreId,
               operatoreAssegnatoNome: finalOperatoreNome,
-              tariffaTotale: Number(tariffaTotale),
-              sconto: Number(sconto) || 0,
+              tariffaTotale: finalTariffaTotale,
+              sconto: finalSconto,
               richiesteStrumentazione,
               note,
             });
@@ -511,10 +520,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             recurrenceConfig: isRecurring ? activeConfig : undefined,
             operatoreAssegnatoId: finalOperatoreId,
             operatoreAssegnatoNome: finalOperatoreNome,
-            tariffaTotale: Number(tariffaTotale),
-            sconto: Number(sconto) || 0,
-            statoPagamento,
-            metodoPagamento: statoPagamento === 'pagato' ? metodoPagamento : undefined,
+            tariffaTotale: finalTariffaTotale,
+            sconto: finalSconto,
+            statoPagamento: finalStatoPagamento,
+            metodoPagamento: finalStatoPagamento === 'pagato' && tipo !== 'lezione' ? metodoPagamento : undefined,
             richiesteStrumentazione,
             note,
           });
@@ -537,10 +546,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         recurrenceConfig: activeConfig,
         operatoreAssegnatoId: finalOperatoreId,
         operatoreAssegnatoNome: finalOperatoreNome,
-        tariffaTotale: Number(tariffaTotale),
-        sconto: Number(sconto) || 0,
-        statoPagamento,
-        metodoPagamento: statoPagamento === 'pagato' ? metodoPagamento : undefined,
+        tariffaTotale: finalTariffaTotale,
+        sconto: finalSconto,
+        statoPagamento: finalStatoPagamento,
+        metodoPagamento: finalStatoPagamento === 'pagato' && tipo !== 'lezione' ? metodoPagamento : undefined,
         richiesteStrumentazione,
         note,
       });
@@ -741,7 +750,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <option value="">-- Seleziona sala --</option>
                 {rooms.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.nome} (€{r.tariffaOraria}/h) - Capienza: {r.capienza}
+                    {r.nome} {tipo !== 'lezione' ? `(€${r.tariffaOraria}/h)` : ''} - Capienza: {r.capienza}
                   </option>
                 ))}
               </select>
@@ -930,131 +939,150 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             />
           </div>
 
-          {/* Importo, Sconto & Pagamento */}
-          <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Tariffa Base (€) */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                  Tariffa Base (€)
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={tariffaBase}
-                    onFocus={handleNumericFocus}
-                    onClick={handleNumericClick}
-                    onBlur={handleNumericBlur}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '' || /^\d*$/.test(val)) {
-                        handleTariffaBaseChange(val);
-                      }
-                    }}
-                    placeholder=""
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
-                  />
-                  <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
-                </div>
-              </div>
-
-              {/* Sconto (€) */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
-                  <span>Sconto (€)</span>
-                  {Number(sconto) > 0 && (
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                      -{sconto}€
-                    </span>
-                  )}
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={sconto === 0 || sconto === '0' ? '' : sconto}
-                    placeholder="0"
-                    onFocus={handleNumericFocus}
-                    onClick={handleNumericClick}
-                    onBlur={handleNumericBlur}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '' || /^\d*$/.test(val)) {
-                        handleScontoChange(val);
-                      }
-                    }}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
-                  />
-                  <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
-                </div>
-              </div>
-
-              {/* Tariffa Totale Finale (€) */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                  Tariffa Totale (€)
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={tariffaTotale}
-                    onFocus={handleNumericFocus}
-                    onClick={handleNumericClick}
-                    onBlur={handleNumericBlur}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '' || /^\d*$/.test(val)) {
-                        setCustomTariffa(true);
-                        setTariffaTotale(val);
-                      }
-                    }}
-                    placeholder=""
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
-                  />
-                  <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Stato Pagamento & Metodo Pagamento */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                  Stato Pagamento
-                </label>
-                <select
-                  value={statoPagamento}
-                  onChange={(e) => setStatoPagamento(e.target.value as PaymentStatus)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-800"
-                >
-                  <option value="da_saldare">⏳ Da Saldare</option>
-                  <option value="pagato">✅ Pagato</option>
-                </select>
-              </div>
-
-              {statoPagamento === 'pagato' && (
+          {/* Importo, Sconto & Pagamento (Solo per Prove Musicali) */}
+          {tipo !== 'lezione' ? (
+            <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Tariffa Base (€) */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Metodo Pagamento
+                    Tariffa Base (€)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={tariffaBase}
+                      onFocus={handleNumericFocus}
+                      onClick={handleNumericClick}
+                      onBlur={handleNumericBlur}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          handleTariffaBaseChange(val);
+                        }
+                      }}
+                      placeholder=""
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
+                    />
+                    <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
+                  </div>
+                </div>
+
+                {/* Sconto (€) */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Sconto (€)</span>
+                    {Number(sconto) > 0 && (
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                        -{sconto}€
+                      </span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={sconto === 0 || sconto === '0' ? '' : sconto}
+                      placeholder="0"
+                      onFocus={handleNumericFocus}
+                      onClick={handleNumericClick}
+                      onBlur={handleNumericBlur}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          handleScontoChange(val);
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
+                    />
+                    <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
+                  </div>
+                </div>
+
+                {/* Tariffa Totale Finale (€) */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                    Tariffa Totale (€)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={tariffaTotale}
+                      onFocus={handleNumericFocus}
+                      onClick={handleNumericClick}
+                      onBlur={handleNumericBlur}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          setCustomTariffa(true);
+                          setTariffaTotale(val);
+                        }
+                      }}
+                      placeholder=""
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
+                    />
+                    <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stato Pagamento & Metodo Pagamento */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                    Stato Pagamento
                   </label>
                   <select
-                    value={metodoPagamento}
-                    onChange={(e) => setMetodoPagamento(e.target.value as PaymentMethod)}
+                    value={statoPagamento}
+                    onChange={(e) => setStatoPagamento(e.target.value as PaymentStatus)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-800"
                   >
-                    <option value="pos">POS / Carta</option>
-                    <option value="contanti">Contanti</option>
-                    <option value="bonifico">Bonifico</option>
+                    <option value="da_saldare">⏳ Da Saldare</option>
+                    <option value="pagato">✅ Pagato</option>
                   </select>
                 </div>
-              )}
+
+                {statoPagamento === 'pagato' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                      Metodo Pagamento
+                    </label>
+                    <select
+                      value={metodoPagamento}
+                      onChange={(e) => setMetodoPagamento(e.target.value as PaymentMethod)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-800"
+                    >
+                      <option value="pos">POS / Carta</option>
+                      <option value="contanti">Contanti</option>
+                      <option value="bonifico">Bonifico</option>
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-xl flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-purple-100 border border-purple-200 text-purple-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <div className="text-xs text-purple-950 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-purple-900">Lezione di Musica / Canto</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-200/80 text-purple-800 tracking-wide border border-purple-300/60">
+                    Quota Sala 5€/h
+                  </span>
+                </div>
+                <p className="text-purple-800/80 leading-relaxed">
+                  Per le lezioni il prezzo non viene specificato qui. La sala prove conteggerà automaticamente nella sezione <strong>Conti & Bollette</strong> la quota di utilizzo pari a <strong>5€ per ogni ora svolta</strong> dal docente, con opzione di saldo.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Note generali */}
           <div>

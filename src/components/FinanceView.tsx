@@ -17,6 +17,7 @@ import { Expense, ExpenseCategory } from '../types';
 import { formatCurrency, formatDateItalian, MESI_ITALIANI } from '../utils/dateUtils';
 import { EXPENSE_CATEGORIES, ExpenseModal } from './ExpenseModal';
 import { CompensiFineMeseSection } from './CompensiFineMeseSection';
+import { TeacherLessonsFinanceSection } from './TeacherLessonsFinanceSection';
 
 export const FinanceView: React.FC = () => {
   const { expenses, bookings, clients, deleteExpense, updateExpense } = useApp();
@@ -28,6 +29,14 @@ export const FinanceView: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
+
+  // Quote lezioni insegnanti (5€/h)
+  const [teacherFees, setTeacherFees] = useState({
+    totalOre: 0,
+    totalDovuto: 0,
+    totalSaldato: 0,
+    totalDaSaldare: 0,
+  });
 
   const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
 
@@ -75,7 +84,7 @@ export const FinanceView: React.FC = () => {
     0
   );
 
-  const totalIncomes = bookingIncomePaid + membershipIncome;
+  const totalIncomes = bookingIncomePaid + membershipIncome + teacherFees.totalSaldato;
   const netBalance = totalIncomes - totalExpenses;
 
   // Category breakdown for expenses
@@ -167,13 +176,19 @@ export const FinanceView: React.FC = () => {
           </div>
           <p className="text-3xl font-bold font-mono text-slate-900">{formatCurrency(totalIncomes)}</p>
           <div className="text-[11px] text-slate-500 flex justify-between border-t border-slate-100 pt-1.5">
-            <span>Prove & Lezioni saldate:</span>
+            <span>Prove saldate:</span>
             <strong className="text-slate-800">{formatCurrency(bookingIncomePaid)}</strong>
           </div>
           <div className="text-[11px] text-slate-500 flex justify-between">
             <span>Quote Tesseramenti ({monthlyMemberships.length}):</span>
             <strong className="text-slate-800">{formatCurrency(membershipIncome)}</strong>
           </div>
+          {teacherFees.totalSaldato > 0 && (
+            <div className="text-[11px] text-purple-700 font-semibold flex justify-between">
+              <span>Quote Lezioni Saldate (5€/h):</span>
+              <strong className="text-purple-800 font-mono">{formatCurrency(teacherFees.totalSaldato)}</strong>
+            </div>
+          )}
         </div>
 
         {/* Spese */}
@@ -229,12 +244,29 @@ export const FinanceView: React.FC = () => {
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-bold font-mono text-indigo-600">{formatCurrency(bookingIncomePending)}</p>
-          <p className="text-[11px] text-slate-500 border-t border-slate-100 pt-1.5">
-            Crediti verso clienti per prove/lezioni non ancora pagate nel mese.
-          </p>
+          <p className="text-3xl font-bold font-mono text-indigo-600">{formatCurrency(bookingIncomePending + teacherFees.totalDaSaldare)}</p>
+          <div className="text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 space-y-1">
+            <div className="flex justify-between">
+              <span>Prove da saldare:</span>
+              <strong className="text-slate-800">{formatCurrency(bookingIncomePending)}</strong>
+            </div>
+            {teacherFees.totalDaSaldare > 0 && (
+              <div className="flex justify-between text-amber-700 font-semibold">
+                <span>Quote Lezioni da saldare:</span>
+                <strong className="text-amber-800 font-mono">{formatCurrency(teacherFees.totalDaSaldare)}</strong>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* ── Sezione Quote Lezioni Insegnanti (5€/ora) ── */}
+      <TeacherLessonsFinanceSection
+        currentMonthName={MESI_ITALIANI[currentMonth]}
+        currentYear={currentYear}
+        monthStr={monthStr}
+        onTotalsChange={setTeacherFees}
+      />
 
       {/* ── Sezione Compensi Fine Mese (Logica Excel) ── */}
       <CompensiFineMeseSection

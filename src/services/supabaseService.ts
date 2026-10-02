@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, WorkShift } from '../types';
+import { Booking, Client, Expense, ManualIncome, PrimaryWorkShift, PrimaryWorkShiftDate, Room, StaffMember, StudioInfo, WorkShift } from '../types';
 
 // =========================================================================
 // MAPPERS: TypeScript (camelCase) <-> Supabase PostgreSQL (snake_case)
@@ -30,38 +30,96 @@ export const mapRoomFromDb = (r: any): Room => ({
   stato: r.stato || 'disponibile',
 });
 
-export const mapStaffToDb = (s: StaffMember) => ({
-  id: s.id,
-  nome: s.nome,
-  cognome: s.cognome,
-  ruolo: s.ruolo,
-  email: s.email || '',
-  telefono: s.telefono || '',
-  materie_insegnamento: s.materieInsegnamento || '',
-  turni_lavoro_primario: s.turniLavoroPrimario || [],
-  indisponibilita_date: s.indisponibilitaDate || [],
-  colore_badge: s.coloreBadge || '#eab308',
-  attivo: s.attivo ?? true,
-  tariffa_oraria_rimborso: s.tariffaOrariaRimborso || null,
-  note: s.note || '',
-  updated_at: new Date().toISOString(),
-});
+// Flag per ricordare se la colonna 'indisponibilita_date' esiste nella tabella 'staff' di Supabase
+let hasStaffIndisponibilitaColumn: boolean | null = null;
 
-export const mapStaffFromDb = (s: any): StaffMember => ({
-  id: s.id,
-  nome: s.nome,
-  cognome: s.cognome,
-  ruolo: s.ruolo,
-  email: s.email || '',
-  telefono: s.telefono || '',
-  materieInsegnamento: s.materie_insegnamento || '',
-  turniLavoroPrimario: Array.isArray(s.turni_lavoro_primario) ? s.turni_lavoro_primario : [],
-  indisponibilitaDate: Array.isArray(s.indisponibilita_date) ? s.indisponibilita_date : [],
-  coloreBadge: s.colore_badge || '#eab308',
-  attivo: Boolean(s.attivo),
-  tariffaOrariaRimborso: s.tariffa_oraria_rimborso ? Number(s.tariffa_oraria_rimborso) : undefined,
-  note: s.note || '',
-});
+export const mapStaffToDb = (s: StaffMember, includeIndisponibilitaCol: boolean = true) => {
+  // Prepariamo i turni di lavoro primario
+  const turniLavoroPrimarioDb: any[] = Array.isArray(s.turniLavoroPrimario) ? [...s.turniLavoroPrimario] : [];
+
+  // Se ci sono date di indisponibilità/eccezioni mensili, le codifichiamo come metadato di sicurezza
+  // all'interno di turni_lavoro_primario (colonna JSONB garantita nel DB). In questo modo,
+  // anche se la colonna dedicata 'indisponibilita_date' non dovesse esistere nel DB remoto,
+  // i dati NON andranno mai persi!
+  if (s.indisponibilitaDate && s.indisponibilitaDate.length > 0) {
+    turniLavoroPrimarioDb.push({
+      id: '__META_INDISPONIBILITA_DATE__',
+      giornoSettimana: -1,
+      oraInizio: '',
+      oraFine: '',
+      descrizione: JSON.stringify(s.indisponibilitaDate),
+    });
+  }
+
+  const result: any = {
+    id: s.id,
+    nome: s.nome,
+    cognome: s.cognome,
+    ruolo: s.ruolo,
+    email: s.email || '',
+    telefono: s.telefono || '',
+    materie_insegnamento: s.materieInsegnamento || '',
+    turni_lavoro_primario: turniLavoroPrimarioDb,
+    colore_badge: s.coloreBadge || '#eab308',
+    attivo: s.attivo ?? true,
+    tariffa_oraria_rimborso: s.tariffaOrariaRimborso != null ? s.tariffaOrariaRimborso : null,
+    note: s.note || '',
+    updated_at: new Date().toISOString(),
+  };
+
+  if (typeof includeIndisponibilitaCol === 'boolean' ? includeIndisponibilitaCol : true) {
+    result.indisponibilita_date = s.indisponibilitaDate || [];
+  }
+
+  return result;
+};
+
+export const mapStaffFromDb = (s: any): StaffMember => {
+  const turniLavoroPrimario: PrimaryWorkShift[] = [];
+  let metaIndisponibilita: PrimaryWorkShiftDate[] = [];
+
+  if (Array.isArray(s.turni_lavoro_primario)) {
+    for (const item of s.turni_lavoro_primario) {
+      if (item && item.id === '__META_INDISPONIBILITA_DATE__') {
+        try {
+          if (item.descrizione) {
+            const parsed = JSON.parse(item.descrizione);
+            if (Array.isArray(parsed)) {
+              metaIndisponibilita = parsed;
+            }
+          }
+        } catch (e) {
+          console.warn('[mapStaffFromDb] Errore parsing meta indisponibilità:', e);
+        }
+      } else {
+        turniLavoroPrimario.push(item);
+      }
+    }
+  }
+
+  let indisponibilitaDate: PrimaryWorkShiftDate[] = [];
+  if (Array.isArray(s.indisponibilita_date) && s.indisponibilita_date.length > 0) {
+    indisponibilitaDate = s.indisponibilita_date;
+  } else if (metaIndisponibilita.length > 0) {
+    indisponibilitaDate = metaIndisponibilita;
+  }
+
+  return {
+    id: s.id,
+    nome: s.nome,
+    cognome: s.cognome,
+    ruolo: s.ruolo,
+    email: s.email || '',
+    telefono: s.telefono || '',
+    materieInsegnamento: s.materie_insegnamento || '',
+    turniLavoroPrimario,
+    indisponibilitaDate,
+    coloreBadge: s.colore_badge || '#eab308',
+    attivo: Boolean(s.attivo),
+    tariffaOrariaRimborso: s.tariffa_oraria_rimborso ? Number(s.tariffa_oraria_rimborso) : undefined,
+    note: s.note || '',
+  };
+};
 
 export const mapClientToDb = (c: Client) => ({
   id: c.id,
@@ -367,14 +425,39 @@ export const supabaseService = {
 
   // Staff
   async upsertStaff(member: StaffMember) {
-    if (!supabase) return;
-    const { error } = await supabase.from('staff').upsert(mapStaffToDb(member));
-    if (error) console.error('[Supabase] Errore upsertStaff:', error);
+    if (!supabase) return { error: null };
+
+    // Prova prima con la colonna se non sappiamo ancora che manca
+    if (hasStaffIndisponibilitaColumn !== false) {
+      const payload = mapStaffToDb(member, true);
+      const { data, error } = await supabase.from('staff').upsert(payload);
+      if (!error) {
+        hasStaffIndisponibilitaColumn = true;
+        return { data, error: null };
+      }
+      if (error.code === 'PGRST204' || error.message?.includes('indisponibilita_date')) {
+        hasStaffIndisponibilitaColumn = false;
+        console.warn('[Supabase] Colonna staff.indisponibilita_date non trovata nel DB remoto. Attivato fallback trasparente.');
+      } else {
+        console.error('[Supabase] Errore upsertStaff:', error);
+        return { error };
+      }
+    }
+
+    // Fallback: senza colonna indisponibilita_date (i dati rimangono comunque salvi dentro turni_lavoro_primario)
+    const fallbackPayload = mapStaffToDb(member, false);
+    const { data, error: fallbackError } = await supabase.from('staff').upsert(fallbackPayload);
+    if (fallbackError) {
+      console.error('[Supabase] Errore upsertStaff fallback:', fallbackError);
+      return { error: fallbackError };
+    }
+    return { data, error: null };
   },
   async deleteStaff(id: string) {
-    if (!supabase) return;
+    if (!supabase) return { error: null };
     const { error } = await supabase.from('staff').delete().eq('id', id);
     if (error) console.error('[Supabase] Errore deleteStaff:', error);
+    return { error };
   },
 
   // Clients
@@ -513,7 +596,21 @@ export const supabaseService = {
         return res;
       })(),
       supabase.from('rooms').upsert(data.rooms.map(mapRoomToDb)),
-      supabase.from('staff').upsert(data.staff.map(mapStaffToDb)),
+      (async () => {
+        if (hasStaffIndisponibilitaColumn !== false) {
+          const res = await supabase.from('staff').upsert(data.staff.map((s) => mapStaffToDb(s, true)));
+          if (!res.error) {
+            hasStaffIndisponibilitaColumn = true;
+            return res;
+          }
+          if (res.error.code === 'PGRST204' || res.error.message?.includes('indisponibilita_date')) {
+            hasStaffIndisponibilitaColumn = false;
+          } else {
+            return res;
+          }
+        }
+        return supabase.from('staff').upsert(data.staff.map((s) => mapStaffToDb(s, false)));
+      })(),
       supabase.from('clients').upsert(data.clients.map(mapClientToDb)),
       data.bookings.length > 0 ? supabase.from('bookings').upsert(data.bookings.map(mapBookingToDb)) : Promise.resolve({ error: null }),
       data.expenses.length > 0 ? supabase.from('expenses').upsert(data.expenses.map(mapExpenseToDb)) : Promise.resolve({ error: null }),
@@ -529,7 +626,9 @@ export const supabaseService = {
     if (bookingsRes.error) errors.push(`bookings: ${bookingsRes.error.message}`);
     if (expensesRes.error) errors.push(`expenses: ${expensesRes.error.message}`);
     if (incomesRes.error) errors.push(`incomes: ${incomesRes.error.message}`);
-    if ((shiftsRes as any)?.error) errors.push(`shifts: ${(shiftsRes as any).error.message}`);
+    if ((shiftsRes as any)?.error && (shiftsRes as any)?.error?.code !== 'PGRST205') {
+      errors.push(`shifts: ${(shiftsRes as any).error.message}`);
+    }
 
     if (errors.length > 0) {
       throw new Error(`Si sono verificati errori durante il caricamento: ${errors.join('; ')}`);

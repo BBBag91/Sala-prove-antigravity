@@ -234,9 +234,15 @@ export const BookingsView: React.FC = () => {
                     <h4 className="font-bold text-slate-900 text-base leading-tight">
                       {b.clienteNome}
                     </h4>
-                    <span className="font-mono font-bold text-slate-900 text-base shrink-0">
-                      {formatCurrency(b.tariffaTotale)}
-                    </span>
+                    {b.tipo !== 'lezione' ? (
+                      <span className="font-mono font-bold text-slate-900 text-base shrink-0">
+                        {formatCurrency(b.tariffaTotale)}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full shrink-0">
+                        5€/h nei Conti
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -291,16 +297,23 @@ export const BookingsView: React.FC = () => {
 
                 {/* Card Actions: Large Payment Toggle + Edit & Delete with 44px touch targets */}
                 <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-                  <button
-                    onClick={() => handleTogglePayment(b)}
-                    className={`flex-1 min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition-all touch-manipulation touch-active ${
-                      isPaid
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
-                        : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
-                    }`}
-                  >
-                    <span>{isPaid ? '✅ Saldato' : '⏳ Da Saldare (Tocca per pagare)'}</span>
-                  </button>
+                  {b.tipo !== 'lezione' ? (
+                    <button
+                      onClick={() => handleTogglePayment(b)}
+                      className={`flex-1 min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition-all touch-manipulation touch-active ${
+                        isPaid
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+                          : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
+                      }`}
+                    >
+                      <span>{isPaid ? '✅ Saldato' : '⏳ Da Saldare (Tocca per pagare)'}</span>
+                    </button>
+                  ) : (
+                    <div className="flex-1 min-h-[44px] px-3 py-2 rounded-xl text-xs font-semibold bg-purple-50/70 border border-purple-200 text-purple-800 flex items-center justify-center gap-1.5">
+                      <GraduationCap className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Quota sala: 5€/h (Docente: {b.insegnanteNome || 'Insegnante'})</span>
+                    </div>
+                  )}
 
                   <button
                     onClick={() => {
@@ -434,20 +447,28 @@ export const BookingsView: React.FC = () => {
 
                       {/* Price & Payment */}
                       <td className="py-3.5 px-4">
-                        <div className="font-bold font-mono text-slate-900 text-sm">
-                          {formatCurrency(b.tariffaTotale)}
-                        </div>
-                        <button
-                          onClick={() => handleTogglePayment(b)}
-                          className={`mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${
-                            isPaid
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
-                              : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
-                          }`}
-                          title="Clicca per invertire stato pagamento"
-                        >
-                          {isPaid ? '✅ Saldato' : '⏳ Da Saldare'}
-                        </button>
+                        {b.tipo !== 'lezione' ? (
+                          <>
+                            <div className="font-bold font-mono text-slate-900 text-sm">
+                              {formatCurrency(b.tariffaTotale)}
+                            </div>
+                            <button
+                              onClick={() => handleTogglePayment(b)}
+                              className={`mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${
+                                isPaid
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+                                  : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
+                              }`}
+                              title="Clicca per invertire stato pagamento"
+                            >
+                              {isPaid ? '✅ Saldato' : '⏳ Da Saldare'}
+                            </button>
+                          </>
+                        ) : (
+                          <div className="text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-1 rounded-md inline-block">
+                            5€/h nei Conti
+                          </div>
+                        )}
                       </td>
 
                       {/* Actions */}

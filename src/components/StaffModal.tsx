@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, UserCheck, Plus, Trash2, Clock, Briefcase, CheckCircle2, Calendar } from 'lucide-react';
+import { X, UserCheck, Plus, Trash2, Clock, Briefcase, CheckCircle2, Calendar, AlertCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PrimaryWorkShift, StaffMember, StaffRole } from '../types';
 import { GIORNI_CALENDARIO } from '../utils/dateUtils';
@@ -26,6 +26,8 @@ const BADGE_COLORS = [
 export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffToEdit }) => {
   const { addStaff, updateStaff } = useApp();
   const [isMonthlyModalOpen, setIsMonthlyModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [nome, setNome] = useState('');
   const [cognome, setCognome] = useState('');
@@ -73,6 +75,8 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
       setNote('');
       setTurniLavoroPrimario([]);
     }
+    setErrorMessage(null);
+    setIsSaving(false);
   }, [staffToEdit, isOpen]);
 
   if (!isOpen) return null;
@@ -108,42 +112,60 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
     setTurniLavoroPrimario((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome || !cognome) return;
-
-    if (staffToEdit) {
-      updateStaff({
-        ...staffToEdit,
-        nome,
-        cognome,
-        ruolo,
-        email,
-        telefono,
-        materieInsegnamento: ruolo !== 'operatore' ? materieInsegnamento : undefined,
-        coloreBadge,
-        attivo,
-        tariffaOrariaRimborso: tariffaOrariaRimborso === '' ? 0 : Number(String(tariffaOrariaRimborso).replace(',', '.')),
-        note,
-        turniLavoroPrimario,
-      });
-    } else {
-      addStaff({
-        nome,
-        cognome,
-        ruolo,
-        email,
-        telefono,
-        materieInsegnamento: ruolo !== 'operatore' ? materieInsegnamento : undefined,
-        coloreBadge,
-        attivo,
-        tariffaOrariaRimborso: tariffaOrariaRimborso === '' ? 0 : Number(String(tariffaOrariaRimborso).replace(',', '.')),
-        note,
-        turniLavoroPrimario,
-      });
+    if (!nome.trim() || !cognome.trim()) {
+      setErrorMessage('Nome e Cognome sono obbligatori.');
+      return;
     }
 
-    onClose();
+    setIsSaving(true);
+    setErrorMessage(null);
+
+    try {
+      const tariffaNum =
+        tariffaOrariaRimborso === ''
+          ? 0
+          : Number(String(tariffaOrariaRimborso).replace(',', '.'));
+
+      if (staffToEdit) {
+        await updateStaff({
+          ...staffToEdit,
+          nome: nome.trim(),
+          cognome: cognome.trim(),
+          ruolo,
+          email: email.trim(),
+          telefono: telefono.trim(),
+          materieInsegnamento: ruolo !== 'operatore' ? materieInsegnamento.trim() : undefined,
+          coloreBadge,
+          attivo,
+          tariffaOrariaRimborso: isNaN(tariffaNum) ? 0 : tariffaNum,
+          note: note.trim(),
+          turniLavoroPrimario,
+        });
+      } else {
+        await addStaff({
+          nome: nome.trim(),
+          cognome: cognome.trim(),
+          ruolo,
+          email: email.trim(),
+          telefono: telefono.trim(),
+          materieInsegnamento: ruolo !== 'operatore' ? materieInsegnamento.trim() : undefined,
+          coloreBadge,
+          attivo,
+          tariffaOrariaRimborso: isNaN(tariffaNum) ? 0 : tariffaNum,
+          note: note.trim(),
+          turniLavoroPrimario,
+        });
+      }
+
+      onClose();
+    } catch (err: any) {
+      console.error('[StaffModal] Errore salvataggio:', err);
+      setErrorMessage(err?.message || 'Si è verificato un errore durante il salvataggio dell\'operatore.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -181,6 +203,13 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+          {errorMessage && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2.5 text-xs text-red-700 font-medium">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           {/* Ruolo (Operatore, Insegnante, Entrambi) */}
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
@@ -504,17 +533,19 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
           <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
             <button
               type="button"
+              disabled={isSaving}
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-semibold transition-colors"
+              className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 text-sm font-semibold transition-colors"
             >
               Annulla
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-xs transition-colors flex items-center gap-2"
+              disabled={isSaving}
+              className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-sm shadow-xs transition-colors flex items-center gap-2"
             >
               <CheckCircle2 className="w-4 h-4" />
-              {staffToEdit ? 'Salva Modifiche' : 'Registra Operatore'}
+              {isSaving ? 'Salvataggio...' : staffToEdit ? 'Salva Modifiche' : 'Registra Operatore'}
             </button>
           </div>
         </form>
