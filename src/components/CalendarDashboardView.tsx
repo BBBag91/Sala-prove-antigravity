@@ -272,6 +272,142 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     setCurrentDate(today);
   };
 
+  // Mobile / Touchscreen Swipe gesture navigation per le settimane
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const touchCurrentRef = useRef<{ x: number; y: number } | null>(null);
+  const [weekSwipeToast, setWeekSwipeToast] = useState<{
+    direction: 'prev' | 'next';
+    label: string;
+  } | null>(null);
+  const swipeToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (swipeToastTimerRef.current) {
+        clearTimeout(swipeToastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showWeekSwipeToast = (direction: 'prev' | 'next') => {
+    if (swipeToastTimerRef.current) {
+      clearTimeout(swipeToastTimerRef.current);
+    }
+    const targetDate = direction === 'next'
+      ? (viewMode === 'day' ? addDays(currentDate, 1) : viewMode === '3days' ? addDays(currentDate, 3) : addDays(currentDate, 7))
+      : (viewMode === 'day' ? addDays(currentDate, -1) : viewMode === '3days' ? addDays(currentDate, -3) : addDays(currentDate, -7));
+    
+    const targetMon = getMondayOf(targetDate);
+    const targetWeekNum = isoWeek(targetMon);
+    const targetMonthName = MESI_ITALIANI[targetMon.getMonth()];
+    const label = viewMode === 'week'
+      ? (direction === 'next' ? `Settimana S${targetWeekNum} (${targetMonthName}) ➔` : `⬅ Settimana S${targetWeekNum} (${targetMonthName})`)
+      : (direction === 'next' ? `Giorno Successivo ➔` : `⬅ Giorno Precedente`);
+
+    setWeekSwipeToast({ direction, label });
+    swipeToastTimerRef.current = setTimeout(() => {
+      setWeekSwipeToast(null);
+    }, 1300);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length !== 1) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    // Non attivare lo swipe se si sta trascinando una prenotazione o se un modale è aperto
+    if (
+      dragState?.isDragging ||
+      pendingDragRef.current ||
+      dragJustEndedRef.current ||
+      isShiftModalOpen ||
+      isBookingModalOpen ||
+      isAutoAssignModalOpen ||
+      activeBookingDetail ||
+      isQuickDatePickerOpen ||
+      isShiftsPanelOpen ||
+      isDailyBriefingOpen ||
+      isOperatorScheduleModalOpen ||
+      isEquipmentModalOpen
+    ) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    // Ignora elementi interattivi (pulsanti, input, selettori)
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('select') ||
+      target.closest('textarea') ||
+      target.closest('a')
+    ) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+    touchCurrentRef.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStartRef.current || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    touchCurrentRef.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartRef.current || !touchCurrentRef.current) {
+      touchStartRef.current = null;
+      touchCurrentRef.current = null;
+      return;
+    }
+
+    if (dragState?.isDragging || dragJustEndedRef.current || pendingDragRef.current) {
+      touchStartRef.current = null;
+      touchCurrentRef.current = null;
+      return;
+    }
+
+    const deltaX = touchCurrentRef.current.x - touchStartRef.current.x;
+    const deltaY = touchCurrentRef.current.y - touchStartRef.current.y;
+    const elapsed = Date.now() - touchStartRef.current.time;
+
+    touchStartRef.current = null;
+    touchCurrentRef.current = null;
+
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    // Gestione Swipe orizzontale per navigazione settimane su smartphone:
+    // Minimo 45px di scorrimento, dominanza orizzontale (absX > absY * 1.3), durata max 800ms
+    if (absX >= 45 && absX > absY * 1.3 && elapsed <= 800) {
+      if (deltaX < 0) {
+        // Swipe verso sinistra (dito da destra verso sinistra) -> Settimana successiva
+        handleNext();
+        showWeekSwipeToast('next');
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          try { navigator.vibrate(25); } catch {}
+        }
+      } else {
+        // Swipe verso destra (dito da sinistra verso destra) -> Settimana precedente
+        handlePrev();
+        showWeekSwipeToast('prev');
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          try { navigator.vibrate(25); } catch {}
+        }
+      }
+    }
+  };
+
+  const handleTouchCancel = () => {
+    touchStartRef.current = null;
+    touchCurrentRef.current = null;
+  };
+
   // Salto diretto a mese e anno
   const handleJumpToMonth = (targetMonthIndex: number, targetYear?: number) => {
     setCurrentDate(d => {
@@ -1179,8 +1315,14 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         </div>
       )}
 
-      {/* -- Time Grid with Zoom & Mobile Scroll -- */}
-      <div className="bg-white dark:bg-[#0c0c0c] rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-sm overflow-hidden flex flex-col">
+      {/* -- Time Grid with Zoom & Mobile Scroll & Touch Swipe Navigation -- */}
+      <div
+        className="bg-white dark:bg-[#0c0c0c] rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-sm overflow-hidden flex flex-col touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
+      >
         
         {/* Scrollable Container with sticky headers & sticky hour column */}
         <div
@@ -2551,6 +2693,20 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Floating HUD Indicator for Touch Swipe Week Navigation on Smartphone */}
+      {weekSwipeToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9990] flex items-center gap-2.5 bg-slate-900/95 dark:bg-neutral-900/95 backdrop-blur-md text-white px-4 py-2.5 rounded-full shadow-2xl border border-blue-500/60 dark:border-yellow-400/60 animate-in fade-in zoom-in-95 duration-150 pointer-events-none select-none">
+          {weekSwipeToast.direction === 'prev' ? (
+            <ChevronLeft className="w-4 h-4 text-blue-400 dark:text-yellow-400 animate-pulse stroke-[3]" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-blue-400 dark:text-yellow-400 animate-pulse stroke-[3]" />
+          )}
+          <span className="text-xs font-black font-mono tracking-tight text-slate-100 dark:text-yellow-100">
+            {weekSwipeToast.label}
+          </span>
         </div>
       )}
     </div>
