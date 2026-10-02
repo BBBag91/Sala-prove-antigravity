@@ -42,7 +42,7 @@ interface AppContextType {
   deleteStaff: (id: string) => Promise<void>;
 
   // Shift actions (Turni Presidio Sala Prove)
-  assignOperatorToShift: (date: string, turnoNumero: 1 | 2, operatorId?: string, syncToBookings?: boolean) => void;
+  assignOperatorToShift: (date: string, turnoNumero: 1 | 2, operatorId?: string, syncToBookings?: boolean, customOperatorName?: string) => void;
   updateShift: (shift: WorkShift) => void;
   deleteShift: (id: string) => void;
   autoAssignWeeklyShiftsAction: (weekDates: string[]) => { assignedCount: number; unassignedCount: number };
@@ -434,11 +434,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     date: string,
     turnoNumero: 1 | 2,
     operatorId?: string,
-    syncToBookings = true
+    syncToBookings = true,
+    customOperatorName?: string
   ) => {
     const existing = shifts.find((s) => s.data === date && s.turnoNumero === turnoNumero);
     const op = operatorId ? staff.find((st) => st.id === operatorId) : undefined;
-    const opName = op ? `${op.nome} ${op.cognome}` : undefined;
+    const opName = op ? `${op.nome} ${op.cognome}` : (customOperatorName?.trim() || undefined);
+    const effectiveOpId = operatorId || (customOperatorName?.trim() ? (existing?.operatoreId || `manual-op-${Date.now()}`) : undefined);
 
     const baseStart = turnoNumero === 1 ? '17:00' : '20:00';
     const baseEnd = turnoNumero === 1 ? '20:00' : '23:00';
@@ -452,7 +454,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       oraFineBase: baseEnd,
       oraInizioEffettiva: existing?.oraInizioEffettiva,
       oraFineEffettiva: existing?.oraFineEffettiva,
-      operatoreId: operatorId || undefined,
+      operatoreId: effectiveOpId,
       operatoreNome: opName,
       note: existing?.note || '',
       isCustomHours: existing?.isCustomHours || false,
@@ -464,7 +466,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     supabaseService.upsertShift(updatedShift);
 
     // Se richiesto, applica l'operatore anche a tutte le prenotazioni in questa fascia
-    if (syncToBookings && operatorId && opName) {
+    if (syncToBookings && opName) {
       const dayBookings = bookings.filter((b) => b.data === date);
       const [c1, c2] = computeDailyShifts(date, dayBookings, newShifts, staff);
       const computed = turnoNumero === 1 ? c1 : c2;
@@ -478,22 +480,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         let bEndMins = timeToMinutes(b.oraFine);
         if (bEndMins <= bStartMins) bEndMins += 24 * 60;
 
-        const overlaps = Math.max(bStartMins, shiftStartMins) < Math.min(bEndMins, shiftEndMins);
-        if (overlaps) {
+        // Se la prenotazione si sovrappone al turno
+        if (bStartMins < shiftEndMins && bEndMins > shiftStartMins) {
           updatedAnyBooking = true;
-          const updatedB: Booking = {
+          return {
             ...b,
-            operatoreAssegnatoId: operatorId,
+            operatoreAssegnatoId: effectiveOpId,
             operatoreAssegnatoNome: opName,
           };
-          supabaseService.upsertBooking(updatedB);
-          return updatedB;
         }
         return b;
       });
 
       if (updatedAnyBooking) {
         setBookings(updatedBookings);
+        updatedBookings
+          .filter((b) => b.data === date && b.operatoreAssegnatoNome === opName)
+          .forEach((b) => supabaseService.upsertBooking(b));
       }
     }
   };

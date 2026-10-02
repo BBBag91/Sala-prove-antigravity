@@ -1688,9 +1688,17 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             </div>
                           </div>
 
-                          {/* Badge Operatore ben visibile al centro del turno (Stile front-end scuro/oro ad alto contrasto) */}
+                          {/* Badge Operatore ben visibile al centro del turno (Stile front-end scuro/oro ad alto contrasto - Cliccabile) */}
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none p-1 z-[1]">
-                            <div className="flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-white/90 dark:bg-neutral-950/85 border border-amber-400/50 dark:border-amber-500/40 backdrop-blur-xs shadow-md shadow-slate-200/60 dark:shadow-black/90 max-w-[94%]">
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedShiftForEdit(s1Col);
+                                setIsShiftModalOpen(true);
+                              }}
+                              title="Clicca per gestire o assegnare il 1° Turno"
+                              className="pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-white/95 dark:bg-neutral-950/90 border border-amber-400/60 dark:border-amber-500/50 hover:border-amber-500 dark:hover:border-amber-400 backdrop-blur-xs shadow-md shadow-slate-200/60 dark:shadow-black/90 hover:shadow-lg max-w-[94%]"
+                            >
                               <div className="flex items-center gap-1 justify-center mb-0.5">
                                 <span
                                   className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"
@@ -1766,9 +1774,17 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             </div>
                           </div>
 
-                          {/* Badge Operatore ben visibile al centro del turno (Stile front-end scuro/oro ad alto contrasto) */}
+                          {/* Badge Operatore ben visibile al centro del turno (Stile front-end scuro/oro ad alto contrasto - Cliccabile) */}
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none p-1 z-[1]">
-                            <div className="flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-white/90 dark:bg-neutral-950/85 border border-yellow-400/50 dark:border-yellow-500/40 backdrop-blur-xs shadow-md shadow-slate-200/60 dark:shadow-black/90 max-w-[94%]">
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedShiftForEdit(s2Col);
+                                setIsShiftModalOpen(true);
+                              }}
+                              title="Clicca per gestire o assegnare il 2° Turno"
+                              className="pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-white/95 dark:bg-neutral-950/90 border border-yellow-400/60 dark:border-yellow-500/50 hover:border-yellow-500 dark:hover:border-yellow-400 backdrop-blur-xs shadow-md shadow-slate-200/60 dark:shadow-black/90 hover:shadow-lg max-w-[94%]"
+                            >
                               <div className="flex items-center gap-1 justify-center mb-0.5">
                                 <span
                                   className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"

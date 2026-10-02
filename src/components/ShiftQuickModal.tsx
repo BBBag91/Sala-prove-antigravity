@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Clock,
   CheckCircle2,
@@ -9,6 +9,10 @@ import {
   Trash2,
   X,
   SlidersHorizontal,
+  PenLine,
+  UserCheck,
+  UserX,
+  Users,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { DailyShiftComputed, WorkShift } from '../types';
@@ -27,20 +31,83 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
 }) => {
   const { staff, bookings, assignOperatorToShift, updateShift, shifts } = useApp();
 
-  if (!isOpen || !shiftComputed) return null;
-
-  const [selectedOpId, setSelectedOpId] = useState<string>(shiftComputed.operatoreId || '');
+  const [selectedOpId, setSelectedOpId] = useState<string>('');
+  const [manualOperatorName, setManualOperatorName] = useState<string>('');
   const [syncToBookings, setSyncToBookings] = useState<boolean>(true);
-  const [note, setNote] = useState<string>(shiftComputed.note || '');
-  const [isCustomHours, setIsCustomHours] = useState<boolean>(shiftComputed.isCustomHours || false);
-  const [customStart, setCustomStart] = useState<string>(shiftComputed.oraInizio);
-  const [customEnd, setCustomEnd] = useState<string>(shiftComputed.oraFine);
+  const [note, setNote] = useState<string>('');
+  const [isCustomHours, setIsCustomHours] = useState<boolean>(false);
+  const [customStart, setCustomStart] = useState<string>('');
+  const [customEnd, setCustomEnd] = useState<string>('');
 
-  const activeStaff = staff.filter(
-    (s) => s.attivo && (s.ruolo === 'operatore' || s.ruolo === 'entrambi')
+  const activeStaff = useMemo(
+    () => staff.filter((s) => s.attivo && (s.ruolo === 'operatore' || s.ruolo === 'entrambi')),
+    [staff]
   );
 
-  const dayBookings = bookings.filter((b) => b.data === shiftComputed.data);
+  const dayBookings = useMemo(
+    () => (shiftComputed ? bookings.filter((b) => b.data === shiftComputed.data) : []),
+    [bookings, shiftComputed]
+  );
+
+  // Calcolo disponibilità operatori per la fascia oraria di questo turno
+  const staffAvailability = useMemo(() => {
+    if (!shiftComputed) return [];
+    return activeStaff.map((op) => {
+      const avail = checkOperatorShiftAvailability(
+        op,
+        shiftComputed.data,
+        shiftComputed.oraInizio,
+        shiftComputed.oraFine
+      );
+      return { op, avail };
+    });
+  }, [activeStaff, shiftComputed]);
+
+  // Suddivisione tra operatori disponibili e con conflitti
+  const availableStaff = useMemo(
+    () => staffAvailability.filter((item) => item.avail.isAvailable),
+    [staffAvailability]
+  );
+
+  const busyStaff = useMemo(
+    () => staffAvailability.filter((item) => !item.avail.isAvailable),
+    [staffAvailability]
+  );
+
+  // Inizializzazione o pre-selezione automatica all'apertura del modale
+  useEffect(() => {
+    if (!isOpen || !shiftComputed) return;
+
+    setNote(shiftComputed.note || '');
+    setIsCustomHours(shiftComputed.isCustomHours || false);
+    setCustomStart(shiftComputed.oraInizio);
+    setCustomEnd(shiftComputed.oraFine);
+    setSyncToBookings(true);
+
+    const currentOpId = shiftComputed.operatoreId;
+    const currentOpName = shiftComputed.operatoreNome;
+
+    // Se l'operatore fa parte dello staff registrato
+    if (currentOpId && activeStaff.some((s) => s.id === currentOpId)) {
+      setSelectedOpId(currentOpId);
+      setManualOperatorName('');
+    } else if (currentOpName && currentOpName !== 'DA ASSEGNARE') {
+      // Inserito in precedenza a mano
+      setSelectedOpId('');
+      setManualOperatorName(currentOpName);
+    } else {
+      // Turno NON assegnato ("DA ASSEGNARE"):
+      // Pre-seleziona automaticamente il primo operatore disponibile per questo orario!
+      setManualOperatorName('');
+      if (availableStaff.length > 0) {
+        setSelectedOpId(availableStaff[0].op.id);
+      } else {
+        setSelectedOpId('');
+      }
+    }
+  }, [isOpen, shiftComputed, availableStaff, activeStaff]);
+
+  if (!isOpen || !shiftComputed) return null;
 
   // Formatta data in italiano (es. "Lunedì 30 Marzo 2026")
   const dateFormatted = (() => {
@@ -58,12 +125,30 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
     }
   })();
 
+  const handleSelectStaff = (opId: string) => {
+    setSelectedOpId(opId);
+    setManualOperatorName(''); // Resetta inserimento a mano se si sceglie dallo staff
+  };
+
+  const handleManualNameChange = (val: string) => {
+    setManualOperatorName(val);
+    if (val.trim()) {
+      setSelectedOpId(''); // Deseleziona staff se si scrive a mano
+    }
+  };
+
   const handleSave = () => {
+    const isManualActive = manualOperatorName.trim().length > 0;
+    const effectiveOpId = isManualActive ? undefined : (selectedOpId || undefined);
+    const customName = isManualActive ? manualOperatorName.trim() : undefined;
+
     if (isCustomHours) {
       const existing = shifts.find(
         (s) => s.data === shiftComputed.data && s.turnoNumero === shiftComputed.turnoNumero
       );
-      const op = selectedOpId ? staff.find((st) => st.id === selectedOpId) : undefined;
+      const op = effectiveOpId ? staff.find((st) => st.id === effectiveOpId) : undefined;
+      const opNome = customName || (op ? `${op.nome} ${op.cognome}` : undefined);
+
       const shiftObj: WorkShift = {
         id: existing?.id || `shift-${shiftComputed.data}-${shiftComputed.turnoNumero}`,
         data: shiftComputed.data,
@@ -73,8 +158,8 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
         oraFineBase: shiftComputed.oraFineBase,
         oraInizioEffettiva: customStart,
         oraFineEffettiva: customEnd,
-        operatoreId: selectedOpId || undefined,
-        operatoreNome: op ? `${op.nome} ${op.cognome}` : undefined,
+        operatoreId: effectiveOpId || (customName ? `manual-op-${Date.now()}` : undefined),
+        operatoreNome: opNome,
         note,
         isCustomHours: true,
       };
@@ -83,8 +168,9 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
       assignOperatorToShift(
         shiftComputed.data,
         shiftComputed.turnoNumero,
-        selectedOpId || undefined,
-        syncToBookings
+        effectiveOpId,
+        syncToBookings,
+        customName
       );
 
       // Aggiorna nota se presente
@@ -103,6 +189,7 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
 
   const handleClearOperator = () => {
     setSelectedOpId('');
+    setManualOperatorName('');
     assignOperatorToShift(
       shiftComputed.data,
       shiftComputed.turnoNumero,
@@ -112,30 +199,32 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
     onClose();
   };
 
+  const isManualActive = manualOperatorName.trim().length > 0;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#0e0e0e] rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-yellow-500/30 space-y-4 max-h-[92vh] overflow-y-auto text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="bg-[#0e0e0e] rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-yellow-500/30 space-y-4 max-h-[92vh] overflow-y-auto text-white animate-in zoom-in-95 duration-150">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-neutral-800 pb-3.5 gap-3 shrink-0">
+        <div className="flex items-center justify-between border-b border-neutral-800 pb-3.5 gap-3 shrink-0">
           <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-yellow-400/10 border border-blue-200/80 dark:border-yellow-500/30 text-blue-600 dark:text-yellow-400 flex items-center justify-center font-black shadow-2xs text-sm shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-yellow-400/10 border border-yellow-500/30 text-yellow-400 flex items-center justify-center font-black shadow-2xs text-sm shrink-0">
               T{shiftComputed.turnoNumero}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg tracking-tight leading-snug truncate">
+                <h3 className="font-bold text-white text-base sm:text-lg tracking-tight leading-snug truncate">
                   {shiftComputed.nomeTurno}
                 </h3>
                 {shiftComputed.isAdapted && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-amber-400/20 dark:text-amber-300 border border-blue-200 dark:border-amber-500/30 flex items-center gap-1">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
                     +{shiftComputed.minutiExtra}m Dinamici
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-neutral-400 capitalize mt-0.5 flex items-center gap-1.5 truncate">
-                <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400/70" />
+              <p className="text-xs text-neutral-400 capitalize mt-0.5 flex items-center gap-1.5 truncate">
+                <Calendar className="w-3.5 h-3.5 text-yellow-400/70" />
                 {dateFormatted}
               </p>
             </div>
@@ -187,7 +276,7 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
             </div>
           )}
 
-          {/* Toggle personalizzazione manuale */}
+          {/* Toggle personalizzazione manuale orari */}
           <div className="pt-2 border-t border-neutral-900 flex items-center justify-between">
             <button
               type="button"
@@ -223,68 +312,165 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
           )}
         </div>
 
-        {/* Selezione Operatore */}
-        <div className="space-y-2">
-          <label className="block text-xs font-semibold text-yellow-300 uppercase tracking-wider">
-            Operatore Assegnato al Presidio Sala:
-          </label>
+        {/* Selezione Operatore con Disponibilità Automatica */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-yellow-300 uppercase tracking-wider flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5" />
+              Operatore Assegnato al Presidio:
+            </label>
+            {availableStaff.length > 0 && !isManualActive && (
+              <span className="text-[10.5px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                {availableStaff.length} Disponibil{availableStaff.length === 1 ? 'e' : 'i'}
+              </span>
+            )}
+          </div>
 
-          <div className="grid grid-cols-1 gap-2 max-h-52 overflow-y-auto pr-1">
-            {activeStaff.map((op) => {
-              const avail = checkOperatorShiftAvailability(
-                op,
-                shiftComputed.data,
-                shiftComputed.oraInizio,
-                shiftComputed.oraFine
-              );
-              const isSelected = selectedOpId === op.id;
-
-              return (
-                <div
-                  key={op.id}
-                  onClick={() => setSelectedOpId(op.id)}
-                  className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                    isSelected
-                      ? 'bg-yellow-400/15 border-yellow-400 shadow-sm ring-1 ring-yellow-400/40'
-                      : 'bg-neutral-950 hover:bg-neutral-900 border-yellow-500/20'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
+          {/* Lista Operatori con Disponibilità Ordinata */}
+          <div className="grid grid-cols-1 gap-2 max-h-56 overflow-y-auto pr-1">
+            {/* Sezione Operatori Disponibili */}
+            {availableStaff.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400/90 flex items-center gap-1 pl-1">
+                  <UserCheck className="w-3 h-3" />
+                  Disponibili per questa fascia ({shiftComputed.oraInizio} - {shiftComputed.oraFine}):
+                </div>
+                {availableStaff.map(({ op }) => {
+                  const isSelected = !isManualActive && selectedOpId === op.id;
+                  return (
                     <div
-                      className="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs text-black shrink-0 shadow-xs"
-                      style={{ backgroundColor: op.coloreBadge }}
+                      key={op.id}
+                      onClick={() => handleSelectStaff(op.id)}
+                      className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'bg-yellow-400/20 border-yellow-400 shadow-md ring-2 ring-yellow-400/50'
+                          : 'bg-neutral-950 hover:bg-neutral-900 border-emerald-500/30 hover:border-yellow-400/60'
+                      }`}
                     >
-                      {op.nome[0]}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-yellow-100 truncate">
-                        {op.nome} {op.cognome}
-                      </p>
-                      <p className="text-[10px] text-neutral-400">
-                        {avail.isAvailable ? (
-                          <span className="text-emerald-400 flex items-center gap-1">
-                            <CheckCircle2 className="w-2.5 h-2.5" /> Disponibile per sala
-                          </span>
-                        ) : (
-                          <span className="text-amber-400 flex items-center gap-1 font-medium truncate" title={avail.conflictReason}>
-                            <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
-                            {avail.conflictReason || 'Lavoro primario'}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs text-black shrink-0 shadow-xs"
+                          style={{ backgroundColor: op.coloreBadge }}
+                        >
+                          {op.nome[0]}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-yellow-100 truncate">
+                            {op.nome} {op.cognome}
+                          </p>
+                          <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                            <CheckCircle2 className="w-2.5 h-2.5" /> Disponibile senza conflitti
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 flex items-center gap-2">
+                        {isSelected && (
+                          <span className="w-5 h-5 rounded-full bg-yellow-400 text-black flex items-center justify-center text-xs font-black shadow-xs">
+                            ✓
                           </span>
                         )}
-                      </p>
+                      </div>
                     </div>
-                  </div>
+                  );
+                })}
+              </div>
+            )}
 
-                  <div className="shrink-0 flex items-center gap-2">
-                    {isSelected && (
-                      <span className="w-4 h-4 rounded-full bg-yellow-400 text-black flex items-center justify-center text-[10px] font-bold">
-                        ✓
-                      </span>
-                    )}
-                  </div>
+            {/* Sezione Operatori con Conflitti / Altro Lavoro */}
+            {busyStaff.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500/80 flex items-center gap-1 pl-1">
+                  <UserX className="w-3 h-3" />
+                  Altri Operatori (Conflitto / Già impegnati):
                 </div>
-              );
-            })}
+                {busyStaff.map(({ op, avail }) => {
+                  const isSelected = !isManualActive && selectedOpId === op.id;
+                  return (
+                    <div
+                      key={op.id}
+                      onClick={() => handleSelectStaff(op.id)}
+                      className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'bg-yellow-400/20 border-yellow-400 shadow-md ring-2 ring-yellow-400/50'
+                          : 'bg-neutral-950/70 hover:bg-neutral-900/90 border-neutral-800/80 hover:border-yellow-500/40 opacity-80 hover:opacity-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="w-6 h-6 rounded-md flex items-center justify-center font-bold text-[11px] text-black shrink-0"
+                          style={{ backgroundColor: op.coloreBadge }}
+                        >
+                          {op.nome[0]}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-neutral-300 truncate">
+                            {op.nome} {op.cognome}
+                          </p>
+                          <p className="text-[9.5px] text-amber-400 flex items-center gap-1 truncate" title={avail.conflictReason}>
+                            <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
+                            {avail.conflictReason || 'Impegnato in altro turno/attività'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 flex items-center gap-2">
+                        {isSelected && (
+                          <span className="w-4 h-4 rounded-full bg-yellow-400 text-black flex items-center justify-center text-[10px] font-bold">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Inserimento a Mano (Sostituto Esterno / Volontario) */}
+          <div className="bg-neutral-950 p-3 rounded-xl border border-yellow-500/30 space-y-1.5">
+            <label className="block text-[11px] font-bold text-yellow-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <PenLine className="w-3.5 h-3.5 text-yellow-400" />
+                Oppure inserisci nominativo a mano:
+              </span>
+              {isManualActive && (
+                <span className="text-[9.5px] font-bold text-yellow-400 bg-yellow-400/20 px-1.5 py-0.2 rounded border border-yellow-500/40">
+                  A mano attivo
+                </span>
+              )}
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={manualOperatorName}
+                onChange={(e) => handleManualNameChange(e.target.value)}
+                placeholder="Es. Mario Rossi (Sostituto), Tecnico esterno..."
+                className="flex-1 bg-neutral-900 border border-yellow-500/40 focus:border-yellow-400 rounded-lg px-3 py-1.5 text-xs text-yellow-100 placeholder-neutral-500 focus:outline-hidden"
+              />
+              {manualOperatorName && (
+                <button
+                  type="button"
+                  onClick={() => setManualOperatorName('')}
+                  className="px-2 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-semibold transition-colors cursor-pointer"
+                  title="Azzera nome a mano"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {isManualActive ? (
+              <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 shrink-0" />
+                Verrà assegnato il nominativo inserito a mano: <strong>{manualOperatorName.trim()}</strong>
+              </p>
+            ) : (
+              <p className="text-[9.5px] text-neutral-500">
+                Puoi digitare liberamente qualsiasi nome o sostituto esterno qualora non sia in lista.
+              </p>
+            )}
           </div>
         </div>
 
@@ -319,7 +505,7 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
 
         {/* Footer Buttons */}
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-yellow-500/20 flex-wrap">
-          {shiftComputed.operatoreId && (
+          {(shiftComputed.operatoreId || shiftComputed.operatoreNome) && (
             <button
               type="button"
               onClick={handleClearOperator}
