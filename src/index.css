@@ -992,3 +992,42 @@ html.light .fixed [class*="bg-neutral-900"] p {
   color: #475569 !important;
 }
 
+/* =========================================================================
+   SEZIONE AMMINISTRATORE (HEADER & DRAWER): SFONDO BLU REALE CON TESTO BIANCO
+   ========================================================================= */
+.admin-header-btn-blue,
+button.admin-header-btn-blue,
+html.light .admin-header-btn-blue,
+html.light button.admin-header-btn-blue,
+html.dark .admin-header-btn-blue,
+html.dark button.admin-header-btn-blue {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3) !important;
+}
+
+.admin-header-btn-blue:hover,
+button.admin-header-btn-blue:hover,
+html.light .admin-header-btn-blue:hover,
+html.light button.admin-header-btn-blue:hover {
+  background-color: #1d4ed8 !important;
+  border-color: #1e40af !important;
+}
+
+.admin-header-btn-blue span:not(.admin-badge-pill),
+.admin-header-btn-blue svg,
+html.light .admin-header-btn-blue span:not(.admin-badge-pill),
+html.light .admin-header-btn-blue svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.admin-badge-pill,
+html.light .admin-badge-pill,
+html.dark .admin-badge-pill {
+  background-color: #ffffff !important;
+  color: #1d4ed8 !important;
+  font-weight: 800 !important;
+}
+

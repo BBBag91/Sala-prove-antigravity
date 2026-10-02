@@ -393,31 +393,39 @@ const AppContent: React.FC = () => {
               <div className="relative shrink-0" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen((prev) => !prev)}
-                  className={`flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                    isUserMenuOpen
+                  className={`admin-header-btn-blue flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer shadow-sm ${
+                    isAdmin
+                      ? '!bg-blue-600 hover:!bg-blue-700 !text-white border-blue-500 shadow-blue-500/25'
+                      : isUserMenuOpen
                       ? 'bg-yellow-400/20 border-yellow-400 text-yellow-300'
-                      : isAdmin
-                      ? 'bg-neutral-900/90 border-yellow-500/35 hover:border-yellow-400 text-yellow-300'
                       : 'bg-neutral-900 border-neutral-700 hover:border-neutral-500 text-neutral-200'
                   }`}
+                  style={isAdmin ? { backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' } : undefined}
                   title={`Profilo: ${user.nome} (${user.email})`}
                 >
                   <div className="relative w-5 h-5 shrink-0">
-                    <div className="w-5 h-5 rounded-full bg-yellow-400/20 flex items-center justify-center text-[11px]">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] ${
+                      isAdmin ? 'bg-white/20 text-white' : 'bg-yellow-400/20'
+                    }`}>
                       {isAdmin ? '👑' : '👤'}
                     </div>
                     {/* Indicatore riepilogo mattutino - solo admin */}
                     {isAdmin && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-neutral-900 animate-pulse" />}
                   </div>
-                  <span className="font-semibold text-white truncate max-w-[80px] lg:max-w-[110px] xl:max-w-[140px]">
+                  <span
+                    className="font-bold text-white truncate max-w-[80px] lg:max-w-[110px] xl:max-w-[140px]"
+                    style={{ color: '#ffffff' }}
+                  >
                     {user.nome || (isAdmin ? 'Admin' : 'Utente')}
                   </span>
-                  <span className={`hidden xl:inline-block text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                    isAdmin ? 'bg-yellow-400/20 text-yellow-300' : 'bg-neutral-800 text-neutral-300'
-                  }`}>
-                    {isAdmin ? 'Admin' : 'Utente'}
+                  <span className={`admin-badge-pill hidden xl:inline-block text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded ${
+                    isAdmin ? 'bg-white text-blue-700 shadow-2xs' : 'bg-neutral-800 text-neutral-300'
+                  }`}
+                  style={isAdmin ? { backgroundColor: '#ffffff', color: '#1d4ed8' } : undefined}
+                  >
+                    {isAdmin ? 'ADMIN' : 'Utente'}
                   </span>
-                  <ChevronDown className={`w-3 h-3 text-neutral-400 transition-transform duration-200 shrink-0 ${isUserMenuOpen ? 'rotate-180 text-yellow-400' : ''}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 shrink-0 ${isAdmin ? 'text-white' : 'text-neutral-400'} ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Profile Dropdown Panel */}
@@ -584,19 +592,28 @@ const AppContent: React.FC = () => {
             </div>
 
             {/* User Profile Card */}
-            <div className="my-3 p-3.5 rounded-xl bg-neutral-900/90 border border-yellow-500/25 space-y-2.5">
+            <div
+              className={`my-3 p-3.5 rounded-xl border space-y-2.5 ${
+                isAdmin
+                  ? '!bg-blue-600 border-blue-500 shadow-md shadow-blue-500/20 text-white'
+                  : 'bg-neutral-900/90 border-yellow-500/25'
+              }`}
+              style={isAdmin ? { backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' } : undefined}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-yellow-400/20 border border-yellow-500/40 flex items-center justify-center text-yellow-400 font-bold text-sm">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm ${
+                    isAdmin ? 'bg-white/20 text-white border border-white/30' : 'bg-yellow-400/20 border border-yellow-500/40 text-yellow-400'
+                  }`}>
                     {user.avatar || (isAdmin ? '👑' : '👤')}
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-white">{user.nome}</h4>
-                    <p className="text-[10px] text-neutral-400 font-mono truncate max-w-[130px]">{user.email}</p>
+                    <p className={`text-[10px] font-mono truncate max-w-[130px] ${isAdmin ? 'text-blue-100' : 'text-neutral-400'}`}>{user.email}</p>
                   </div>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  isAdmin ? 'bg-yellow-400/15 border-yellow-500/40 text-yellow-300' : 'bg-neutral-800 border-neutral-700 text-neutral-300'
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                  isAdmin ? 'bg-white text-blue-700 border-white shadow-2xs' : 'bg-neutral-800 border-neutral-700 text-neutral-300'
                 }`}>
                   {isAdmin ? 'ADMIN' : 'UTENTE'}
                 </span>
