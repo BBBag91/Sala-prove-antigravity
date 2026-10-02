@@ -78,7 +78,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    // 1. Fetch studio info
+    // 1. Data e ora corrente in Europa/Roma
+    const nowInRome = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
+    const year = nowInRome.getFullYear();
+    const month = String(nowInRome.getMonth() + 1).padStart(2, '0');
+    const day = String(nowInRome.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    const currentHourIT = nowInRome.getHours();
+
+    // 2. Fetch studio info
     const { data: studioData } = await supabase.from('studio_info').select('*').limit(1).single();
     const studioInfo = studioData || {};
     const config = studioInfo.whatsapp_config;
@@ -87,14 +95,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ message: 'WhatsApp notifications are disabled in studio_info' });
     }
 
-    // 2. Data di oggi in Italia (Europe/Rome)
-    const nowInRome = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
-    const year = nowInRome.getFullYear();
-    const month = String(nowInRome.getMonth() + 1).padStart(2, '0');
-    const day = String(nowInRome.getDate()).padStart(2, '0');
-    const todayStr = `${year}-${month}-${day}`;
+    // 3. Controlla se il messaggio è già stato inviato oggi (guard idempotente)
+    if (config.lastAutoSentDate === todayStr) {
+      return res.status(200).json({ message: `Messaggio già inviato oggi (${todayStr}), skip.` });
+    }
 
-    // 3. Fetch bookings di oggi
+    // 4. Verifica orario target (default 10:00 ora italiana)
+    const targetTimeStr: string = config.orarioNotifica || '10:00';
+    const [targetHours, targetMinutes] = targetTimeStr.split(':').map((n: string) => parseInt(n, 10));
+
+    if (currentHourIT < targetHours || (currentHourIT === targetHours && nowInRome.getMinutes() < targetMinutes)) {
+      return res.status(200).json({
+        message: `Troppo presto: ora italiana ${currentHourIT}:${String(nowInRome.getMinutes()).padStart(2,'0')}, target ${targetTimeStr}. Skip.`
+      });
+    }
+
     const { data: bookingsData } = await supabase
       .from('bookings')
       .select('*')
@@ -103,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const bookings = bookingsData || [];
 
-    // 4. Fetch turni di oggi
+    // 6. Fetch turni di oggi
     const { data: shiftsData } = await supabase
       .from('shifts')
       .select('*')
@@ -111,14 +126,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const shifts = shiftsData || [];
 
-    // 5. Fetch sale
+    // 7. Fetch sale
     const { data: roomsData } = await supabase.from('rooms').select('*');
     const rooms = roomsData || [];
 
-    // 6. Calcolo turni
+    // 8. Calcolo turni
     const dailyShifts = computeDailyShiftsServer(todayStr, bookings, shifts);
 
-    // 7. Composizione messaggio WhatsApp
+    // 9. Composizione messaggio WhatsApp
     const giornoNome = GIORNI_SETTIMANA[nowInRome.getDay()];
     const meseNome = MESI_ITALIANI[nowInRome.getMonth()];
     const studioNome = studioInfo.nome || 'Sala Prove Musicale';
@@ -155,7 +170,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const message = lines.join('\n');
 
-    // 8. Invio tramite Provider
+    // 10. Invio tramite Provider
+    let sendResult: { success: boolean; provider: string; data?: any; error?: string };
+
     if (config.provider === 'ultramsg') {
       const endpoint = `https://api.ultramsg.com/${config.instanceId}/messages/chat`;
       const params = new URLSearchParams();
@@ -171,7 +188,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const text = await resp.text();
       let data: any = {};
       try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
-      return res.status(200).json({ success: true, provider: 'ultramsg', data });
+      sendResult = { success: true, provider: 'ultramsg', data };
     } else if (config.provider === 'greenapi') {
       const endpoint = `https://api.green-api.com/waInstance${config.instanceId}/sendMessage/${config.token}`;
       const resp = await fetch(endpoint, {
@@ -182,17 +199,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const text = await resp.text();
       let data: any = {};
       try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
-      return res.status(200).json({ success: true, provider: 'greenapi', data });
+      sendResult = { success: true, provider: 'greenapi', data };
+    } else if (config.provider === 'whapi') {
+      const endpoint = `https://gate.whapi.cloud/messages/text`;
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.token}`,
+        },
+        body: JSON.stringify({ to: config.chatId, body: message }),
+      });
+      const text = await resp.text();
+      let data: any = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+      sendResult = { success: resp.ok, provider: 'whapi', data };
     } else if (config.provider === 'webhook' && config.webhookUrl) {
       await fetch(config.webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, date: todayStr }),
       });
-      return res.status(200).json({ success: true, provider: 'webhook' });
+      sendResult = { success: true, provider: 'webhook' };
+    } else {
+      return res.status(200).json({ success: false, message: 'Provider manual o non configurato per cron' });
     }
 
-    return res.status(200).json({ success: false, message: 'Provider manual or unconfigured for cron' });
+    // 11. Se invio riuscito, persisti lastAutoSentDate su Supabase
+    if (sendResult.success) {
+      const updatedConfig = { ...config, lastAutoSentDate: todayStr };
+      await supabase
+        .from('studio_info')
+        .update({ whatsapp_config: updatedConfig })
+        .eq('id', studioInfo.id);
+    }
+
+    return res.status(200).json(sendResult);
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Server error' });
   }

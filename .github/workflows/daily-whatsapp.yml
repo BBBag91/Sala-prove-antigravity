@@ -1,24 +1,57 @@
-name: Notifica WhatsApp Mattutina (10:00)
+name: Notifica WhatsApp Mattutina (10:00 Italia)
 
 on:
   schedule:
-    # 08:00 UTC = 10:00 CEST (Ora italiana legale) / 09:00 CET (Ora solare)
+    # Due schedule per gestire ora legale (CEST=UTC+2) e ora solare (CET=UTC+1):
+    # → 08:00 UTC = 10:00 CEST (estate, last Sun di marzo – last Sun di ottobre)
     - cron: '0 8 * * *'
-  workflow_dispatch: # Permette di testare l'invio manualmente con 1 clic dalla scheda Actions su GitHub
+    # → 09:00 UTC = 10:00 CET (inverno, last Sun di ottobre – last Sun di marzo)
+    - cron: '0 9 * * *'
+  # Permette di testare l'invio manualmente con 1 clic dalla scheda Actions su GitHub
+  workflow_dispatch:
 
 jobs:
   dispatch-briefing:
     runs-on: ubuntu-latest
     steps:
-      - name: Esegui invio riepilogo giornaliero su WhatsApp
+      - name: Controlla ora italiana corrente
+        id: check_time
         run: |
-          echo "Avvio invio automatico riepilogo sala prove..."
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "https://gestione-sala-prove-musicale.vercel.app/api/cron-daily-briefing")
+          # Determina l'ora attuale in Europa/Roma
+          HOUR_IT=$(TZ='Europe/Rome' date +%H)
+          echo "Ora attuale in Italia: $HOUR_IT:00"
+          echo "hour_it=$HOUR_IT" >> $GITHUB_OUTPUT
+
+      - name: Esegui invio riepilogo giornaliero su WhatsApp
+        # Esegui solo se siamo effettivamente alle 10:00 ora italiana (evita doppi invii)
+        if: ${{ steps.check_time.outputs.hour_it == '10' || github.event_name == 'workflow_dispatch' }}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          echo "Avvio invio automatico riepilogo sala prove (ora italiana: ${{ steps.check_time.outputs.hour_it }}:00)..."
+
+          # Costruisce l'header Authorization solo se CRON_SECRET è impostato
+          AUTH_HEADER=""
+          if [ -n "$CRON_SECRET" ]; then
+            AUTH_HEADER="-H 'Authorization: Bearer $CRON_SECRET'"
+          fi
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X GET \
+            ${AUTH_HEADER:+-H "Authorization: Bearer $CRON_SECRET"} \
+            "https://gestione-sala-prove-musicale.vercel.app/api/cron-daily-briefing")
+
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | sed '$d')
-          echo "Risposta endpoint (HTTP $HTTP_STATUS): $BODY"
-          if [ "$HTTP_STATUS" -ne 200 ]; then
-            echo "Attenzione: codice risposta $HTTP_STATUS"
+          echo "Risposta endpoint (HTTP $HTTP_STATUS):"
+          echo "$BODY"
+
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Notifica elaborata correttamente."
+          elif [ "$HTTP_STATUS" -eq 401 ]; then
+            echo "❌ Errore 401: CRON_SECRET non valido o mancante in GitHub Secrets."
+            exit 1
           else
-            echo "Notifica elaborata correttamente."
+            echo "⚠️ Risposta inattesa (HTTP $HTTP_STATUS)"
+            exit 1
           fi
