@@ -132,10 +132,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   // 36px: Panoramica (entire 9:00 - 23:00 fits in ~500px, no scrolling needed!)
   // 56px: Standard (balanced)
   // 84px: Dettagliato (maximum legibility)
-  const [cellHeight, setCellHeight] = useState<number>(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 640) return 46;
-    return 56;
-  });
+  // Attiva normalmente come opzione di default: 36px (Panoramica)
+  const [cellHeight, setCellHeight] = useState<number>(36);
 
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<string>('all');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<'all' | 'prove' | 'lezione'>('all');
@@ -598,19 +596,6 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               </span>
             </button>
 
-            {/* Schema Turni Settimanale Quick Link */}
-            {onNavigateToTurni && (
-              <button
-                type="button"
-                onClick={onNavigateToTurni}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-lg border border-blue-200 dark:border-yellow-500/40 bg-blue-50 dark:bg-yellow-400/15 hover:bg-blue-600 hover:text-white dark:hover:bg-yellow-400 dark:hover:text-black text-blue-700 dark:text-yellow-300 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-2xs touch-manipulation touch-active"
-                title="Apri lo schema riepilogativo settimanale dei turni (tabella e lista)"
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Schema Turni Settimana</span>
-                <span className="sm:hidden">Turni</span>
-              </button>
-            )}
 
 
             {/* New Booking Button */}
