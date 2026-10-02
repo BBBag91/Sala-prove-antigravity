@@ -182,18 +182,20 @@ export const MorningBriefingModal: React.FC<MorningBriefingModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(true)}
-                className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl bg-neutral-800 text-white hover:bg-neutral-700 hover:text-yellow-400 transition-all cursor-pointer border border-neutral-700 shadow-xs"
+                className="modal-header-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl !bg-blue-600 !text-white hover:!bg-blue-700 transition-all cursor-pointer border border-blue-500 shadow-md shadow-blue-500/25"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
                 title="Configura Notifiche & WhatsApp"
               >
-                <Settings2 className="w-4 h-4 text-white" />
+                <Settings2 className="w-5 h-5 !text-white stroke-[2.2]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="modal-close-btn shrink-0 flex items-center justify-center w-8 h-8 rounded-xl bg-neutral-800 text-white hover:bg-red-500 hover:text-white transition-all cursor-pointer border border-neutral-700 hover:border-red-500/50 shadow-xs"
+                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl !bg-blue-600 !text-white hover:!bg-red-600 transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
                 title="Chiudi"
               >
-                <X className="w-4 h-4 text-white stroke-[2.5]" />
+                <X className="w-5 h-5 !text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </button>
             </div>
           </div>

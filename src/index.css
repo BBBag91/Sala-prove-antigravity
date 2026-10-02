@@ -898,8 +898,14 @@ html {
 }
 
 /* =========================================================================
-   PULSANTI DI CHIUSURA MODALE (X): VISIBILI CON SFONDO E BORDO IN TUTTI I TEMI
+   RIQUADRI PULSANTI IN ALTO A DESTRA (SETTINGS & CHIUSURA X): SFONDO BLU REALE
    ========================================================================= */
+.modal-header-btn-blue,
+button.modal-header-btn-blue,
+html.light .modal-header-btn-blue,
+html.light button.modal-header-btn-blue,
+html.dark .modal-header-btn-blue,
+html.dark button.modal-header-btn-blue,
 button[title*="Chiudi"],
 button[title*="chiudi"],
 button[aria-label*="Chiudi"],
@@ -907,18 +913,24 @@ button[aria-label*="chiudi"],
 button[aria-label*="Close"],
 button[aria-label*="close"],
 .modal-close-btn {
-  background-color: #1e293b !important;
+  background-color: #2563eb !important; /* Royal Blue brillante visibile su qualsiasi sfondo */
   color: #ffffff !important;
-  border: 1px solid #334155 !important;
+  border: 1px solid #1d4ed8 !important;
   border-radius: 0.75rem !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   opacity: 1 !important;
   transition: all 0.15s ease-in-out !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
 }
 
+.modal-header-btn-blue svg,
+button.modal-header-btn-blue svg,
+html.light .modal-header-btn-blue svg,
+html.light button.modal-header-btn-blue svg,
+html.dark .modal-header-btn-blue svg,
+html.dark button.modal-header-btn-blue svg,
 button[title*="Chiudi"] svg,
 button[title*="chiudi"] svg,
 button[aria-label*="Chiudi"] svg,
@@ -931,6 +943,17 @@ button[aria-label*="close"] svg,
   opacity: 1 !important;
 }
 
+.modal-header-btn-blue:hover,
+button.modal-header-btn-blue:hover,
+html.light .modal-header-btn-blue:hover,
+html.light button.modal-header-btn-blue:hover {
+  background-color: #1d4ed8 !important;
+  border-color: #1e40af !important;
+  color: #ffffff !important;
+}
+
+.modal-close-btn-blue:hover,
+button.modal-close-btn-blue:hover,
 button[title*="Chiudi"]:hover,
 button[title*="chiudi"]:hover,
 button[aria-label*="Chiudi"]:hover,
@@ -938,11 +961,13 @@ button[aria-label*="chiudi"]:hover,
 button[aria-label*="Close"]:hover,
 button[aria-label*="close"]:hover,
 .modal-close-btn:hover {
-  background-color: #ef4444 !important; /* Rosso vivace */
+  background-color: #ef4444 !important; /* Rosso vivace su hover chiusura */
   border-color: #dc2626 !important;
   color: #ffffff !important;
 }
 
+.modal-close-btn-blue:hover svg,
+button.modal-close-btn-blue:hover svg,
 button[title*="Chiudi"]:hover svg,
 button[title*="chiudi"]:hover svg,
 button[aria-label*="Chiudi"]:hover svg,
