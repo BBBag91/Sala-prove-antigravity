@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Calendar, AlertCircle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig } from '../types';
 import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime } from '../utils/dateUtils';
 import { RecurrenceModal } from './RecurrenceModal';
@@ -27,6 +28,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   bookingToEdit,
 }) => {
   const { clients, rooms, staff, bookings, addBooking, updateBooking, deleteBooking } = useApp();
+  const { isAdmin } = useAuth();
 
   const [clienteId, setClienteId] = useState('');
   const [isManualClient, setIsManualClient] = useState(true);
@@ -560,6 +562,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const handleDeleteCurrentBooking = () => {
     if (!bookingToEdit) return;
+    const todayIso = formatDateToISO(new Date());
+    if (!isAdmin && bookingToEdit.data < todayIso) {
+      alert('Nel profilo utente non è consentito cancellare eventi passati. È possibile cancellare solo eventi del giorno stesso o futuri.');
+      return;
+    }
+
     if (bookingToEdit.gruppoRicorrenzaId) {
       const choice = window.confirm(
         'Questa prenotazione fa parte di una serie ricorrente.\n\nPremi OK per eliminare TUTTA la serie settimanale, oppure ANNULLA per eliminare solo questo singolo giorno.'
@@ -1101,15 +1109,25 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           {/* Footer actions */}
           <div className="pt-3 border-t border-slate-200 flex items-center justify-between gap-3 flex-wrap">
             {bookingToEdit ? (
-              <button
-                type="button"
-                onClick={handleDeleteCurrentBooking}
-                className="px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                title="Elimina questa prenotazione"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Elimina Prenotazione</span>
-              </button>
+              !isAdmin && bookingToEdit.data < formatDateToISO(new Date()) ? (
+                <div
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
+                  title="Nel profilo utente non è consentito cancellare eventi passati (solo giorno stesso o futuri)"
+                >
+                  <Trash2 className="w-3.5 h-3.5 opacity-50" />
+                  <span>Eliminazione disabilitata (evento passato)</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleDeleteCurrentBooking}
+                  className="px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Elimina questa prenotazione"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Elimina Prenotazione</span>
+                </button>
+              )
             ) : <div />}
 
             <div className="flex items-center gap-2 sm:gap-3 ml-auto">

@@ -399,6 +399,12 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   };
 
   const handleDeleteBooking = (booking: Booking) => {
+    // Nel profilo utente non è consentito cancellare eventi passati (solo giorno stesso o futuri)
+    if (!isAdmin && booking.data < todayStr) {
+      alert('Nel profilo utente non è consentito cancellare eventi passati. È possibile cancellare solo eventi del giorno stesso o futuri.');
+      return;
+    }
+
     if (booking.gruppoRicorrenzaId) {
       const choice = window.confirm(
         'Questa prenotazione fa parte di una serie ricorrente.\n\nPremi OK per eliminare TUTTA la serie settimanale, oppure ANNULLA per eliminare solo questo singolo giorno.'
@@ -2077,15 +2083,25 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             })()}
 
             <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-yellow-500/20 flex-wrap">
-              <button
-                type="button"
-                onClick={() => handleDeleteBooking(activeBookingDetail)}
-                className="px-3.5 py-2 rounded-lg bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                title="Elimina questa prenotazione"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Elimina Prenotazione</span>
-              </button>
+              {!isAdmin && activeBookingDetail.data < todayStr ? (
+                <div
+                  className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 text-slate-400 dark:text-neutral-500 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
+                  title="Nel profilo utente non è consentito cancellare eventi passati (solo giorno stesso o futuri)"
+                >
+                  <Trash2 className="w-3.5 h-3.5 opacity-50" />
+                  <span>Eliminazione disabilitata (evento passato)</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteBooking(activeBookingDetail)}
+                  className="px-3.5 py-2 rounded-lg bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Elimina questa prenotazione"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Elimina Prenotazione</span>
+                </button>
+              )}
 
               <div className="flex items-center gap-2 ml-auto">
                 <button

@@ -20,6 +20,8 @@ import {
   X,
   CalendarClock,
   MessageSquare,
+  GraduationCap,
+  ChevronRight,
 } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -38,6 +40,7 @@ import { UserManagementModal } from './components/UserManagementModal';
 import { MorningBriefingModal } from './components/MorningBriefingModal';
 import { WhatsAppSettingsModal } from './components/WhatsAppSettingsModal';
 import { MorningNotificationWatcher } from './components/MorningNotificationWatcher';
+import { TeacherProfileReportModal } from './components/TeacherProfileReportModal';
 
 type TabType = 'calendar' | 'turni' | 'bookings' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica';
 
@@ -60,6 +63,7 @@ const AppContent: React.FC = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isBriefingModalOpen, setIsBriefingModalOpen] = useState(false);
   const [isWhatsAppSettingsOpen, setIsWhatsAppSettingsOpen] = useState(false);
+  const [isTeacherReportModalOpen, setIsTeacherReportModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { resetToDemoData, studioInfo, bookings, staff, clients, expenses } = useApp();
@@ -480,6 +484,21 @@ const AppContent: React.FC = () => {
                       </button>
                     )}
 
+                    {/* Profilo Insegnante & Resoconto Monte Ore Prenotate */}
+                    <button
+                      onClick={() => {
+                        setIsTeacherReportModalOpen(true);
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold text-neutral-200 hover:text-amber-300 hover:bg-neutral-900 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <GraduationCap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span>Profilo Insegnante &amp; Monte Ore</span>
+                      </div>
+                      <ChevronRight className="w-3 h-3 text-neutral-500" />
+                    </button>
+
                     {/* Riepilogo Mattutino (Ore 10:00) - Solo Admin */}
                     {isAdmin && (
                     <button
@@ -684,6 +703,21 @@ const AppContent: React.FC = () => {
                   <span>Schema Turni Settimana</span>
                 </div>
                 {activeTab === 'turni' && <Check className="w-4 h-4 stroke-[3]" />}
+              </button>
+
+              {/* Profilo Insegnante & Resoconto Monte Ore */}
+              <button
+                onClick={() => {
+                  setIsTeacherReportModalOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all touch-manipulation touch-active"
+              >
+                <div className="flex items-center gap-3">
+                  <GraduationCap className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Profilo Insegnante &amp; Monte Ore</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-amber-400/70" />
               </button>
 
               {isAdmin && (
@@ -1020,6 +1054,12 @@ const AppContent: React.FC = () => {
       <WhatsAppSettingsModal
         isOpen={isWhatsAppSettingsOpen}
         onClose={() => setIsWhatsAppSettingsOpen(false)}
+      />
+
+      {/* Modal Profilo Insegnante & Resoconto Monte Ore */}
+      <TeacherProfileReportModal
+        isOpen={isTeacherReportModalOpen}
+        onClose={() => setIsTeacherReportModalOpen(false)}
       />
 
       {/* Modal Gestione Utenti (Admin only) */}

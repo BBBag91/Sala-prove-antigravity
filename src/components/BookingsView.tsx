@@ -15,13 +15,15 @@ import {
   Printer,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { Booking, BookingType, PaymentStatus } from '../types';
-import { formatDateItalian, formatCurrency } from '../utils/dateUtils';
+import { formatDateItalian, formatCurrency, formatDateToISO } from '../utils/dateUtils';
 import { BookingModal } from './BookingModal';
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
 
 export const BookingsView: React.FC = () => {
   const { bookings, rooms, deleteBooking, updateBooking } = useApp();
+  const { isAdmin } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | BookingType>('all');
@@ -66,6 +68,12 @@ export const BookingsView: React.FC = () => {
   };
 
   const handleDelete = (booking: Booking) => {
+    const todayIso = formatDateToISO(new Date());
+    if (!isAdmin && booking.data < todayIso) {
+      alert('Nel profilo utente non è consentito cancellare eventi passati. È possibile cancellare solo eventi del giorno stesso o futuri.');
+      return;
+    }
+
     if (booking.gruppoRicorrenzaId) {
       const choice = window.confirm(
         'Questa prenotazione fa parte di una serie ricorrente.\n\nPremi OK per eliminare TUTTA la serie settimanale, oppure ANNULLA per eliminare solo questo singolo giorno.'
@@ -483,13 +491,22 @@ export const BookingsView: React.FC = () => {
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(b)}
-                          className="p-1.5 text-rose-500 hover:text-rose-700 rounded-md hover:bg-rose-50 transition-colors"
-                          title="Elimina"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {!isAdmin && b.data < formatDateToISO(new Date()) ? (
+                          <span
+                            className="p-1.5 inline-block text-slate-300 dark:text-neutral-600 cursor-not-allowed select-none"
+                            title="Nel profilo utente non è consentito eliminare eventi passati"
+                          >
+                            <Trash2 className="w-4 h-4 opacity-40" />
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleDelete(b)}
+                            className="p-1.5 text-rose-500 hover:text-rose-700 rounded-md hover:bg-rose-50 transition-colors"
+                            title="Elimina"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
