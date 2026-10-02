@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { formatDateToISO } from '../utils/dateUtils';
+import { formatDateToISO, shouldSendDailyBriefing } from '../utils/dateUtils';
 import { computeDailyShifts } from '../utils/shiftUtils';
 import {
   formatMorningBriefingMessage,
@@ -30,8 +30,14 @@ export const MorningNotificationWatcher: React.FC<MorningNotificationWatcherProp
       const now = new Date();
       const todayStr = formatDateToISO(now);
 
-      // Orario di notifica impostato (default: "10:00")
-      const targetTimeStr = config.orarioNotifica || '10:00';
+      // Regola: invio dal Lunedì al Sabato. NON inviare la Domenica e NON inviare nei giorni festivi.
+      // Orario resoconto: Sabato ore 09:00, Lunedì-Venerdì ore 10:00 (o da configurazione).
+      const briefingRule = shouldSendDailyBriefing(now, config.orarioNotifica || '10:00');
+      if (!briefingRule.shouldSend) {
+        return;
+      }
+
+      const targetTimeStr = briefingRule.targetHour;
       const [targetHours, targetMinutes] = targetTimeStr.split(':').map((n) => parseInt(n, 10));
 
       const currentHours = now.getHours();

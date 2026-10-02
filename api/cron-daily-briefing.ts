@@ -61,6 +61,63 @@ const MESI_ITALIANI = [
   'Dicembre',
 ];
 
+// Algoritmo calcolo Pasqua (Meeus/Jones/Butcher)
+function getEasterSundayServer(year: number): { month: number; day: number } {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return { month, day };
+}
+
+function isItalianHolidayServer(date: Date): boolean {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  const fixedHolidays = [
+    '01-01', // Capodanno
+    '01-06', // Epifania
+    '04-25', // Liberazione
+    '05-01', // Lavoratori
+    '06-02', // Repubblica
+    '08-15', // Ferragosto
+    '11-01', // Ognissanti
+    '12-08', // Immacolata
+    '12-25', // Natale
+    '12-26', // Santo Stefano
+  ];
+
+  const monthDayStr = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  if (fixedHolidays.includes(monthDayStr)) {
+    return true;
+  }
+
+  // Pasquetta (Pasqua + 1 giorno)
+  const easter = getEasterSundayServer(year);
+  const pasquettaDate = new Date(year, easter.month - 1, easter.day + 1);
+
+  if (
+    date.getFullYear() === pasquettaDate.getFullYear() &&
+    date.getMonth() === pasquettaDate.getMonth() &&
+    date.getDate() === pasquettaDate.getDate()
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Facoltativo: verifica token segreto CRON_SECRET
   const authHeader = req.headers.authorization;
@@ -85,8 +142,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const day = String(nowInRome.getDate()).padStart(2, '0');
     const todayStr = `${year}-${month}-${day}`;
     const currentHourIT = nowInRome.getHours();
+    const dayOfWeek = nowInRome.getDay(); // 0 = Domenica, 1 = Lunedì ... 6 = Sabato
 
-    // 2. Fetch studio info
+    const isForce = req.query?.force === 'true' || req.query?.force === '1';
+
+    // 2. Controllo festività e domeniche:
+    // Nessun invio la domenica e nei giorni festivi
+    if (!isForce && dayOfWeek === 0) {
+      return res.status(200).json({
+        message: `Domenica (${todayStr}): nessun invio messaggio di resoconto programmato. Skip.`,
+      });
+    }
+
+    if (!isForce && isItalianHolidayServer(nowInRome)) {
+      return res.status(200).json({
+        message: `Giorno festivo nazionale (${todayStr}): nessun invio messaggio di resoconto programmato. Skip.`,
+      });
+    }
+
+    // 3. Fetch studio info
     const { data: studioData } = await supabase.from('studio_info').select('*').limit(1).single();
     const studioInfo = studioData || {};
     
@@ -107,20 +181,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ message: 'WhatsApp notifications are disabled in studio_info' });
     }
 
-    const isForce = req.query?.force === 'true' || req.query?.force === '1';
-
-    // 3. Controlla se il messaggio è già stato inviato oggi (guard idempotente, bypassabile con ?force=true)
+    // 4. Controlla se il messaggio è già stato inviato oggi (guard idempotente, bypassabile con ?force=true)
     if (!isForce && config.lastAutoSentDate === todayStr) {
       return res.status(200).json({ message: `Messaggio già inviato oggi (${todayStr}), skip.` });
     }
 
-    // 4. Verifica orario target (default 10:00 ora italiana, bypassabile con ?force=true)
-    const targetTimeStr: string = config.orarioNotifica || '10:00';
+    // 5. Verifica orario target:
+    // Il Sabato: ore 09:00
+    // Dal Lunedì al Venerdì: config.orarioNotifica || '10:00'
+    const targetTimeStr: string = dayOfWeek === 6 ? '09:00' : (config.orarioNotifica || '10:00');
     const [targetHours, targetMinutes] = targetTimeStr.split(':').map((n: string) => parseInt(n, 10));
 
     if (!isForce && (currentHourIT < targetHours || (currentHourIT === targetHours && nowInRome.getMinutes() < targetMinutes))) {
       return res.status(200).json({
-        message: `Troppo presto: ora italiana ${currentHourIT}:${String(nowInRome.getMinutes()).padStart(2,'0')}, target ${targetTimeStr}. Skip.`
+        message: `Troppo presto: ora italiana ${currentHourIT}:${String(nowInRome.getMinutes()).padStart(2,'0')}, target ${targetTimeStr} (${dayOfWeek === 6 ? 'Sabato' : 'Lun-Ven'}). Skip.`
       });
     }
 

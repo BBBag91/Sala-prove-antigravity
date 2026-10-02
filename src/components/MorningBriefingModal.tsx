@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { DailyShiftComputed, Booking } from '../types';
-import { formatDateToISO, parseISODate, MESI_ITALIANI } from '../utils/dateUtils';
+import { formatDateToISO, parseISODate, MESI_ITALIANI, shouldSendDailyBriefing } from '../utils/dateUtils';
 import { computeDailyShifts } from '../utils/shiftUtils';
 import {
   formatMorningBriefingMessage,
@@ -92,6 +92,10 @@ export const MorningBriefingModal: React.FC<MorningBriefingModalProps> = ({
   const dataLabel = `${giornoNome} ${dateObj.getDate()} ${MESI_ITALIANI[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
 
   const config = studioInfo.whatsappConfig;
+  const briefingSchedule = useMemo(
+    () => shouldSendDailyBriefing(selectedDate, config?.orarioNotifica || '10:00'),
+    [selectedDate, config?.orarioNotifica]
+  );
   const isApiConfigured =
     config?.enabled &&
     config?.provider !== 'manual' &&
@@ -203,7 +207,7 @@ export const MorningBriefingModal: React.FC<MorningBriefingModalProps> = ({
 
           {/* Quick Date Switcher Bar */}
           <div className="px-5 py-2.5 bg-neutral-950/70 border-b border-neutral-800 flex items-center justify-between gap-2 shrink-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-neutral-400 font-medium">Giorno:</span>
               <input
                 type="date"
@@ -211,6 +215,18 @@ export const MorningBriefingModal: React.FC<MorningBriefingModalProps> = ({
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-700 text-xs font-bold text-yellow-300 focus:border-yellow-400 focus:outline-hidden"
               />
+              <span
+                className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                  briefingSchedule.shouldSend
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                }`}
+              >
+                <Clock className="w-3 h-3" />
+                {briefingSchedule.shouldSend
+                  ? `Invio programmato: ore ${briefingSchedule.targetHour}`
+                  : `Nessun invio automatico (${briefingSchedule.reason})`}
+              </span>
               {!isToday && (
                 <button
                   type="button"

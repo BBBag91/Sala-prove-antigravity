@@ -304,3 +304,119 @@ export function getRecurrenceSummary(
   return `${freqStr} • ${endStr}`;
 }
 
+/**
+ * Calcola la data di Pasqua per un dato anno (Algoritmo Meeus/Jones/Butcher).
+ */
+export function getEasterSunday(year: number): { month: number; day: number } {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31); // 3 = Marzo, 4 = Aprile
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return { month, day };
+}
+
+/**
+ * Restituisce true se la data corrisponde a una festività nazionale italiana
+ * (Capodanno, Epifania, Pasquetta, 25 Aprile, 1 Maggio, 2 Giugno, 15 Agosto,
+ * 1 Novembre, 8 Dicembre, 25 Dicembre, 26 Dicembre).
+ */
+export function isItalianHoliday(dateOrStr: Date | string): boolean {
+  let date: Date;
+  if (typeof dateOrStr === 'string') {
+    const [y, m, d] = dateOrStr.split('-').map(Number);
+    date = new Date(y, m - 1, d);
+  } else {
+    date = dateOrStr;
+  }
+
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1; // 1-12
+  const day = date.getDate();
+
+  // Festività fisse (MM-DD)
+  const fixedHolidays = [
+    '01-01', // Capodanno
+    '01-06', // Epifania
+    '04-25', // Festa della Liberazione
+    '05-01', // Festa dei Lavoratori
+    '06-02', // Festa della Repubblica
+    '08-15', // Ferragosto / Assunzione
+    '11-01', // Ognissanti / Tutti i Santi
+    '12-08', // Immacolata Concezione
+    '12-25', // Natale
+    '12-26', // Santo Stefano
+  ];
+
+  const monthDayStr = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  if (fixedHolidays.includes(monthDayStr)) {
+    return true;
+  }
+
+  // Pasquetta (Lunedì dell'Angelo = Pasqua + 1 giorno)
+  const easter = getEasterSunday(year);
+  const pasquettaDate = new Date(year, easter.month - 1, easter.day + 1);
+
+  if (
+    date.getFullYear() === pasquettaDate.getFullYear() &&
+    date.getMonth() === pasquettaDate.getMonth() &&
+    date.getDate() === pasquettaDate.getDate()
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Restituisce se il resoconto mattutino deve essere inviato per una data specifica.
+ * Regola:
+ * - NO invio nei giorni festivi e le domeniche
+ * - SÌ invio dal lunedì al sabato
+ * - Orario resoconto: Sabato ore 09:00, Lunedì-Venerdì ore 10:00 (o da config)
+ */
+export function shouldSendDailyBriefing(
+  dateOrStr: Date | string,
+  configuredWeekdayHour: string = '10:00'
+): {
+  shouldSend: boolean;
+  reason?: string;
+  targetHour: string;
+} {
+  let date: Date;
+  if (typeof dateOrStr === 'string') {
+    const [y, m, d] = dateOrStr.split('-').map(Number);
+    date = new Date(y, m - 1, d);
+  } else {
+    date = dateOrStr;
+  }
+
+  const dayOfWeek = date.getDay(); // 0 = Domenica, 1 = Lunedì ... 6 = Sabato
+
+  if (dayOfWeek === 0) {
+    return { shouldSend: false, reason: 'Domenica (nessun invio programmato)', targetHour: '' };
+  }
+
+  if (isItalianHoliday(date)) {
+    return { shouldSend: false, reason: 'Giorno festivo nazionale (nessun invio programmato)', targetHour: '' };
+  }
+
+  // Sabato: ore 09:00
+  if (dayOfWeek === 6) {
+    return { shouldSend: true, targetHour: '09:00' };
+  }
+
+  // Lunedì - Venerdì: orario feriale configurato (default 10:00)
+  return { shouldSend: true, targetHour: configuredWeekdayHour || '10:00' };
+}
+
+

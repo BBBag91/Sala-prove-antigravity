@@ -6,11 +6,15 @@
   "crons": [
     {
       "path": "/api/cron-daily-briefing",
-      "schedule": "0 8 * * *"
+      "schedule": "0 7 * * 1-6"
     },
     {
       "path": "/api/cron-daily-briefing",
-      "schedule": "0 9 * * *"
+      "schedule": "0 8 * * 1-6"
+    },
+    {
+      "path": "/api/cron-daily-briefing",
+      "schedule": "0 9 * * 1-6"
     }
   ]
 }

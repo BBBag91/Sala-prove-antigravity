@@ -734,7 +734,7 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
                 <div className="p-3.5 rounded-xl bg-neutral-950 border border-neutral-800 space-y-1.5">
                   <label className="block text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-yellow-400" />
-                    Orario Notifica Mattutina
+                    Orario Notifica (Lunedì - Venerdì)
                   </label>
                   <input
                     type="time"
@@ -742,9 +742,11 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
                     onChange={(e) => setOrarioNotifica(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-sm font-bold text-yellow-300 focus:border-yellow-400 focus:outline-hidden"
                   />
-                  <p className="text-[11px] text-neutral-400">
-                    Default impostato: <b className="text-yellow-400">10:00</b>
-                  </p>
+                  <div className="text-[11px] text-neutral-400 space-y-0.5 pt-1">
+                    <p>• <b>Lun - Ven:</b> ore <strong className="text-yellow-400">{orarioNotifica || '10:00'}</strong></p>
+                    <p className="text-yellow-400 font-semibold">• <b>Sabato:</b> ore <strong>09:00</strong> fisse</p>
+                    <p className="text-rose-400 font-medium">• <b>Domeniche e festivi:</b> nessun invio</p>
+                  </div>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-neutral-950 border border-neutral-800 space-y-1.5">
@@ -760,7 +762,7 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
                     <span>Abilita Notifica sul Dispositivo</span>
                   </button>
                   <p className="text-[11px] text-neutral-400">
-                    Notifica di sistema alle 10:00 se il gestionale è aperto
+                    Notifica di sistema attiva dal Lunedì al Sabato (Sab 09:00, Lun-Ven {orarioNotifica || '10:00'})
                   </p>
                 </div>
               </div>
