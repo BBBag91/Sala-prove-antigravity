@@ -15,8 +15,9 @@ import {
 import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
 import { formatDateItalian, formatDateToISO } from '../utils/dateUtils';
-import { ClientModal } from './ClientModal';
-import { MembershipCardPrintModal } from './MembershipCardPrintModal';
+
+const ClientModal = React.lazy(() => import('./ClientModal').then(m => ({ default: m.ClientModal })));
+const MembershipCardPrintModal = React.lazy(() => import('./MembershipCardPrintModal').then(m => ({ default: m.MembershipCardPrintModal })));
 
 export const ClientsView: React.FC = () => {
   const { clients, deleteClient, updateClient } = useApp();
@@ -393,18 +394,26 @@ export const ClientsView: React.FC = () => {
         })}
       </div>
 
-      <ClientModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        clientToEdit={clientToEdit}
-      />
+      {isModalOpen && (
+        <React.Suspense fallback={null}>
+          <ClientModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            clientToEdit={clientToEdit}
+          />
+        </React.Suspense>
+      )}
 
-      <MembershipCardPrintModal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        client={clientToPrint}
-        allClients={filteredClients}
-      />
+      {isPrintModalOpen && (
+        <React.Suspense fallback={null}>
+          <MembershipCardPrintModal
+            isOpen={isPrintModalOpen}
+            onClose={() => setIsPrintModalOpen(false)}
+            client={clientToPrint}
+            allClients={filteredClients}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 };

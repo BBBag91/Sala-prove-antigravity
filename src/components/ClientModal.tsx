@@ -4,8 +4,11 @@ import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
 import { formatDateToISO } from '../utils/dateUtils';
 import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
-import { DocumentCameraScanner } from './DocumentCameraScanner';
-import { ExtractedMemberData } from '../services/geminiOcrService';
+import type { ExtractedMemberData } from '../services/geminiOcrService';
+
+const DocumentCameraScanner = React.lazy(() =>
+  import('./DocumentCameraScanner').then((m) => ({ default: m.DocumentCameraScanner }))
+);
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -192,7 +195,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
           {/* Scansione Modulo Cartaceo con Fotocamera & IA */}
-          <DocumentCameraScanner onDataExtracted={handleDataExtracted} />
+          <React.Suspense fallback={<div className="h-16 rounded-xl bg-indigo-50/50 animate-pulse border border-indigo-100 flex items-center justify-center text-xs text-indigo-500">Caricamento scanner modulo...</div>}>
+            <DocumentCameraScanner onDataExtracted={handleDataExtracted} />
+          </React.Suspense>
 
           {/* Dati Anagrafici Base */}
           <div className="space-y-3">

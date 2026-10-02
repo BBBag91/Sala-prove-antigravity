@@ -36,6 +36,11 @@ export const MESI_ITALIANI = [
   'Dicembre',
 ];
 
+/**
+ * Converte un oggetto Date nativo in stringa standard ISO 'YYYY-MM-DD'.
+ * @param date Oggetto Date da formattare
+ * @returns Stringa formattata (es. '2026-10-03')
+ */
 export function formatDateToISO(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -43,11 +48,22 @@ export function formatDateToISO(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * Esegue il parsing di una stringa 'YYYY-MM-DD' in oggetto Date a mezzanotte locale (senza offset UTC).
+ * @param dateStr Stringa data ISO
+ * @returns Oggetto Date locale
+ */
 export function parseISODate(dateStr: string): Date {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 
+/**
+ * Formatta una data ISO in formato testuale esteso italiano (es. 'Sabato 3 Ottobre 2026').
+ * @param dateStr Data ISO 'YYYY-MM-DD'
+ * @param includeDayName Se true, include il nome del giorno della settimana
+ * @returns Stringa leggibile in italiano
+ */
 export function formatDateItalian(dateStr: string, includeDayName: boolean = true): string {
   if (!dateStr) return '';
   const date = parseISODate(dateStr);
@@ -61,23 +77,39 @@ export function formatDateItalian(dateStr: string, includeDayName: boolean = tru
   return `${day} ${month} ${year}`;
 }
 
+/**
+ * Converte un orario in formato 'HH:mm' nel numero totale di minuti trascorsi da mezzanotte (0-1440).
+ * @param timeStr Orario in formato 'HH:mm' (es. '18:30')
+ * @returns Minuti totali (es. 1110)
+ */
 export function timeToMinutes(timeStr: string): number {
   if (!timeStr) return 0;
   const [hours, minutes] = timeStr.split(':').map(Number);
   return hours * 60 + (minutes || 0);
 }
 
+/**
+ * Converte un valore in minuti (es. 1110) in stringa oraria 'HH:mm' (es. '18:30').
+ * @param totalMinutes Minuti da convertire
+ * @returns Stringa formattata 'HH:mm'
+ */
 export function minutesToTime(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60) % 24;
   const minutes = totalMinutes % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
+/**
+ * Calcola la durata in ore decimali tra due orari 'HH:mm', gestendo anche passaggi oltre la mezzanotte.
+ * @param startTime Orario di inizio 'HH:mm'
+ * @param endTime Orario di fine 'HH:mm'
+ * @returns Durata arrotondata a 2 decimali (es. 2.5 per 2 ore e 30 minuti)
+ */
 export function calculateDurationHours(startTime: string, endTime: string): number {
   const startMin = timeToMinutes(startTime);
   let endMin = timeToMinutes(endTime);
   if (endMin < startMin) {
-    // Crosses midnight
+    // Gestione scavallamento oltre mezzanotte (es. dalle 22:00 alle 01:00)
     endMin += 24 * 60;
   }
   const diffMinutes = Math.max(0, endMin - startMin);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -43,13 +43,16 @@ import {
 } from '../utils/dateUtils';
 import { AutoAssignResult, getOperatorAccumulatedHours } from '../utils/scheduler';
 import { computeDailyShifts, isWeekdayDate } from '../utils/shiftUtils';
-import { AutoAssignModal } from './AutoAssignModal';
-import { BookingModal } from './BookingModal';
-import { EquipmentOverviewModal, getAllEquipmentForBooking } from './EquipmentOverviewModal';
-import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
-import { ShiftQuickModal } from './ShiftQuickModal';
-import { ShiftsView } from './ShiftsView';
-import { MorningBriefingModal } from './MorningBriefingModal';
+import { getAllEquipmentForBooking } from '../utils/equipmentUtils';
+
+// Modal and secondary view dynamic lazy imports for lightning-fast rendering
+const AutoAssignModal = lazy(() => import('./AutoAssignModal').then(m => ({ default: m.AutoAssignModal })));
+const BookingModal = lazy(() => import('./BookingModal').then(m => ({ default: m.BookingModal })));
+const EquipmentOverviewModal = lazy(() => import('./EquipmentOverviewModal').then(m => ({ default: m.EquipmentOverviewModal })));
+const OperatorSchedulePrintModal = lazy(() => import('./OperatorSchedulePrintModal').then(m => ({ default: m.OperatorSchedulePrintModal })));
+const ShiftQuickModal = lazy(() => import('./ShiftQuickModal').then(m => ({ default: m.ShiftQuickModal })));
+const ShiftsView = lazy(() => import('./ShiftsView').then(m => ({ default: m.ShiftsView })));
+const MorningBriefingModal = lazy(() => import('./MorningBriefingModal').then(m => ({ default: m.MorningBriefingModal })));
 
 // -- Constants ------------------------------------------------------------------
 const HOUR_START = 9;
@@ -361,16 +364,26 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
   const zoomPercent = Math.round((cellHeight / 56) * 100);
 
-  const monthlyBookings = bookings.filter(b => b.data.startsWith(monthString));
-  const unassignedCount = monthlyBookings.filter(b => !b.operatoreAssegnatoId).length;
-  const totalHoursMonth = monthlyBookings.reduce((s, b) => s + (b.durataOre || 0), 0);
-  const operatorHours = getOperatorAccumulatedHours(staff, bookings, monthString);
+  const { monthlyBookings, unassignedCount, totalHoursMonth, operatorHours } = useMemo(() => {
+    const mBookings = bookings.filter(b => b.data.startsWith(monthString));
+    const uCount = mBookings.filter(b => !b.operatoreAssegnatoId).length;
+    const tHours = mBookings.reduce((s, b) => s + (b.durataOre || 0), 0);
+    const opHours = getOperatorAccumulatedHours(staff, bookings, monthString);
+    return {
+      monthlyBookings: mBookings,
+      unassignedCount: uCount,
+      totalHoursMonth: tHours,
+      operatorHours: opHours,
+    };
+  }, [bookings, monthString, staff]);
 
-  const filteredBookings = bookings.filter(b => {
-    if (selectedRoomFilter !== 'all' && b.salaId !== selectedRoomFilter) return false;
-    if (selectedTypeFilter !== 'all' && b.tipo !== selectedTypeFilter) return false;
-    return true;
-  });
+  const filteredBookings = useMemo(() => {
+    return bookings.filter(b => {
+      if (selectedRoomFilter !== 'all' && b.salaId !== selectedRoomFilter) return false;
+      if (selectedTypeFilter !== 'all' && b.tipo !== selectedTypeFilter) return false;
+      return true;
+    });
+  }, [bookings, selectedRoomFilter, selectedTypeFilter]);
 
   const handleDayClick = (dateStr: string, e?: React.MouseEvent<HTMLDivElement>) => {
     if (dragJustEndedRef.current) return;
@@ -424,37 +437,46 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     setIsAutoAssignModalOpen(true);
   };
 
-  const bookingsByDay: Record<string, Booking[]> = {};
-  displayDayStrs.forEach(ds => {
-    bookingsByDay[ds] = filteredBookings
-      .filter(b => b.data === ds)
-      .sort((a, b) => a.oraInizio.localeCompare(b.oraInizio));
-  });
+  const { bookingsByDay, currentHourEnd, currentTotalHours } = useMemo(() => {
+    const byDay: Record<string, Booking[]> = {};
+    displayDayStrs.forEach(ds => {
+      byDay[ds] = filteredBookings
+        .filter(b => b.data === ds)
+        .sort((a, b) => a.oraInizio.localeCompare(b.oraInizio));
+    });
 
-  // Estensione dinamica dell'orario massimo della griglia (es. fino alle 24:00 se ci sono prenotazioni alle 23:30)
-  const maxDisplayTimeMins = Math.max(
-    23 * 60,
-    ...displayDayStrs.flatMap((ds) =>
-      (bookingsByDay[ds] || []).map((b) => {
-        let e = timeToMinutes(b.oraFine);
-        if (e <= timeToMinutes(b.oraInizio)) e += 24 * 60;
-        return e;
-      })
-    )
-  );
-  const currentHourEnd = Math.max(23, Math.ceil(maxDisplayTimeMins / 60));
-  const currentTotalHours = currentHourEnd - HOUR_START;
-
-  const ROOM_COLORS: Record<string, { bg: string; border: string; text: string }> = {};
-  rooms.forEach((r, i) => {
-    const fallback = COLOR_PALETTE[i % COLOR_PALETTE.length];
-    const bg = r.colore && r.colore.startsWith('#') ? r.colore : fallback.bg;
-    ROOM_COLORS[r.id] = {
-      bg,
-      border: 'rgba(0, 0, 0, 0.3)',
-      text: '#ffffff',
+    const maxMins = Math.max(
+      23 * 60,
+      ...displayDayStrs.flatMap((ds) =>
+        (byDay[ds] || []).map((b) => {
+          let e = timeToMinutes(b.oraFine);
+          if (e <= timeToMinutes(b.oraInizio)) e += 24 * 60;
+          return e;
+        })
+      )
+    );
+    const hourEnd = Math.max(23, Math.ceil(maxMins / 60));
+    const totalHours = hourEnd - HOUR_START;
+    return {
+      bookingsByDay: byDay,
+      currentHourEnd: hourEnd,
+      currentTotalHours: totalHours,
     };
-  });
+  }, [displayDayStrs, filteredBookings]);
+
+  const ROOM_COLORS = useMemo(() => {
+    const colors: Record<string, { bg: string; border: string; text: string }> = {};
+    rooms.forEach((r, i) => {
+      const fallback = COLOR_PALETTE[i % COLOR_PALETTE.length];
+      const bg = r.colore && r.colore.startsWith('#') ? r.colore : fallback.bg;
+      colors[r.id] = {
+        bg,
+        border: 'rgba(0, 0, 0, 0.3)',
+        text: '#ffffff',
+      };
+    });
+    return colors;
+  }, [rooms]);
 
   // Computed title text based on active view mode
   const titleText = (() => {
@@ -1120,7 +1142,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-3 mt-2.5 border-t border-slate-200 dark:border-yellow-500/20">
               {staff.filter(s => s.attivo && (s.ruolo === 'operatore' || s.ruolo === 'entrambi')).map(op => {
                 const hours = operatorHours[op.id] || 0;
-                const maxHours = Math.max(...Object.values(operatorHours), 1);
+                const maxHours = Math.max(...(Object.values(operatorHours) as number[]), 1);
                 const pct = Math.round((hours / maxHours) * 100);
                 return (
                   <div key={op.id} className="bg-slate-50 dark:bg-neutral-950 rounded-lg p-2.5 border border-slate-200 dark:border-yellow-500/20 flex items-center justify-between gap-2.5">
@@ -1561,32 +1583,47 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     {/* Ghost Drop Target Preview when dragging onto this day column */}
                     {dragState && dragState.isDragging && dragState.targetDate === ds && (
                       <div
-                        className={`absolute rounded-md sm:rounded-lg border-2 z-[25] pointer-events-none transition-all duration-75 flex flex-col justify-between p-1 sm:p-1.5 shadow-2xl backdrop-blur-xs ${
+                        className={`absolute rounded-xl border-2 z-[25] pointer-events-none transition-all duration-75 flex flex-col justify-between p-1.5 sm:p-2 shadow-2xl backdrop-blur-xs ${
                           dragState.hasConflict
-                            ? 'border-red-500 bg-red-500/30 dark:bg-red-950/60 text-red-900 dark:text-red-200 ring-2 ring-red-500/40'
-                            : 'border-blue-500 dark:border-yellow-400 bg-blue-500/25 dark:bg-yellow-400/25 text-slate-900 dark:text-yellow-100 ring-4 ring-blue-500/30 dark:ring-yellow-400/30'
+                            ? 'border-red-500 bg-red-500/30 dark:bg-red-950/70 text-red-900 dark:text-red-200 ring-4 ring-red-500/40'
+                            : 'border-blue-500 dark:border-yellow-400 bg-blue-500/25 dark:bg-yellow-400/25 text-slate-900 dark:text-yellow-100 ring-4 ring-blue-500/40 dark:ring-yellow-400/40'
                         } border-dashed animate-pulse`}
                         style={{
                           top: `${((dragState.targetStartMins - HOUR_START * 60) / 60) * cellHeight + 1}px`,
-                          height: `${Math.max(24, ((dragState.targetEndMins - dragState.targetStartMins) / 60) * cellHeight - 2)}px`,
+                          height: `${Math.max(30, ((dragState.targetEndMins - dragState.targetStartMins) / 60) * cellHeight - 2)}px`,
                           left: '2px',
                           right: '2px',
                         }}
                       >
-                        <div className="flex items-center justify-between text-[9px] sm:text-[11px] font-black truncate drop-shadow-sm">
+                        {/* Top Start Time Badge */}
+                        <div className="absolute -top-3.5 left-2 bg-blue-600 dark:bg-yellow-400 text-white dark:text-black font-mono font-black text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-lg border border-white/20 dark:border-black/20 flex items-center gap-1 z-30">
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>Inizio: {dragState.targetOraInizio}</span>
+                        </div>
+
+                        {/* Bottom End Time Badge */}
+                        <div className="absolute -bottom-3.5 right-2 bg-white dark:bg-neutral-900 text-blue-600 dark:text-yellow-400 font-mono font-black text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-lg border border-blue-500/80 dark:border-yellow-400/80 flex items-center gap-1 z-30">
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>Fine: {dragState.targetOraFine}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[10px] sm:text-xs font-black truncate drop-shadow-sm pt-0.5">
                           <span className="truncate">📍 {dragState.booking.clienteNome}</span>
-                          <span className="font-mono bg-black/85 text-white px-1.5 py-0.5 rounded text-[8.5px] sm:text-[9.5px] shrink-0 ml-1">
-                            {dragState.targetOraInizio} - {dragState.targetOraFine}
+                          <span className="font-mono bg-blue-600 dark:bg-yellow-400 text-white dark:text-black px-2 py-0.5 rounded text-[9px] sm:text-[10px] shrink-0 ml-1 font-black shadow-xs">
+                            {dragState.targetOraInizio} ➔ {dragState.targetOraFine}
                           </span>
                         </div>
                         {dragState.hasConflict ? (
-                          <div className="flex items-center gap-1 text-[8px] sm:text-[9px] font-bold text-red-700 dark:text-red-300 bg-white/90 dark:bg-black/90 px-1 py-0.5 rounded mt-auto truncate border border-red-300 dark:border-red-700">
-                            <AlertTriangle className="w-2.5 h-2.5 text-red-500 shrink-0" />
+                          <div className="flex items-center gap-1 text-[8.5px] sm:text-[9.5px] font-bold text-red-700 dark:text-red-300 bg-white/95 dark:bg-black/95 px-1.5 py-0.5 rounded mt-auto truncate border border-red-300 dark:border-red-700">
+                            <AlertTriangle className="w-3 h-3 text-red-500 shrink-0 animate-bounce" />
                             <span className="truncate">Sovrapposizione ({dragState.conflictNames.join(', ')})</span>
                           </div>
                         ) : (
-                          <div className="text-[7.5px] sm:text-[9px] font-bold text-blue-900 dark:text-yellow-200/95 truncate mt-auto drop-shadow-xs">
-                            Rilascia qui ({dragState.booking.salaNome})
+                          <div className="text-[8px] sm:text-[9.5px] font-bold text-blue-900 dark:text-yellow-200 truncate mt-auto drop-shadow-xs flex items-center justify-between">
+                            <span>Sposta in {dragState.booking.salaNome}</span>
+                            <span className="font-mono text-[9px] opacity-90">
+                              {((dragState.targetEndMins - dragState.targetStartMins) / 60)}h
+                            </span>
                           </div>
                         )}
                       </div>
@@ -2124,43 +2161,70 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         </div>
       )}
 
-      {/* Modals */}
-      <BookingModal
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        initialDate={selectedDateForBooking}
-        initialStartTime={selectedStartTimeForBooking}
-        bookingToEdit={bookingToEdit}
-      />
-      <AutoAssignModal isOpen={isAutoAssignModalOpen} onClose={() => setIsAutoAssignModalOpen(false)} result={autoAssignResult} />
-      <EquipmentOverviewModal
-        isOpen={isEquipmentModalOpen}
-        onClose={() => setIsEquipmentModalOpen(false)}
-        bookings={bookings}
-        rooms={rooms}
-        clients={clients}
-        currentYear={yearLabel}
-        currentMonth={dominantMonth.getMonth()}
-        onSelectBooking={b => { setIsEquipmentModalOpen(false); setActiveBookingDetail(b); }}
-      />
-      <OperatorSchedulePrintModal isOpen={isOperatorScheduleModalOpen} onClose={() => setIsOperatorScheduleModalOpen(false)} />
+      {/* Modals - Rendered conditionally and loaded on-demand for maximum speed */}
+      {isBookingModalOpen && (
+        <Suspense fallback={null}>
+          <BookingModal
+            isOpen={isBookingModalOpen}
+            onClose={() => setIsBookingModalOpen(false)}
+            initialDate={selectedDateForBooking}
+            initialStartTime={selectedStartTimeForBooking}
+            bookingToEdit={bookingToEdit}
+          />
+        </Suspense>
+      )}
+
+      {isAutoAssignModalOpen && (
+        <Suspense fallback={null}>
+          <AutoAssignModal isOpen={isAutoAssignModalOpen} onClose={() => setIsAutoAssignModalOpen(false)} result={autoAssignResult} />
+        </Suspense>
+      )}
+
+      {isEquipmentModalOpen && (
+        <Suspense fallback={null}>
+          <EquipmentOverviewModal
+            isOpen={isEquipmentModalOpen}
+            onClose={() => setIsEquipmentModalOpen(false)}
+            bookings={bookings}
+            rooms={rooms}
+            clients={clients}
+            currentYear={yearLabel}
+            currentMonth={dominantMonth.getMonth()}
+            onSelectBooking={b => { setIsEquipmentModalOpen(false); setActiveBookingDetail(b); }}
+          />
+        </Suspense>
+      )}
+
+      {isOperatorScheduleModalOpen && (
+        <Suspense fallback={null}>
+          <OperatorSchedulePrintModal isOpen={isOperatorScheduleModalOpen} onClose={() => setIsOperatorScheduleModalOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Quick Shift View & Edit Modal */}
-      <ShiftQuickModal
-        isOpen={isShiftModalOpen}
-        onClose={() => {
-          setIsShiftModalOpen(false);
-          setSelectedShiftForEdit(null);
-        }}
-        shiftComputed={selectedShiftForEdit}
-      />
+      {isShiftModalOpen && (
+        <Suspense fallback={null}>
+          <ShiftQuickModal
+            isOpen={isShiftModalOpen}
+            onClose={() => {
+              setIsShiftModalOpen(false);
+              setSelectedShiftForEdit(null);
+            }}
+            shiftComputed={selectedShiftForEdit}
+          />
+        </Suspense>
+      )}
 
       {/* Modal Riepilogo Mattutino (Ore 10:00) */}
-      <MorningBriefingModal
-        isOpen={isDailyBriefingOpen}
-        onClose={() => setIsDailyBriefingOpen(false)}
-        initialDate={formatDateToISO(currentDate)}
-      />
+      {isDailyBriefingOpen && (
+        <Suspense fallback={null}>
+          <MorningBriefingModal
+            isOpen={isDailyBriefingOpen}
+            onClose={() => setIsDailyBriefingOpen(false)}
+            initialDate={formatDateToISO(currentDate)}
+          />
+        </Suspense>
+      )}
 
       {/* Full Shifts Panel Modal */}
       {isShiftsPanelOpen && (
@@ -2184,7 +2248,9 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 ✕
               </button>
             </div>
-            <ShiftsView />
+            <Suspense fallback={<div className="p-8 text-center text-sm text-yellow-400">Caricamento turni in corso...</div>}>
+              <ShiftsView />
+            </Suspense>
           </div>
         </div>
       )}
@@ -2349,25 +2415,76 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         </div>
       )}
 
-      {/* Floating Drag Indicator Pill */}
+      {/* Floating Drag Indicator Live HUD */}
       {dragState && dragState.isDragging && (
         <div
-          className="fixed pointer-events-none z-[9999] -translate-x-1/2 -translate-y-14 px-3 py-1.5 rounded-full shadow-2xl text-xs font-bold flex items-center gap-2 backdrop-blur-md border border-white/20 transition-transform duration-75 select-none bg-slate-900/95 text-white dark:bg-yellow-400 dark:text-neutral-950 ring-2 ring-black/20"
+          className="fixed pointer-events-none z-[9999] -translate-x-1/2 -translate-y-[calc(100%+18px)] transition-all duration-75 select-none"
           style={{
             left: `${dragState.currentPointerX}px`,
             top: `${dragState.currentPointerY}px`,
           }}
         >
-          <CalendarClock className="w-4 h-4 shrink-0 text-blue-400 dark:text-black animate-pulse" />
-          <span className="truncate max-w-[120px]">{dragState.booking.clienteNome}</span>
-          <span className="font-mono bg-white/20 dark:bg-black/20 px-1.5 py-0.5 rounded font-black">
-            {dragState.targetOraInizio} - {dragState.targetOraFine}
-          </span>
-          {dragState.hasConflict && (
-            <span className="text-red-400 dark:text-red-900 flex items-center gap-0.5 font-black text-[11px] bg-red-500/20 dark:bg-red-950/20 px-1 rounded">
-              <AlertTriangle className="w-3 h-3 text-red-400 dark:text-red-700" /> Sovrapposizione
-            </span>
-          )}
+          <div className="flex flex-col items-center">
+            {/* Main HUD card */}
+            <div
+              className={`px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl border-2 flex flex-col gap-2 min-w-[260px] max-w-[340px] text-center transition-all ${
+                dragState.hasConflict
+                  ? 'bg-red-950/95 border-red-500 text-red-100 ring-4 ring-red-500/40 shadow-red-950/80'
+                  : 'bg-white dark:bg-[#121212] border-blue-500 dark:border-yellow-400 text-slate-900 dark:text-white ring-4 ring-blue-500/20 dark:ring-yellow-400/25 shadow-2xl'
+              }`}
+            >
+              {/* Header: Sala and Cliente */}
+              <div className="flex items-center justify-between text-xs font-bold border-b border-slate-200 dark:border-white/10 pb-1.5 gap-2">
+                <span className="truncate max-w-[150px] text-slate-900 dark:text-yellow-300 font-extrabold flex items-center gap-1.5">
+                  <Move className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400 shrink-0 animate-bounce" />
+                  <span className="truncate">{dragState.booking.clienteNome}</span>
+                </span>
+                <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-100 dark:bg-yellow-400/20 text-blue-800 dark:text-yellow-300 border border-blue-300 dark:border-yellow-400/40">
+                  {dragState.booking.salaNome}
+                </span>
+              </div>
+
+              {/* Big, eye-catching Live Target Time Display with Theme Colors (Blue in Light, Yellow in Dark) */}
+              <div className="flex items-center justify-center gap-2.5 py-1.5 px-3 rounded-xl bg-blue-50/90 dark:bg-neutral-900/90 border-2 border-blue-400/80 dark:border-yellow-400/60 shadow-md">
+                <Clock className="w-5 h-5 text-blue-600 dark:text-yellow-400 shrink-0" />
+                <span className="font-mono text-2xl sm:text-3xl font-black tracking-tight text-blue-600 dark:text-yellow-400 drop-shadow-xs">
+                  {dragState.targetOraInizio} <span className="text-blue-500 dark:text-yellow-500 font-black">➔</span> {dragState.targetOraFine}
+                </span>
+                <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-lg bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs shrink-0">
+                  {((dragState.targetEndMins - dragState.targetStartMins) / 60) % 1 === 0
+                    ? `${(dragState.targetEndMins - dragState.targetStartMins) / 60}h`
+                    : `${((dragState.targetEndMins - dragState.targetStartMins) / 60).toFixed(1)}h`}
+                </span>
+              </div>
+
+              {/* Target Date */}
+              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 dark:text-neutral-200">
+                <CalendarDays className="w-4 h-4 text-blue-600 dark:text-yellow-400 shrink-0" />
+                <span className="capitalize">{formatDateItalian(dragState.targetDate, true)}</span>
+              </div>
+
+              {/* Status / Conflict Warning */}
+              {dragState.hasConflict ? (
+                <div className="flex items-center justify-center gap-1 text-[10.5px] font-black text-red-700 dark:text-red-200 bg-red-100 dark:bg-red-600/40 border border-red-300 dark:border-red-500/60 px-2 py-1 rounded-lg animate-pulse">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" />
+                  <span className="truncate">Sovrapposizione ({dragState.conflictNames.join(', ')})</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-1 text-[10px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/15 px-2 py-0.5 rounded-lg border border-emerald-300 dark:border-emerald-500/30">
+                  <span>✓ Rilascia per confermare orario</span>
+                </div>
+              )}
+            </div>
+
+            {/* Pointer arrow marker pointing to current cursor position */}
+            <div
+              className={`w-3.5 h-3.5 -mt-2 rotate-45 border-r border-b ${
+                dragState.hasConflict
+                  ? 'bg-red-950 border-red-500'
+                  : 'bg-white dark:bg-[#121212] border-blue-500 dark:border-yellow-400'
+              }`}
+            />
+          </div>
         </div>
       )}
 

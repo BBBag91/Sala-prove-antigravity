@@ -20,10 +20,11 @@ import { useAuth } from '../context/AuthContext';
 import { StaffMember } from '../types';
 import { GIORNI_CALENDARIO, MESI_ITALIANI } from '../utils/dateUtils';
 import { getOperatorAccumulatedHours } from '../utils/scheduler';
-import { StaffModal } from './StaffModal';
-import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
-import { OperatorMonthlyScheduleModal } from './OperatorMonthlyScheduleModal';
-import { MonthlyShiftsPdfModal } from './MonthlyShiftsPdfModal';
+
+const StaffModal = React.lazy(() => import('./StaffModal').then(m => ({ default: m.StaffModal })));
+const OperatorSchedulePrintModal = React.lazy(() => import('./OperatorSchedulePrintModal').then(m => ({ default: m.OperatorSchedulePrintModal })));
+const OperatorMonthlyScheduleModal = React.lazy(() => import('./OperatorMonthlyScheduleModal').then(m => ({ default: m.OperatorMonthlyScheduleModal })));
+const MonthlyShiftsPdfModal = React.lazy(() => import('./MonthlyShiftsPdfModal').then(m => ({ default: m.MonthlyShiftsPdfModal })));
 
 interface StaffViewProps {
   onNavigateToTurni?: () => void;
@@ -513,36 +514,50 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
         })}
       </div>
 
-      <StaffModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        staffToEdit={staffToEdit}
-      />
+      {isModalOpen && (
+        <React.Suspense fallback={null}>
+          <StaffModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            staffToEdit={staffToEdit}
+          />
+        </React.Suspense>
+      )}
 
-      <OperatorSchedulePrintModal
-        isOpen={isScheduleModalOpen}
-        onClose={() => setIsScheduleModalOpen(false)}
-        initialOperatorId={selectedOperatorForSchedule}
-        onOpenMonthlyShiftsPdf={isAdmin ? () => setIsMonthlyPdfModalOpen(true) : undefined}
-      />
+      {isScheduleModalOpen && (
+        <React.Suspense fallback={null}>
+          <OperatorSchedulePrintModal
+            isOpen={isScheduleModalOpen}
+            onClose={() => setIsScheduleModalOpen(false)}
+            initialOperatorId={selectedOperatorForSchedule}
+            onOpenMonthlyShiftsPdf={isAdmin ? () => setIsMonthlyPdfModalOpen(true) : undefined}
+          />
+        </React.Suspense>
+      )}
 
-      <OperatorMonthlyScheduleModal
-        isOpen={!!selectedOperatorForMonthlyCalendar}
-        onClose={() => {
-          setSelectedOperatorForMonthlyCalendar(null);
-          setSelectedDateForEditor(undefined);
-        }}
-        operator={selectedOperatorForMonthlyCalendar}
-        initialYear={viewYear}
-        initialMonthIndex={viewMonthIndex}
-        initialDateStr={selectedDateForEditor}
-      />
+      {selectedOperatorForMonthlyCalendar && (
+        <React.Suspense fallback={null}>
+          <OperatorMonthlyScheduleModal
+            isOpen={!!selectedOperatorForMonthlyCalendar}
+            onClose={() => {
+              setSelectedOperatorForMonthlyCalendar(null);
+              setSelectedDateForEditor(undefined);
+            }}
+            operator={selectedOperatorForMonthlyCalendar}
+            initialYear={viewYear}
+            initialMonthIndex={viewMonthIndex}
+            initialDateStr={selectedDateForEditor}
+          />
+        </React.Suspense>
+      )}
 
-      {isAdmin && (
-        <MonthlyShiftsPdfModal
-          isOpen={isMonthlyPdfModalOpen}
-          onClose={() => setIsMonthlyPdfModalOpen(false)}
-        />
+      {isAdmin && isMonthlyPdfModalOpen && (
+        <React.Suspense fallback={null}>
+          <MonthlyShiftsPdfModal
+            isOpen={isMonthlyPdfModalOpen}
+            onClose={() => setIsMonthlyPdfModalOpen(false)}
+          />
+        </React.Suspense>
       )}
     </div>
   );

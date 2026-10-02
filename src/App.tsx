@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import {
   LayoutDashboard,
   Music2,
@@ -6,7 +6,6 @@ import {
   CreditCard,
   DoorOpen,
   Receipt,
-  RotateCcw,
   Layers,
   ChevronDown,
   Check,
@@ -15,7 +14,6 @@ import {
   Shield,
   User,
   UserPlus,
-  RefreshCw,
   Menu,
   X,
   CalendarClock,
@@ -29,18 +27,29 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ThemeToggle } from './components/ThemeToggle';
 import { LoginView } from './components/LoginView';
 import { CalendarDashboardView } from './components/CalendarDashboardView';
-import { ShiftsView } from './components/ShiftsView';
-import { BookingsView } from './components/BookingsView';
-import { StaffView } from './components/StaffView';
-import { ClientsView } from './components/ClientsView';
-import { RoomsView } from './components/RoomsView';
-import { FinanceView } from './components/FinanceView';
-import { AnagraficaView } from './components/AnagraficaView';
-import { UserManagementModal } from './components/UserManagementModal';
-import { MorningBriefingModal } from './components/MorningBriefingModal';
-import { WhatsAppSettingsModal } from './components/WhatsAppSettingsModal';
 import { MorningNotificationWatcher } from './components/MorningNotificationWatcher';
-import { TeacherProfileReportModal } from './components/TeacherProfileReportModal';
+
+// Lazy loading views and modals for ultra-fast initial bundle size and instant loading
+const ShiftsView = lazy(() => import('./components/ShiftsView').then(m => ({ default: m.ShiftsView })));
+const BookingsView = lazy(() => import('./components/BookingsView').then(m => ({ default: m.BookingsView })));
+const StaffView = lazy(() => import('./components/StaffView').then(m => ({ default: m.StaffView })));
+const ClientsView = lazy(() => import('./components/ClientsView').then(m => ({ default: m.ClientsView })));
+const RoomsView = lazy(() => import('./components/RoomsView').then(m => ({ default: m.RoomsView })));
+const FinanceView = lazy(() => import('./components/FinanceView').then(m => ({ default: m.FinanceView })));
+const AnagraficaView = lazy(() => import('./components/AnagraficaView').then(m => ({ default: m.AnagraficaView })));
+const UserManagementModal = lazy(() => import('./components/UserManagementModal').then(m => ({ default: m.UserManagementModal })));
+const MorningBriefingModal = lazy(() => import('./components/MorningBriefingModal').then(m => ({ default: m.MorningBriefingModal })));
+const WhatsAppSettingsModal = lazy(() => import('./components/WhatsAppSettingsModal').then(m => ({ default: m.WhatsAppSettingsModal })));
+const TeacherProfileReportModal = lazy(() => import('./components/TeacherProfileReportModal').then(m => ({ default: m.TeacherProfileReportModal })));
+
+const ViewLoadingFallback: React.FC = () => (
+  <div className="flex items-center justify-center min-h-[350px] w-full">
+    <div className="flex flex-col items-center gap-2.5">
+      <div className="w-8 h-8 rounded-full border-3 border-yellow-400/20 border-t-yellow-400 animate-spin" />
+      <span className="text-xs text-yellow-400/80 font-medium">Caricamento veloce in corso...</span>
+    </div>
+  </div>
+);
 
 type TabType = 'calendar' | 'turni' | 'bookings' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica';
 
@@ -66,7 +75,7 @@ const AppContent: React.FC = () => {
   const [isTeacherReportModalOpen, setIsTeacherReportModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const { resetToDemoData, studioInfo, bookings, staff, clients, expenses } = useApp();
+  const { studioInfo, bookings, staff, clients, expenses } = useApp();
 
   // Route Guard: Utente standard può accedere al Calendario e allo Schema Turni
   useEffect(() => {
@@ -119,16 +128,6 @@ const AppContent: React.FC = () => {
     return <LoginView />;
   }
 
-  const handleResetDemo = () => {
-    if (
-      window.confirm(
-        'Vuoi ripristinare i dati di esempio (sale prove, operatori con turni primari, clienti tesserati e calendario)?'
-      )
-    ) {
-      resetToDemoData();
-    }
-  };
-
   const dropdownSections: NavSectionItem[] = [
     {
       id: 'anagrafica',
@@ -151,7 +150,6 @@ const AppContent: React.FC = () => {
       shortLabel: 'Turni Sala',
       description: 'Pianificazione Lun-Ven (17-20 / 20-23) con adattamento dinamico automatico',
       icon: <CalendarClock className="w-4 h-4 text-yellow-400" />,
-      badge: 10,
     },
     {
       id: 'staff',
@@ -847,24 +845,26 @@ const AppContent: React.FC = () => {
 
       {/* Main Container (pb-24 on mobile ensures bottom navigation doesn't overlap content) */}
       <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-6 pb-24 md:pb-6 flex-1 w-full print:p-0 print:m-0 print:max-w-none print:w-full">
-        {activeTab === 'calendar' && (
-          <CalendarDashboardView onNavigateToTurni={() => setActiveTab('turni')} />
-        )}
-        {activeTab === 'turni' && <ShiftsView />}
-        {activeTab === 'anagrafica' && (
-          <AnagraficaView onNavigateTab={(tab) => setActiveTab(tab)} />
-        )}
-        {isAdmin && (
-          <>
-            {activeTab === 'bookings' && <BookingsView />}
-            {activeTab === 'staff' && <StaffView onNavigateToTurni={() => setActiveTab('turni')} />}
-            {activeTab === 'clients' && <ClientsView />}
-            {activeTab === 'rooms' && (
-              <RoomsView onNavigateToAnagrafica={() => setActiveTab('anagrafica')} />
-            )}
-            {activeTab === 'finance' && <FinanceView />}
-          </>
-        )}
+        <Suspense fallback={<ViewLoadingFallback />}>
+          {activeTab === 'calendar' && (
+            <CalendarDashboardView onNavigateToTurni={() => setActiveTab('turni')} />
+          )}
+          {activeTab === 'turni' && <ShiftsView />}
+          {activeTab === 'anagrafica' && (
+            <AnagraficaView onNavigateTab={(tab) => setActiveTab(tab)} />
+          )}
+          {isAdmin && (
+            <>
+              {activeTab === 'bookings' && <BookingsView />}
+              {activeTab === 'staff' && <StaffView onNavigateToTurni={() => setActiveTab('turni')} />}
+              {activeTab === 'clients' && <ClientsView />}
+              {activeTab === 'rooms' && (
+                <RoomsView onNavigateToAnagrafica={() => setActiveTab('anagrafica')} />
+              )}
+              {activeTab === 'finance' && <FinanceView />}
+            </>
+          )}
+        </Suspense>
         {!isAdmin && activeTab !== 'calendar' && activeTab !== 'turni' && activeTab !== 'anagrafica' && (
           <div className="bg-neutral-950 border border-rose-500/30 rounded-2xl p-8 text-center space-y-3 my-8 print:hidden">
             <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
@@ -1044,30 +1044,44 @@ const AppContent: React.FC = () => {
         onOpenBriefingModal={() => setIsBriefingModalOpen(true)}
       />
 
-      {/* Modal Riepilogo Mattutino 10:00 */}
-      <MorningBriefingModal
-        isOpen={isBriefingModalOpen}
-        onClose={() => setIsBriefingModalOpen(false)}
-      />
+      {/* Modal Riepilogo Mattutino 10:00 (caricato on-demand) */}
+      {isBriefingModalOpen && (
+        <Suspense fallback={null}>
+          <MorningBriefingModal
+            isOpen={isBriefingModalOpen}
+            onClose={() => setIsBriefingModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
-      {/* Modal Impostazioni Notifiche & WhatsApp */}
-      <WhatsAppSettingsModal
-        isOpen={isWhatsAppSettingsOpen}
-        onClose={() => setIsWhatsAppSettingsOpen(false)}
-      />
+      {/* Modal Impostazioni Notifiche & WhatsApp (caricato on-demand) */}
+      {isWhatsAppSettingsOpen && (
+        <Suspense fallback={null}>
+          <WhatsAppSettingsModal
+            isOpen={isWhatsAppSettingsOpen}
+            onClose={() => setIsWhatsAppSettingsOpen(false)}
+          />
+        </Suspense>
+      )}
 
-      {/* Modal Profilo Insegnante & Resoconto Monte Ore */}
-      <TeacherProfileReportModal
-        isOpen={isTeacherReportModalOpen}
-        onClose={() => setIsTeacherReportModalOpen(false)}
-      />
+      {/* Modal Profilo Insegnante & Resoconto Monte Ore (caricato on-demand) */}
+      {isTeacherReportModalOpen && (
+        <Suspense fallback={null}>
+          <TeacherProfileReportModal
+            isOpen={isTeacherReportModalOpen}
+            onClose={() => setIsTeacherReportModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
-      {/* Modal Gestione Utenti (Admin only) */}
-      {isAdmin && (
-        <UserManagementModal
-          isOpen={isUserManagementOpen}
-          onClose={() => setIsUserManagementOpen(false)}
-        />
+      {/* Modal Gestione Utenti (Admin only - caricato on-demand) */}
+      {isAdmin && isUserManagementOpen && (
+        <Suspense fallback={null}>
+          <UserManagementModal
+            isOpen={isUserManagementOpen}
+            onClose={() => setIsUserManagementOpen(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

@@ -25,11 +25,12 @@ import {
   computeDailyShifts,
   getMonthlyWorkloadReport,
 } from '../utils/shiftUtils';
-import { ShiftQuickModal } from './ShiftQuickModal';
-import { OperatorMonthlyScheduleModal } from './OperatorMonthlyScheduleModal';
-import { MonthlyShiftsPdfModal } from './MonthlyShiftsPdfModal';
-import { WeeklyShiftsPrintModal } from './WeeklyShiftsPrintModal';
-import { printWeeklyShiftsDirectly } from '../utils/weeklyShiftsPdf';
+
+// Modals lazy loaded on-demand for maximum performance
+const ShiftQuickModal = React.lazy(() => import('./ShiftQuickModal').then(m => ({ default: m.ShiftQuickModal })));
+const OperatorMonthlyScheduleModal = React.lazy(() => import('./OperatorMonthlyScheduleModal').then(m => ({ default: m.OperatorMonthlyScheduleModal })));
+const MonthlyShiftsPdfModal = React.lazy(() => import('./MonthlyShiftsPdfModal').then(m => ({ default: m.MonthlyShiftsPdfModal })));
+const WeeklyShiftsPrintModal = React.lazy(() => import('./WeeklyShiftsPrintModal').then(m => ({ default: m.WeeklyShiftsPrintModal })));
 
 const GIORNI_LUN_VEN = [
   { index: 1, name: 'Lunedì', short: 'Lun' },
@@ -169,8 +170,9 @@ export const ShiftsView: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Stampa al volo da browser tramite iframe isolato (100% garantita, mai fogli bianchi né neri)
-  const handlePrintWeekly = () => {
+  // Stampa al volo da browser tramite iframe isolato (100% garantita, mai fogli bianchi né neri, caricata on-demand)
+  const handlePrintWeekly = async () => {
+    const { printWeeklyShiftsDirectly } = await import('../utils/weeklyShiftsPdf');
     printWeeklyShiftsDirectly({
       currentMonday,
       weekFriday,
@@ -1423,44 +1425,58 @@ export const ShiftsView: React.FC = () => {
         </p>
       </div>
 
-      {/* ── 6. MODALS DI SUPPORTO ── */}
+      {/* ── 6. MODALS DI SUPPORTO (Caricati on-demand) ── */}
       {/* Quick Edit Modal */}
-      <ShiftQuickModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedShiftForEdit(null);
-        }}
-        shiftComputed={selectedShiftForEdit}
-      />
+      {isModalOpen && (
+        <React.Suspense fallback={null}>
+          <ShiftQuickModal
+            isOpen={isModalOpen}
+            onClose={() => {
+              setIsModalOpen(false);
+              setSelectedShiftForEdit(null);
+            }}
+            shiftComputed={selectedShiftForEdit}
+          />
+        </React.Suspense>
+      )}
 
       {/* Operator Monthly Schedule Modal (Gestione Lavoro Primario & Ferie) */}
-      <OperatorMonthlyScheduleModal
-        isOpen={!!selectedOpForMonthlySchedule}
-        onClose={() => setSelectedOpForMonthlySchedule(null)}
-        operator={selectedOpForMonthlySchedule}
-      />
+      {selectedOpForMonthlySchedule && (
+        <React.Suspense fallback={null}>
+          <OperatorMonthlyScheduleModal
+            isOpen={!!selectedOpForMonthlySchedule}
+            onClose={() => setSelectedOpForMonthlySchedule(null)}
+            operator={selectedOpForMonthlySchedule}
+          />
+        </React.Suspense>
+      )}
 
       {/* Monthly Shifts PDF Export Modal (Solo Lato Admin) */}
-      {isAdmin && (
-        <MonthlyShiftsPdfModal
-          isOpen={isMonthlyPdfModalOpen}
-          onClose={() => setIsMonthlyPdfModalOpen(false)}
-          initialMonthStr={currentMonthKey}
-        />
+      {isAdmin && isMonthlyPdfModalOpen && (
+        <React.Suspense fallback={null}>
+          <MonthlyShiftsPdfModal
+            isOpen={isMonthlyPdfModalOpen}
+            onClose={() => setIsMonthlyPdfModalOpen(false)}
+            initialMonthStr={currentMonthKey}
+          />
+        </React.Suspense>
       )}
 
       {/* Weekly Shifts Print & PDF Modal */}
-      <WeeklyShiftsPrintModal
-        isOpen={isWeeklyPrintModalOpen}
-        onClose={() => setIsWeeklyPrintModalOpen(false)}
-        currentMonday={currentMonday}
-        weekFriday={weekFriday}
-        computedWeekShifts={computedWeekShifts}
-        onPrevWeek={handlePrevWeek}
-        onNextWeek={handleNextWeek}
-        onCurrentWeek={handleCurrentWeek}
-      />
+      {isWeeklyPrintModalOpen && (
+        <React.Suspense fallback={null}>
+          <WeeklyShiftsPrintModal
+            isOpen={isWeeklyPrintModalOpen}
+            onClose={() => setIsWeeklyPrintModalOpen(false)}
+            currentMonday={currentMonday}
+            weekFriday={weekFriday}
+            computedWeekShifts={computedWeekShifts}
+            onPrevWeek={handlePrevWeek}
+            onNextWeek={handleNextWeek}
+            onCurrentWeek={handleCurrentWeek}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 };

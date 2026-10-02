@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { DEFAULT_STUDIO_INFO, INITIAL_BOOKINGS, INITIAL_CLIENTS, INITIAL_EXPENSES, INITIAL_ROOMS, INITIAL_STAFF, INITIAL_SHIFTS } from '../data/initialData';
 import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig, WorkShift } from '../types';
 import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates, timeToMinutes } from '../utils/dateUtils';
@@ -772,53 +772,70 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem(STORAGE_KEYS.SHIFTS);
   };
 
+  const contextValue = useMemo<AppContextType>(
+    () => ({
+      studioInfo,
+      updateStudioInfo,
+      rooms,
+      staff,
+      clients,
+      bookings,
+      expenses,
+      incomes,
+      shifts,
+      assignOperatorToShift,
+      updateShift,
+      deleteShift,
+      autoAssignWeeklyShiftsAction,
+      autoAssignMonthlyShiftsAction,
+      isSupabaseConfigured: configured,
+      isCloudConnected,
+      isLoadingCloud,
+      isAutoRefreshing,
+      lastCloudRefresh,
+      syncLocalToCloud,
+      refreshFromCloud,
+      reconnectSupabase,
+      addRoom,
+      updateRoom,
+      deleteRoom,
+      addStaff,
+      updateStaff,
+      deleteStaff,
+      addClient,
+      updateClient,
+      deleteClient,
+      addBooking,
+      updateBooking,
+      deleteBooking,
+      assignOperatorToBooking,
+      runAutoAssignment,
+      addExpense,
+      updateExpense,
+      deleteExpense,
+      addIncome,
+      deleteIncome,
+      resetToDemoData,
+    }),
+    [
+      studioInfo,
+      rooms,
+      staff,
+      clients,
+      bookings,
+      expenses,
+      incomes,
+      shifts,
+      configured,
+      isCloudConnected,
+      isLoadingCloud,
+      isAutoRefreshing,
+      lastCloudRefresh,
+    ]
+  );
+
   return (
-    <AppContext.Provider
-      value={{
-        studioInfo,
-        updateStudioInfo,
-        rooms,
-        staff,
-        clients,
-        bookings,
-        expenses,
-        incomes,
-        shifts,
-        assignOperatorToShift,
-        updateShift,
-        deleteShift,
-        autoAssignWeeklyShiftsAction,
-        autoAssignMonthlyShiftsAction,
-        isSupabaseConfigured: configured,
-        isCloudConnected,
-        isLoadingCloud,
-        isAutoRefreshing,
-        lastCloudRefresh,
-        syncLocalToCloud,
-        refreshFromCloud,
-        reconnectSupabase,
-        addRoom,
-        updateRoom,
-        deleteRoom,
-        addStaff,
-        updateStaff,
-        deleteStaff,
-        addClient,
-        updateClient,
-        deleteClient,
-        addBooking,
-        updateBooking,
-        deleteBooking,
-        assignOperatorToBooking,
-        runAutoAssignment,
-        addExpense,
-        updateExpense,
-        deleteExpense,
-        addIncome,
-        deleteIncome,
-        resetToDemoData,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );
