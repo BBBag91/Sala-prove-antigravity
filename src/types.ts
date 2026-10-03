@@ -370,6 +370,7 @@ export interface Booking {
   /** Eventuali richieste particolari di strumentazione (es. set piatti extra) */
   richiesteStrumentazione?: string;
   /** Note operative interne */
+  note?: string;
 }
 
 /**

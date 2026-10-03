@@ -51,22 +51,16 @@ export const DeleteRecurringBookingModal: React.FC<DeleteRecurringBookingModalPr
         style={!isDark ? { backgroundColor: '#ffffff', color: '#0f172a' } : undefined}
       >
         {/* Header */}
-        <div
-          className={`px-5 py-4 border-b flex items-center justify-between gap-3 ${
-            isDark
-              ? 'bg-neutral-900/90 border-yellow-500/20'
-              : 'bg-slate-50 border-slate-200'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
+        <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900/90 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-yellow-400/10 border border-blue-200/80 dark:border-yellow-500/30 flex items-center justify-center text-blue-600 dark:text-yellow-400 shrink-0 shadow-2xs">
               <CalendarClock className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-bold tracking-tight">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-snug truncate">
                 Elimina Prenotazione Ricorrente
-              </h3>
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-neutral-400 font-normal truncate mt-0.5">
                 Evento con ripetizione settimanale
               </p>
             </div>
@@ -74,10 +68,12 @@ export const DeleteRecurringBookingModal: React.FC<DeleteRecurringBookingModalPr
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-neutral-800 transition-all cursor-pointer"
+            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+            style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
             title="Chiudi"
+            aria-label="Chiudi finestra"
           >
-            <X className="w-4 h-4 stroke-[2.5]" />
+            <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
           </button>
         </div>
 

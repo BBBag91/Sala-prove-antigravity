@@ -56,6 +56,7 @@ interface AppContextType {
   // Booking actions
   addBooking: (booking: Omit<Booking, 'id' | 'durataOre'> & { repeatWeeks?: number; recurrenceConfig?: RecurrenceConfig }) => void;
   updateBooking: (booking: Booking) => void;
+  updateMultipleBookings: (bookings: Booking[]) => void;
   deleteBooking: (id: string, mode?: DeleteRecurringMode | boolean) => void;
   assignOperatorToBooking: (bookingId: string, operatorId?: string) => void;
   runAutoAssignment: (monthFilter?: string) => AutoAssignResult;
@@ -620,8 +621,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       operatoreAssegnatoNome: bookingData.operatoreAssegnatoNome,
       tariffaTotale: bookingData.tariffaTotale,
       sconto: bookingData.sconto,
-      statoPagamento: bookingData.statoPagamento,
-      metodoPagamento: bookingData.metodoPagamento,
+      statoPagamento: idx === 0 ? bookingData.statoPagamento : 'da_saldare',
+      metodoPagamento: idx === 0 ? bookingData.metodoPagamento : undefined,
       richiesteStrumentazione: bookingData.richiesteStrumentazione,
       note: bookingData.note,
     }));
@@ -640,6 +641,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     if (configured) {
       supabaseService.upsertBooking(finalBooking).catch(console.error);
+    }
+  };
+
+  const updateMultipleBookings = (updatedList: Booking[]) => {
+    const finalBookings = updatedList.map((updated) => ({
+      ...updated,
+      durataOre: calculateDurationHours(updated.oraInizio, updated.oraFine),
+    }));
+    const idMap = new Map(finalBookings.map((b) => [b.id, b]));
+    setBookings((prev) =>
+      prev.map((b) => idMap.get(b.id) || b)
+    );
+    if (configured && finalBookings.length > 0) {
+      supabaseService.upsertMultipleBookings(finalBookings).catch(console.error);
     }
   };
 
@@ -830,6 +845,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       deleteClient,
       addBooking,
       updateBooking,
+      updateMultipleBookings,
       deleteBooking,
       assignOperatorToBooking,
       runAutoAssignment,

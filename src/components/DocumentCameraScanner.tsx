@@ -455,9 +455,12 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
                   setCapturedImage(null);
                   setMode('idle');
                 }}
-                className="text-slate-400 hover:text-white p-1 rounded-md transition-colors"
+                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                title="Chiudi anteprima"
+                aria-label="Chiudi anteprima"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </button>
             )}
           </div>

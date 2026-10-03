@@ -30,12 +30,25 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
   // Default initial values
   const defaultG: VariabiliG = { G1: 3, G2: 0, G3: 0, G4: 0 };
 
+  const [isManualEntrate, setIsManualEntrate] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return Boolean(parsed.isManualEntrate);
+      }
+    } catch {}
+    return false;
+  });
+
   const [totaleEntrateMese, setTotaleEntrateMese] = useState<number>(() => {
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (typeof parsed.totaleEntrateMese === 'number') return parsed.totaleEntrateMese;
+        if (parsed.isManualEntrate && typeof parsed.totaleEntrateMese === 'number') {
+          return parsed.totaleEntrateMese;
+        }
       }
     } catch {}
     return totalIncomes;
@@ -58,8 +71,13 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (typeof parsed.totaleEntrateMese === 'number') setTotaleEntrateMese(parsed.totaleEntrateMese);
-        else setTotaleEntrateMese(totalIncomes);
+        if (parsed.isManualEntrate && typeof parsed.totaleEntrateMese === 'number') {
+          setTotaleEntrateMese(parsed.totaleEntrateMese);
+          setIsManualEntrate(true);
+        } else {
+          setTotaleEntrateMese(totalIncomes);
+          setIsManualEntrate(false);
+        }
 
         if (parsed.G) setG({ ...defaultG, ...parsed.G, G1: 3 });
         else setG(defaultG);
@@ -67,15 +85,23 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
       }
     } catch {}
     setTotaleEntrateMese(totalIncomes);
+    setIsManualEntrate(false);
     setG(defaultG);
   }, [storageKey]);
+
+  // Keep totaleEntrateMese in sync with totalIncomes unless user has manually customized it
+  useEffect(() => {
+    if (!isManualEntrate) {
+      setTotaleEntrateMese(totalIncomes);
+    }
+  }, [totalIncomes, isManualEntrate]);
 
   // Persist values on change
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify({ totaleEntrateMese, G }));
+      localStorage.setItem(storageKey, JSON.stringify({ totaleEntrateMese, G, isManualEntrate }));
     } catch {}
-  }, [totaleEntrateMese, G, storageKey]);
+  }, [totaleEntrateMese, G, isManualEntrate, storageKey]);
 
   // Calcolo matematico: le spese vengono prese direttamente dal totale spese mese (totalExpenses)
   const output = calcolaCompensiFineMese({
@@ -85,11 +111,13 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
   });
 
   const handleSyncRealData = () => {
+    setIsManualEntrate(false);
     setTotaleEntrateMese(totalIncomes);
   };
 
   const handleReset = () => {
     if (window.confirm('Vuoi ripristinare i valori dei compensi per questo mese?')) {
+      setIsManualEntrate(false);
       setTotaleEntrateMese(totalIncomes);
       setG(defaultG);
     }
@@ -170,6 +198,7 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                   placeholder="0.00"
                   onChange={(e) => {
                     const val = parseFloat(e.target.value) || 0;
+                    setIsManualEntrate(true);
                     setTotaleEntrateMese(val);
                   }}
                   className="w-full pl-7 pr-3 py-2.5 text-base font-mono font-bold rounded-xl border border-slate-300 bg-white text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-right shadow-2xs"

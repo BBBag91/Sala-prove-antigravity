@@ -28,7 +28,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   initialType,
   bookingToEdit,
 }) => {
-  const { clients, rooms, staff, bookings, addBooking, updateBooking, deleteBooking } = useApp();
+  const { clients, rooms, staff, bookings, addBooking, updateBooking, updateMultipleBookings, deleteBooking } = useApp();
   const { isAdmin } = useAuth();
 
   const [clienteId, setClienteId] = useState('');
@@ -547,17 +547,36 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         });
       } else {
         // Modifica standard
+        const isRecurringGroup = Boolean(bookingToEdit.gruppoRicorrenzaId);
+
+        // Verifichiamo se sono stati modificati campi condivisi della serie
+        const hasSeriesChanges = isRecurringGroup && (
+          bookingToEdit.salaId !== salaId ||
+          bookingToEdit.oraInizio !== oraInizio ||
+          bookingToEdit.oraFine !== oraFine ||
+          bookingToEdit.tipo !== tipo ||
+          bookingToEdit.clienteId !== finalClienteId ||
+          bookingToEdit.clienteNome !== clientDisplayName ||
+          bookingToEdit.insegnanteId !== (tipo === 'lezione' ? insegnanteId : undefined) ||
+          bookingToEdit.operatoreAssegnatoId !== finalOperatoreId ||
+          bookingToEdit.tariffaTotale !== finalTariffaTotale ||
+          bookingToEdit.sconto !== finalSconto ||
+          (bookingToEdit.richiesteStrumentazione || '') !== (richiesteStrumentazione || '') ||
+          (bookingToEdit.note || '') !== (note || '')
+        );
+
         let updateAll = false;
-        if (bookingToEdit.gruppoRicorrenzaId) {
+        if (hasSeriesChanges) {
           updateAll = window.confirm(
-            'Questa prenotazione fa parte di una serie ricorrente.\n\nPremi OK per applicare le modifiche (orario, sala, note, operatore) a TUTTA la serie settimanale, oppure ANNULLA per modificare solo questa singola data.'
+            'Questa prenotazione fa parte di una serie ricorrente.\n\nPremi OK per applicare le modifiche (orario, sala, note, operatore, tariffa) a TUTTA la serie, oppure ANNULLA per modificare solo questa singola data.\n\n(Nota: lo stato di pagamento viene applicato esclusivamente a questo evento selezionato).'
           );
         }
 
         if (updateAll && bookingToEdit.gruppoRicorrenzaId) {
           const groupBookings = bookings.filter((b) => b.gruppoRicorrenzaId === bookingToEdit.gruppoRicorrenzaId);
-          groupBookings.forEach((b) => {
-            updateBooking({
+          const updatedBookings = groupBookings.map((b) => {
+            const isTarget = b.id === bookingToEdit.id;
+            return {
               ...b,
               clienteId: finalClienteId,
               clienteNome: clientDisplayName,
@@ -566,6 +585,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               tipo,
               insegnanteId: tipo === 'lezione' ? insegnanteId : undefined,
               insegnanteNome: tipo === 'lezione' && teacher ? `${teacher.nome} ${teacher.cognome}` : undefined,
+              data: isTarget ? data : b.data,
               oraInizio,
               oraFine,
               durataOre: durationHours,
@@ -573,10 +593,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               operatoreAssegnatoNome: finalOperatoreNome,
               tariffaTotale: finalTariffaTotale,
               sconto: finalSconto,
+              // Lo stato e metodo di pagamento cambiano SOLO nell'evento selezionato, mai in quelli futuri/altri
+              statoPagamento: isTarget ? finalStatoPagamento : b.statoPagamento,
+              metodoPagamento: isTarget
+                ? (finalStatoPagamento === 'pagato' && tipo !== 'lezione' ? metodoPagamento : undefined)
+                : b.metodoPagamento,
               richiesteStrumentazione,
               note,
-            });
+            };
           });
+          updateMultipleBookings(updatedBookings);
         } else {
           updateBooking({
             ...bookingToEdit,

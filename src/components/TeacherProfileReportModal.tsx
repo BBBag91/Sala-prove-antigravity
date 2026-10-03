@@ -169,16 +169,16 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-[#0e0e0e] border border-yellow-500/40 rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header Modal */}
-        <div className="px-5 sm:px-6 py-4 border-b border-neutral-800 bg-neutral-900/90 flex items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center shrink-0 shadow-xs">
+        <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900/90 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-yellow-400/10 border border-blue-200/80 dark:border-yellow-500/30 text-blue-600 dark:text-yellow-400 flex items-center justify-center shrink-0 shadow-2xs">
               <GraduationCap className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight leading-snug truncate">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-snug truncate">
                 Profilo Insegnante &amp; Resoconto Monte Ore
               </h2>
-              <p className="text-xs text-neutral-400 truncate">
+              <p className="text-xs text-slate-500 dark:text-neutral-400 font-normal truncate mt-0.5">
                 Riepilogo ore lezioni prenotate e calcolo quota sala di fine mese
               </p>
             </div>

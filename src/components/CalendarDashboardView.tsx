@@ -29,11 +29,14 @@ import {
   X,
   RotateCcw,
   Move,
+  DollarSign,
+  CreditCard,
+  Banknote,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Booking, DailyShiftComputed, DeleteRecurringMode } from '../types';
+import { Booking, DailyShiftComputed, DeleteRecurringMode, PaymentMethod, PaymentStatus } from '../types';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 import {
   formatDateToISO,
@@ -556,6 +559,23 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     setBookingToEdit(booking);
     setIsBookingModalOpen(true);
     setActiveBookingDetail(null);
+  };
+
+  const handleQuickTogglePayment = (booking: Booking, forcedMethod?: PaymentMethod) => {
+    const isCurrentlyPaid = booking.statoPagamento === 'pagato';
+    const nextStatus: PaymentStatus = isCurrentlyPaid ? 'da_saldare' : 'pagato';
+    const nextMethod: PaymentMethod | undefined = isCurrentlyPaid
+      ? undefined
+      : (forcedMethod || booking.metodoPagamento || 'contanti');
+
+    const updatedBooking: Booking = {
+      ...booking,
+      statoPagamento: nextStatus,
+      metodoPagamento: nextMethod,
+    };
+
+    updateBooking(updatedBooking);
+    setActiveBookingDetail(updatedBooking);
   };
 
   const handleDeleteBooking = (booking: Booking) => {
@@ -2282,13 +2302,23 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500 dark:text-neutral-400">Stato Pagamento:</span>
-                    <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                      activeBookingDetail.statoPagamento === 'pagato'
-                        ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30'
-                        : 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-500/30'
-                    }`}>
-                      {activeBookingDetail.statoPagamento === 'pagato' ? 'Pagato' : 'Da Saldare'}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickTogglePayment(activeBookingDetail)}
+                      title="Clicca per cambiare stato pagamento (solo per questa singola data)"
+                      className={`px-2.5 py-0.5 rounded text-[11px] font-semibold border cursor-pointer transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
+                        activeBookingDetail.statoPagamento === 'pagato'
+                          ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-500/25'
+                          : 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-500/25'
+                      }`}
+                    >
+                      <span>{activeBookingDetail.statoPagamento === 'pagato' ? '✅ Pagato' : '⏳ Da Saldare'}</span>
+                      {activeBookingDetail.statoPagamento === 'pagato' && activeBookingDetail.metodoPagamento && (
+                        <span className="text-[9px] uppercase font-bold tracking-wider opacity-75">
+                          ({activeBookingDetail.metodoPagamento})
+                        </span>
+                      )}
+                    </button>
                   </div>
                 </>
               ) : (

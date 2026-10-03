@@ -9,7 +9,6 @@ import {
   Filter,
   Trash2,
   Edit2,
-  Clock,
   Printer,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -64,15 +63,17 @@ export const FinanceView: React.FC = () => {
     (e) => categoryFilter === 'all' || e.categoria === categoryFilter
   );
 
-  const totalExpenses = monthlyExpenses.reduce((sum, e) => sum + e.importo, 0);
+  // Spese del mese: conteggia nel totale spese solo quelle effettivamente saldate / pagate
+  const paidExpenses = monthlyExpenses.filter((e) => e.stato === 'pagato');
+  const pendingExpenses = monthlyExpenses.filter((e) => e.stato === 'in_scadenza');
+
+  const totalExpenses = paidExpenses.reduce((sum, e) => sum + e.importo, 0);
+  const totalPendingExpenses = pendingExpenses.reduce((sum, e) => sum + e.importo, 0);
 
   // Incomes from bookings for this month
   const monthlyBookings = bookings.filter((b) => b.data.startsWith(monthStr));
   const bookingIncomePaid = monthlyBookings
     .filter((b) => b.statoPagamento === 'pagato')
-    .reduce((sum, b) => sum + b.tariffaTotale, 0);
-  const bookingIncomePending = monthlyBookings
-    .filter((b) => b.statoPagamento === 'da_saldare')
     .reduce((sum, b) => sum + b.tariffaTotale, 0);
 
   // Incomes from membership fees issued this month
@@ -87,9 +88,9 @@ export const FinanceView: React.FC = () => {
   const totalIncomes = bookingIncomePaid + membershipIncome + teacherFees.totalSaldato;
   const netBalance = totalIncomes - totalExpenses;
 
-  // Category breakdown for expenses
+  // Category breakdown for expenses (solo spese effettivamente pagate)
   const categoryTotals: Record<string, number> = {};
-  for (const exp of monthlyExpenses) {
+  for (const exp of paidExpenses) {
     categoryTotals[exp.categoria] = (categoryTotals[exp.categoria] || 0) + exp.importo;
   }
 
@@ -165,7 +166,7 @@ export const FinanceView: React.FC = () => {
       </div>
 
       {/* Main Financial KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Entrate */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between text-xs font-semibold text-emerald-700 uppercase tracking-wider">
@@ -201,11 +202,17 @@ export const FinanceView: React.FC = () => {
           </div>
           <p className="text-3xl font-bold font-mono text-rose-600">{formatCurrency(totalExpenses)}</p>
           <div className="text-[11px] text-slate-500 flex justify-between border-t border-slate-100 pt-1.5">
-            <span>Voci registrate:</span>
-            <strong className="text-slate-800">{monthlyExpenses.length} spese</strong>
+            <span>Spese saldate:</span>
+            <strong className="text-slate-800">{paidExpenses.length} su {monthlyExpenses.length}</strong>
           </div>
+          {totalPendingExpenses > 0 && (
+            <div className="text-[11px] text-amber-700 flex justify-between font-semibold">
+              <span>In scadenza (non conteggiate):</span>
+              <strong className="text-amber-800 font-mono">{formatCurrency(totalPendingExpenses)}</strong>
+            </div>
+          )}
           <div className="text-[11px] text-slate-500 flex justify-between">
-            <span>Affitto + Utenze:</span>
+            <span>Affitto + Utenze saldati:</span>
             <strong className="text-slate-800">
               {formatCurrency(
                 (categoryTotals['affitto'] || 0) +
@@ -234,29 +241,6 @@ export const FinanceView: React.FC = () => {
               ? '✅ Bilancio in attivo per questo mese'
               : '⚠️ Disavanzo: spese superiori alle entrate saldate'}
           </p>
-        </div>
-
-        {/* Da Incassare */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-indigo-700 uppercase tracking-wider">
-            <span>Prenotazioni da Saldare</span>
-            <div className="w-7 h-7 rounded-md bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold font-mono text-indigo-600">{formatCurrency(bookingIncomePending + teacherFees.totalDaSaldare)}</p>
-          <div className="text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 space-y-1">
-            <div className="flex justify-between">
-              <span>Prove da saldare:</span>
-              <strong className="text-slate-800">{formatCurrency(bookingIncomePending)}</strong>
-            </div>
-            {teacherFees.totalDaSaldare > 0 && (
-              <div className="flex justify-between text-amber-700 font-semibold">
-                <span>Quote Lezioni da saldare:</span>
-                <strong className="text-amber-800 font-mono">{formatCurrency(teacherFees.totalDaSaldare)}</strong>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
