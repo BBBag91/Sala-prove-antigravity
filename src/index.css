@@ -1125,3 +1125,12 @@ html.dark button.modal-close-btn-blue svg {
   stroke: #ffffff !important;
 }
 
+/* Indicatore di caricamento attesa 1.5s per spostamento eventi sul calendario */
+@keyframes holdProgress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+.animate-hold-progress {
+  animation: holdProgress 1.5s linear forwards;
+}
+

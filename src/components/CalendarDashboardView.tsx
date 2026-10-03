@@ -179,10 +179,13 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   const gridScrollContainerRef = useRef<HTMLDivElement>(null);
   const dragJustEndedRef = useRef(false);
   const dragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [holdingBookingId, setHoldingBookingId] = useState<string | null>(null);
   const pendingDragRef = useRef<{
     booking: Booking;
     startX: number;
     startY: number;
+    lastX: number;
+    lastY: number;
     grabOffsetY: number;
     pointerId: number;
   } | null>(null);
@@ -750,42 +753,56 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       booking,
       startX: e.clientX,
       startY: e.clientY,
+      lastX: e.clientX,
+      lastY: e.clientY,
       grabOffsetY,
       pointerId: e.pointerId,
     };
 
-    if (dragTimerRef.current) clearTimeout(dragTimerRef.current);
-    // Pressione prolungata per 200ms attiva lo spostamento (drag & drop)
+    if (dragTimerRef.current) {
+      clearTimeout(dragTimerRef.current);
+      dragTimerRef.current = null;
+    }
+    setHoldingBookingId(booking.id);
+
+    // Come richiesto: attendi esattamente 1.5 secondi (1500ms) di pressione continua prima di abilitare lo spostamento (drag & drop)
     dragTimerRef.current = setTimeout(() => {
       if (pendingDragRef.current) {
+        setHoldingBookingId(null);
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          try {
+            navigator.vibrate([40, 30, 40]);
+          } catch {}
+        }
         startDrag(
           pendingDragRef.current.booking,
-          pendingDragRef.current.startX,
-          pendingDragRef.current.startY,
+          pendingDragRef.current.lastX,
+          pendingDragRef.current.lastY,
           pendingDragRef.current.grabOffsetY
         );
       }
-    }, 200);
+    }, 1500);
   };
 
   useEffect(() => {
     const handleWindowPointerMove = (e: PointerEvent) => {
       if (pendingDragRef.current && !dragState?.isDragging) {
+        pendingDragRef.current.lastX = e.clientX;
+        pendingDragRef.current.lastY = e.clientY;
         const dx = Math.abs(e.clientX - pendingDragRef.current.startX);
         const dy = Math.abs(e.clientY - pendingDragRef.current.startY);
-        // Se il cursore si muove oltre 6px prima del timeout, attiva lo spostamento immediatamente
-        if (dx > 6 || dy > 6) {
+
+        // Se durante l'attesa di 1.5s il dito/mouse si muove oltre 22px (intenzione di scorrere/scrollare la griglia),
+        // annulla l'attivazione per evitare spostamenti accidentali e permettere lo scroll naturale
+        if (dx > 22 || dy > 22) {
           if (dragTimerRef.current) {
             clearTimeout(dragTimerRef.current);
             dragTimerRef.current = null;
           }
-          startDrag(
-            pendingDragRef.current.booking,
-            e.clientX,
-            e.clientY,
-            pendingDragRef.current.grabOffsetY
-          );
+          pendingDragRef.current = null;
+          setHoldingBookingId(null);
         }
+        // NOTA: Non avviare MAI lo spostamento qui prima che sia trascorso 1.5 secondi!
       }
 
       if (dragState?.isDragging) {
@@ -828,6 +845,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         dragTimerRef.current = null;
       }
       pendingDragRef.current = null;
+      setHoldingBookingId(null);
 
       if (dragState?.isDragging) {
         document.body.style.userSelect = '';
@@ -883,6 +901,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         dragTimerRef.current = null;
       }
       pendingDragRef.current = null;
+      setHoldingBookingId(null);
       if (dragState?.isDragging) {
         document.body.style.userSelect = '';
         setDragState(null);
@@ -2063,8 +2082,16 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             zIndex: isBeingDragged ? 40 : 10,
                             touchAction: 'none',
                           }}
-                          title={`${b.clienteNome} • ${b.oraInizio}-${b.oraFine} • ${b.salaNome} (Tieni premuto e trascina per spostare)`}
+                          title={`${b.clienteNome} • ${b.oraInizio}-${b.oraFine} • ${b.salaNome} (Tieni premuto 1.5s per spostare nel calendario)`}
                         >
+                          {/* Indicatore visivo di sblocco spostamento: barra di caricamento 1.5 secondi */}
+                          {holdingBookingId === b.id && (
+                            <div className="absolute inset-0 bg-black/40 border-2 border-yellow-400 rounded-md sm:rounded-lg pointer-events-none z-30 flex flex-col justify-end overflow-hidden shadow-lg animate-pulse">
+                              <div className="w-full h-1.5 bg-black/60 overflow-hidden">
+                                <div className="h-full bg-yellow-400 animate-hold-progress" />
+                              </div>
+                            </div>
+                          )}
                           {isNarrow ? (
                             <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden py-1 px-0.5 select-none relative">
                               {/* Stacking characters vertically (Creed, Verti, Rap, etc.) */}
