@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { DEFAULT_STUDIO_INFO, INITIAL_BOOKINGS, INITIAL_CLIENTS, INITIAL_EXPENSES, INITIAL_ROOMS, INITIAL_STAFF, INITIAL_SHIFTS } from '../data/initialData';
-import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig, WorkShift } from '../types';
+import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig, WorkShift, DeleteRecurringMode } from '../types';
 import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates, timeToMinutes } from '../utils/dateUtils';
 import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
 import { computeDailyShifts, autoAssignWeeklyShifts, autoAssignMonthlyShifts } from '../utils/shiftUtils';
@@ -56,7 +56,7 @@ interface AppContextType {
   // Booking actions
   addBooking: (booking: Omit<Booking, 'id' | 'durataOre'> & { repeatWeeks?: number; recurrenceConfig?: RecurrenceConfig }) => void;
   updateBooking: (booking: Booking) => void;
-  deleteBooking: (id: string, deleteAllRecurring?: boolean) => void;
+  deleteBooking: (id: string, mode?: DeleteRecurringMode | boolean) => void;
   assignOperatorToBooking: (bookingId: string, operatorId?: string) => void;
   runAutoAssignment: (monthFilter?: string) => AutoAssignResult;
 
@@ -643,22 +643,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const deleteBooking = (id: string, deleteAllRecurring: boolean = false) => {
+  const deleteBooking = (id: string, mode: DeleteRecurringMode | boolean = 'single') => {
     let targetGroup: string | undefined = undefined;
+    let targetDate: string | undefined = undefined;
+    const deleteMode: DeleteRecurringMode =
+      typeof mode === 'boolean' ? (mode ? 'all' : 'single') : mode;
+
     setBookings((prev) => {
-      if (!deleteAllRecurring) {
+      const target = prev.find((b) => b.id === id);
+      if (!target) return prev.filter((b) => b.id !== id);
+
+      targetGroup = target.gruppoRicorrenzaId;
+      targetDate = target.data;
+
+      if (!targetGroup || deleteMode === 'single') {
         return prev.filter((b) => b.id !== id);
       }
-      const target = prev.find((b) => b.id === id);
-      targetGroup = target?.gruppoRicorrenzaId;
-      if (targetGroup) {
+
+      if (deleteMode === 'future') {
+        // Elimina questo evento e tutti gli eventi futuri ripetuti della stessa serie
+        return prev.filter(
+          (b) => !(b.gruppoRicorrenzaId === targetGroup && b.data >= targetDate!)
+        );
+      }
+
+      if (deleteMode === 'all') {
+        // Elimina tutta la serie
         return prev.filter((b) => b.gruppoRicorrenzaId !== targetGroup);
       }
+
       return prev.filter((b) => b.id !== id);
     });
 
     if (configured) {
-      if (deleteAllRecurring && targetGroup) {
+      if (deleteMode === 'future' && targetGroup && targetDate) {
+        supabaseService.deleteBookingsByGroupFromDate(targetGroup, targetDate).catch(console.error);
+      } else if (deleteMode === 'all' && targetGroup) {
         supabaseService.deleteBookingsByGroup(targetGroup).catch(console.error);
       } else {
         supabaseService.deleteBooking(id).catch(console.error);

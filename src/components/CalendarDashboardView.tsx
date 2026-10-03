@@ -32,7 +32,9 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { Booking, DailyShiftComputed } from '../types';
+import { useTheme } from '../context/ThemeContext';
+import { Booking, DailyShiftComputed, DeleteRecurringMode } from '../types';
+import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 import {
   formatDateToISO,
   parseISODate,
@@ -114,6 +116,10 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 }) => {
   const { rooms, staff, bookings, clients, runAutoAssignment, updateBooking, deleteBooking, refreshFromCloud, isAutoRefreshing, shifts } = useApp();
   const { isAdmin } = useAuth();
+  const { isDark } = useTheme();
+
+  // Stato per modale eliminazione serie ricorrente
+  const [recurringDeleteModalBooking, setRecurringDeleteModalBooking] = useState<Booking | null>(null);
 
   const today = new Date();
   const todayStr = formatDateToISO(today);
@@ -247,6 +253,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     } else {
       setCurrentDate(d => addDays(d, -7));
     }
+    showWeekSwipeToast('prev');
   };
 
   const handleNext = () => {
@@ -257,6 +264,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     } else {
       setCurrentDate(d => addDays(d, 7));
     }
+    showWeekSwipeToast('next');
   };
 
   // Navigazione rapida per mesi
@@ -555,16 +563,22 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     }
 
     if (booking.gruppoRicorrenzaId) {
-      const choice = window.confirm(
-        'Questa prenotazione fa parte di una serie ricorrente.\n\nPremi OK per eliminare TUTTA la serie settimanale, oppure ANNULLA per eliminare solo questo singolo giorno.'
-      );
-      deleteBooking(booking.id, choice);
-    } else {
-      if (window.confirm(`Sei sicuro di voler eliminare la prenotazione di ${booking.clienteNome}?`)) {
-        deleteBooking(booking.id);
-      }
+      setRecurringDeleteModalBooking(booking);
+      setActiveBookingDetail(null);
+      return;
     }
-    setActiveBookingDetail(null);
+
+    if (window.confirm(`Sei sicuro di voler eliminare la prenotazione di ${booking.clienteNome}?`)) {
+      deleteBooking(booking.id);
+      setActiveBookingDetail(null);
+    }
+  };
+
+  const handleConfirmRecurringDelete = (mode: DeleteRecurringMode) => {
+    if (recurringDeleteModalBooking) {
+      deleteBooking(recurringDeleteModalBooking.id, mode);
+      setRecurringDeleteModalBooking(null);
+    }
   };
 
   const handleRunAutoAssign = () => {
@@ -2698,17 +2712,46 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
       {/* Floating HUD Indicator for Touch Swipe Week Navigation on Smartphone */}
       {weekSwipeToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9990] flex items-center gap-2.5 bg-slate-900/95 dark:bg-neutral-900/95 backdrop-blur-md text-white px-4 py-2.5 rounded-full shadow-2xl border border-blue-500/60 dark:border-yellow-400/60 animate-in fade-in zoom-in-95 duration-150 pointer-events-none select-none">
+        <div
+          className={`week-swipe-hud fixed top-20 left-1/2 -translate-x-1/2 z-[9990] flex items-center gap-2.5 px-5 py-2.5 rounded-full shadow-2xl animate-in fade-in zoom-in-95 duration-150 pointer-events-none select-none border font-bold ${
+            isDark
+              ? 'border-yellow-400 shadow-yellow-500/25'
+              : 'border-blue-400 shadow-blue-500/30'
+          }`}
+          style={{
+            backgroundColor: isDark ? '#facc15' : '#2563eb',
+            color: isDark ? '#000000' : '#ffffff',
+            borderColor: isDark ? '#eab308' : '#1d4ed8',
+          }}
+        >
           {weekSwipeToast.direction === 'prev' ? (
-            <ChevronLeft className="w-4 h-4 text-blue-400 dark:text-yellow-400 animate-pulse stroke-[3]" />
+            <ChevronLeft
+              className="w-4 h-4 animate-pulse stroke-[3] shrink-0"
+              style={{ color: isDark ? '#000000' : '#ffffff', stroke: isDark ? '#000000' : '#ffffff' }}
+            />
           ) : (
-            <ChevronRight className="w-4 h-4 text-blue-400 dark:text-yellow-400 animate-pulse stroke-[3]" />
+            <ChevronRight
+              className="w-4 h-4 animate-pulse stroke-[3] shrink-0"
+              style={{ color: isDark ? '#000000' : '#ffffff', stroke: isDark ? '#000000' : '#ffffff' }}
+            />
           )}
-          <span className="text-xs font-black font-mono tracking-tight text-slate-100 dark:text-yellow-100">
+          <span
+            className="text-xs sm:text-sm font-black tracking-tight"
+            style={{ color: isDark ? '#000000' : '#ffffff' }}
+          >
             {weekSwipeToast.label}
           </span>
         </div>
       )}
+
+      {/* Modale Eliminazione Serie Ricorrente */}
+      <DeleteRecurringBookingModal
+        isOpen={Boolean(recurringDeleteModalBooking)}
+        booking={recurringDeleteModalBooking}
+        roomName={rooms.find(r => r.id === recurringDeleteModalBooking?.salaId)?.nome}
+        onClose={() => setRecurringDeleteModalBooking(null)}
+        onConfirm={handleConfirmRecurringDelete}
+      />
     </div>
   );
 };

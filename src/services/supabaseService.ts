@@ -494,6 +494,15 @@ export const supabaseService = {
     const { error } = await supabase.from('bookings').delete().eq('gruppo_ricorrenza_id', groupId);
     if (error) console.error('[Supabase] Errore deleteBookingsByGroup:', error);
   },
+  async deleteBookingsByGroupFromDate(groupId: string, fromDateIso: string) {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('gruppo_ricorrenza_id', groupId)
+      .gte('data', fromDateIso);
+    if (error) console.error('[Supabase] Errore deleteBookingsByGroupFromDate:', error);
+  },
 
   // Expenses
   async upsertExpense(expense: Expense) {

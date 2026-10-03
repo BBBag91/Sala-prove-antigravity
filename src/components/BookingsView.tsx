@@ -16,10 +16,11 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { Booking, BookingType, PaymentStatus } from '../types';
+import { Booking, BookingType, PaymentStatus, DeleteRecurringMode } from '../types';
 import { formatDateItalian, formatCurrency, formatDateToISO } from '../utils/dateUtils';
 import { BookingModal } from './BookingModal';
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
+import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 
 export const BookingsView: React.FC = () => {
   const { bookings, rooms, deleteBooking, updateBooking } = useApp();
@@ -33,6 +34,7 @@ export const BookingsView: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
   const [isSchedulePrintOpen, setIsSchedulePrintOpen] = useState(false);
+  const [recurringDeleteModalBooking, setRecurringDeleteModalBooking] = useState<Booking | null>(null);
 
   // Filter bookings
   const filteredBookings = bookings
@@ -75,14 +77,19 @@ export const BookingsView: React.FC = () => {
     }
 
     if (booking.gruppoRicorrenzaId) {
-      const choice = window.confirm(
-        'Questa prenotazione fa parte di una serie ricorrente.\n\nPremi OK per eliminare TUTTA la serie settimanale, oppure ANNULLA per eliminare solo questo singolo giorno.'
-      );
-      deleteBooking(booking.id, choice);
-    } else {
-      if (window.confirm(`Sei sicuro di voler eliminare la prenotazione di ${booking.clienteNome}?`)) {
-        deleteBooking(booking.id);
-      }
+      setRecurringDeleteModalBooking(booking);
+      return;
+    }
+
+    if (window.confirm(`Sei sicuro di voler eliminare la prenotazione di ${booking.clienteNome}?`)) {
+      deleteBooking(booking.id);
+    }
+  };
+
+  const handleConfirmRecurringDelete = (mode: DeleteRecurringMode) => {
+    if (recurringDeleteModalBooking) {
+      deleteBooking(recurringDeleteModalBooking.id, mode);
+      setRecurringDeleteModalBooking(null);
     }
   };
 
@@ -526,6 +533,15 @@ export const BookingsView: React.FC = () => {
       <OperatorSchedulePrintModal
         isOpen={isSchedulePrintOpen}
         onClose={() => setIsSchedulePrintOpen(false)}
+      />
+
+      {/* Modale Eliminazione Serie Ricorrente */}
+      <DeleteRecurringBookingModal
+        isOpen={Boolean(recurringDeleteModalBooking)}
+        booking={recurringDeleteModalBooking}
+        roomName={rooms.find(r => r.id === recurringDeleteModalBooking?.salaId)?.nome}
+        onClose={() => setRecurringDeleteModalBooking(null)}
+        onConfirm={handleConfirmRecurringDelete}
       />
     </div>
   );

@@ -370,8 +370,15 @@ export interface Booking {
   /** Eventuali richieste particolari di strumentazione (es. set piatti extra) */
   richiesteStrumentazione?: string;
   /** Note operative interne */
-  note?: string;
 }
+
+/**
+ * Modalità di eliminazione per eventi con ripetizione:
+ * - 'single': Elimina solo l'evento selezionato per quel giorno specifico
+ * - 'future': Elimina l'evento selezionato e tutte le repliche future successive della serie
+ * - 'all': Elimina l'intera serie (passati e futuri)
+ */
+export type DeleteRecurringMode = 'single' | 'future' | 'all';
 
 /** Frequenza della ricorrenza */
 export type RecurrenceFrequency = 'nessuna' | 'giornaliera' | 'settimanale' | 'mensile';

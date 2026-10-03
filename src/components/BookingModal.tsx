@@ -2,7 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { X, Calendar, AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig } from '../types';
+import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig, DeleteRecurringMode } from '../types';
+import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime } from '../utils/dateUtils';
 import { RecurrenceModal } from './RecurrenceModal';
 import { SmartTimePicker } from './SmartTimePicker';
@@ -33,6 +34,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [clienteId, setClienteId] = useState('');
   const [isManualClient, setIsManualClient] = useState(true);
   const [manualClientName, setManualClientName] = useState('');
+  const [isRecurringDeleteOpen, setIsRecurringDeleteOpen] = useState(false);
   const [salaId, setSalaId] = useState('');
   const [tipo, setTipo] = useState<BookingType>('prove');
   const [insegnanteId, setInsegnanteId] = useState('');
@@ -641,16 +643,22 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
 
     if (bookingToEdit.gruppoRicorrenzaId) {
-      const choice = window.confirm(
-        'Questa prenotazione fa parte di una serie ricorrente.\n\nPremi OK per eliminare TUTTA la serie settimanale, oppure ANNULLA per eliminare solo questo singolo giorno.'
-      );
-      deleteBooking(bookingToEdit.id, choice);
-    } else {
-      if (window.confirm(`Sei sicuro di voler eliminare la prenotazione di ${bookingToEdit.clienteNome}?`)) {
-        deleteBooking(bookingToEdit.id);
-      }
+      setIsRecurringDeleteOpen(true);
+      return;
     }
-    onClose();
+
+    if (window.confirm(`Sei sicuro di voler eliminare la prenotazione di ${bookingToEdit.clienteNome}?`)) {
+      deleteBooking(bookingToEdit.id);
+      onClose();
+    }
+  };
+
+  const handleConfirmRecurringDelete = (mode: DeleteRecurringMode) => {
+    if (bookingToEdit) {
+      deleteBooking(bookingToEdit.id, mode);
+      setIsRecurringDeleteOpen(false);
+      onClose();
+    }
   };
 
   return (
@@ -1310,6 +1318,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             setRepeatWeeks(newConfig.conteggioOccorrenze || 4);
           }
         }}
+      />
+      {/* Modal Eliminazione Serie Ricorrente */}
+      <DeleteRecurringBookingModal
+        isOpen={isRecurringDeleteOpen}
+        booking={bookingToEdit}
+        roomName={rooms.find(r => r.id === bookingToEdit?.salaId)?.nome}
+        onClose={() => setIsRecurringDeleteOpen(false)}
+        onConfirm={handleConfirmRecurringDelete}
       />
     </div>
   );
