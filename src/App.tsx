@@ -197,8 +197,8 @@ const AppContent: React.FC = () => {
             <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0">
               {/* Logo / Brand */}
               <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/95 overflow-hidden shadow-md shadow-black/40 shrink-0 border border-yellow-500/40 flex items-center justify-center p-0.5">
-                  <img src="/apple-touch-icon.png" alt="Logo" className="w-full h-full object-contain rounded-lg" />
+                <div className="w-11 h-9 sm:w-12 sm:h-10 rounded-xl bg-white/95 overflow-hidden shadow-md shadow-black/40 shrink-0 border border-yellow-500/40 flex items-center justify-center p-0.5">
+                  <img src="/logo-header.png" alt="Logo" className="w-full h-full object-contain rounded-lg" />
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-xs sm:text-sm font-bold tracking-tight leading-tight flex items-center gap-1">
@@ -591,8 +591,8 @@ const AppContent: React.FC = () => {
             {/* Drawer Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-neutral-800 gap-3 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-11 h-11 rounded-xl bg-white overflow-hidden shadow-md shrink-0 border border-slate-200 dark:border-yellow-500/30 flex items-center justify-center p-0.5">
-                  <img src="/apple-touch-icon.png" alt="Logo" className="w-full h-full object-contain rounded-lg" />
+                <div className="w-13 h-10 rounded-xl bg-white overflow-hidden shadow-md shrink-0 border border-slate-200 dark:border-yellow-500/30 flex items-center justify-center p-0.5">
+                  <img src="/logo-header.png" alt="Logo" className="w-full h-full object-contain rounded-lg" />
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">SALA PROVE</h3>

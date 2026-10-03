@@ -47,8 +47,8 @@ export const LoginView: React.FC = () => {
       <div className="w-full max-w-md relative z-10 space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white shadow-xl shadow-yellow-500/20 mb-2 border-2 border-yellow-400/40 p-1.5 overflow-hidden">
-            <img src="/apple-touch-icon.png" alt="La musica fa... Logo" className="w-full h-full object-contain rounded-xl" />
+          <div className="inline-flex items-center justify-center w-36 h-20 rounded-2xl bg-white shadow-xl shadow-yellow-500/20 mb-2 border-2 border-yellow-400/40 p-2 overflow-hidden">
+            <img src="/logo-header.png" alt="La musica fa... Logo" className="w-full h-full object-contain rounded-xl" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             La musica fa...
