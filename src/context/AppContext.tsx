@@ -477,6 +477,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       let updatedAnyBooking = false;
       const updatedBookings = bookings.map((b) => {
         if (b.data !== date) return b;
+        // Non assegnare l'operatore di presidio alle lezioni (gestite dal docente)
+        if (b.tipo === 'lezione') return b;
         const bStartMins = timeToMinutes(b.oraInizio);
         let bEndMins = timeToMinutes(b.oraFine);
         if (bEndMins <= bStartMins) bEndMins += 24 * 60;
@@ -723,10 +725,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const runAutoAssignment = (monthFilter?: string): AutoAssignResult => {
-    // Filter bookings without operator or all target bookings in timeframe
+    // Filter bookings without operator or all target bookings in timeframe (escludendo le lezioni)
     const targetBookings = bookings.filter((b) => {
       const matchMonth = !monthFilter || b.data.startsWith(monthFilter);
-      return matchMonth && !b.operatoreAssegnatoId;
+      return matchMonth && b.tipo !== 'lezione' && !b.operatoreAssegnatoId;
     });
 
     const result = autoAssignOperators(targetBookings, bookings, staff, monthFilter);

@@ -220,11 +220,14 @@ export function autoAssignOperators(
     (op) => op.attivo && (op.ruolo === 'operatore' || op.ruolo === 'entrambi')
   );
 
+  // Le lezioni non necessitano di operatore di presidio sala (sono gestite autonomamente dal docente)
+  const rehearsalBookings = bookingsToAssign.filter((b) => b.tipo !== 'lezione');
+
   if (eligibleOperators.length === 0) {
     return {
       updatedBookings: allBookings,
       assignedCount: 0,
-      unassignedCount: bookingsToAssign.length,
+      unassignedCount: rehearsalBookings.length,
       logs: [
         {
           bookingId: 'all',
@@ -248,7 +251,7 @@ export function autoAssignOperators(
   const hoursTracker = getOperatorAccumulatedHours(eligibleOperators, currentBookings, monthFilter);
 
   // Sort bookings to assign chronologically
-  const sortedTargetBookings = [...bookingsToAssign].sort((a, b) => {
+  const sortedTargetBookings = [...rehearsalBookings].sort((a, b) => {
     if (a.data !== b.data) return a.data.localeCompare(b.data);
     return a.oraInizio.localeCompare(b.oraInizio);
   });

@@ -40,12 +40,15 @@ export function computeDailyShifts(
   const baseMidMins = timeToMinutes(BASE_SHIFT_1_END); // 1200 (20:00)
   const baseEndMins = timeToMinutes(BASE_SHIFT_2_END); // 1380 (23:00)
 
-  // Calcola orario prima e ultima prenotazione
+  // Calcola orario prima e ultima prenotazione (SOLO prove musicali, NON lezioni didattiche)
+  // La copertura operatore e l'adattamento dei turni servono solo per le prove, non per le lezioni
   let earliestBookingMins = baseStartMins;
   let latestBookingMins = baseEndMins;
 
-  if (bookingsOnDate && bookingsOnDate.length > 0) {
-    for (const b of bookingsOnDate) {
+  const rehearsalBookings = (bookingsOnDate || []).filter((b) => b.tipo !== 'lezione');
+
+  if (rehearsalBookings.length > 0) {
+    for (const b of rehearsalBookings) {
       const bStart = timeToMinutes(b.oraInizio);
       let bEnd = timeToMinutes(b.oraFine);
       if (bEnd <= bStart) bEnd += 24 * 60; // Scavallamento mezzanotte

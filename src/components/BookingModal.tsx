@@ -431,8 +431,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
 
     const teacher = tipo === 'lezione' ? staff.find((s) => s.id === insegnanteId) : undefined;
-    const finalOperatoreId = bookingToEdit?.operatoreAssegnatoId;
-    const finalOperatoreNome = bookingToEdit?.operatoreAssegnatoNome;
+    const finalOperatoreId = tipo === 'lezione' ? undefined : bookingToEdit?.operatoreAssegnatoId;
+    const finalOperatoreNome = tipo === 'lezione' ? undefined : bookingToEdit?.operatoreAssegnatoNome;
 
     const clientDisplayName = finalClienteNome;
     const finalTariffaTotale = tipo === 'lezione' ? 0 : Number(tariffaTotale);

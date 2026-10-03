@@ -516,7 +516,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
   const { monthlyBookings, unassignedCount, totalHoursMonth, operatorHours } = useMemo(() => {
     const mBookings = bookings.filter(b => b.data.startsWith(monthString));
-    const uCount = mBookings.filter(b => !b.operatoreAssegnatoId).length;
+    const uCount = mBookings.filter(b => b.tipo !== 'lezione' && !b.operatoreAssegnatoId).length;
     const tHours = mBookings.reduce((s, b) => s + (b.durataOre || 0), 0);
     const opHours = getOperatorAccumulatedHours(staff, bookings, monthString);
     return {
