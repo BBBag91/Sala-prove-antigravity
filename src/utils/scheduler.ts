@@ -1,4 +1,4 @@
-import { Booking, StaffMember } from '../types';
+import { Booking, StaffMember, isLessonBooking } from '../types';
 import { calculateDurationHours, parseISODate, timeToMinutes } from './dateUtils';
 
 /**
@@ -178,7 +178,7 @@ export function getOperatorAccumulatedHours(
   }
 
   for (const b of bookings) {
-    if (b.operatoreAssegnatoId && hoursMap[b.operatoreAssegnatoId] !== undefined) {
+    if (!isLessonBooking(b) && b.operatoreAssegnatoId && hoursMap[b.operatoreAssegnatoId] !== undefined) {
       if (!monthFilter || b.data.startsWith(monthFilter)) {
         hoursMap[b.operatoreAssegnatoId] += b.durataOre || calculateDurationHours(b.oraInizio, b.oraFine);
       }
@@ -221,7 +221,7 @@ export function autoAssignOperators(
   );
 
   // Le lezioni non necessitano di operatore di presidio sala (sono gestite autonomamente dal docente)
-  const rehearsalBookings = bookingsToAssign.filter((b) => b.tipo !== 'lezione');
+  const rehearsalBookings = bookingsToAssign.filter((b) => !isLessonBooking(b));
 
   if (eligibleOperators.length === 0) {
     return {

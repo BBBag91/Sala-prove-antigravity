@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Booking, Client, Expense, ManualIncome, PrimaryWorkShift, PrimaryWorkShiftDate, Room, StaffMember, StudioInfo, WorkShift } from '../types';
+import { Booking, Client, Expense, ManualIncome, PrimaryWorkShift, PrimaryWorkShiftDate, Room, StaffMember, StudioInfo, WorkShift, isLessonBooking } from '../types';
 
 // =========================================================================
 // MAPPERS: TypeScript (camelCase) <-> Supabase PostgreSQL (snake_case)
@@ -164,60 +164,71 @@ export const mapClientFromDb = (c: any): Client => ({
   note: c.note || '',
 });
 
-export const mapBookingToDb = (b: Booking) => ({
-  id: b.id,
-  cliente_id: b.clienteId,
-  cliente_nome: b.clienteNome,
-  sala_id: b.salaId,
-  sala_nome: b.salaNome,
-  tipo: b.tipo,
-  insegnante_id: b.insegnanteId || '',
-  insegnante_nome: b.insegnanteNome || '',
-  data: b.data,
-  ora_inizio: b.oraInizio,
-  ora_fine: b.oraFine,
-  durata_ore: b.durataOre,
-  ripetizione_settimanale: b.ripetizioneSettimanale ?? false,
-  gruppo_ricorrenza_id: b.gruppoRicorrenzaId || '',
-  settimane_ripetizione: b.settimaneRipetizione || 4,
-  recurrence_config: b.recurrenceConfig || null,
-  operatore_assegnato_id: b.operatoreAssegnatoId || '',
-  operatore_assegnato_nome: b.operatoreAssegnatoNome || '',
-  tariffa_totale: b.tariffaTotale,
-  sconto: b.sconto || 0,
-  stato_pagamento: b.statoPagamento,
-  metodo_pagamento: b.metodoPagamento || null,
-  richieste_strumentazione: b.richiesteStrumentazione || '',
-  note: b.note || '',
-  updated_at: new Date().toISOString(),
-});
+export const mapBookingToDb = (b: Booking) => {
+  const isLesson = isLessonBooking(b);
+  return {
+    id: b.id,
+    cliente_id: b.clienteId,
+    cliente_nome: b.clienteNome,
+    sala_id: b.salaId,
+    sala_nome: b.salaNome,
+    tipo: isLesson ? 'lezione' : (b.tipo || 'prove'),
+    insegnante_id: isLesson ? (b.insegnanteId || '') : '',
+    insegnante_nome: isLesson ? (b.insegnanteNome || '') : '',
+    data: b.data,
+    ora_inizio: b.oraInizio,
+    ora_fine: b.oraFine,
+    durata_ore: b.durataOre,
+    ripetizione_settimanale: b.ripetizioneSettimanale ?? false,
+    gruppo_ricorrenza_id: b.gruppoRicorrenzaId || '',
+    settimane_ripetizione: b.settimaneRipetizione || 4,
+    recurrence_config: b.recurrenceConfig || null,
+    operatore_assegnato_id: isLesson ? '' : (b.operatoreAssegnatoId || ''),
+    operatore_assegnato_nome: isLesson ? '' : (b.operatoreAssegnatoNome || ''),
+    tariffa_totale: isLesson ? 0 : b.tariffaTotale,
+    sconto: isLesson ? 0 : (b.sconto || 0),
+    stato_pagamento: isLesson ? 'pagato' : b.statoPagamento,
+    metodo_pagamento: isLesson ? null : (b.metodoPagamento || null),
+    richieste_strumentazione: b.richiesteStrumentazione || '',
+    note: b.note || '',
+    updated_at: new Date().toISOString(),
+  };
+};
 
-export const mapBookingFromDb = (b: any): Booking => ({
-  id: b.id,
-  clienteId: b.cliente_id,
-  clienteNome: b.cliente_nome,
-  salaId: b.sala_id,
-  salaNome: b.sala_nome,
-  tipo: b.tipo,
-  insegnanteId: b.insegnante_id || undefined,
-  insegnanteNome: b.insegnante_nome || undefined,
-  data: b.data,
-  oraInizio: b.ora_inizio,
-  oraFine: b.ora_fine,
-  durataOre: Number(b.durata_ore),
-  ripetizioneSettimanale: Boolean(b.ripetizione_settimanale),
-  gruppoRicorrenzaId: b.gruppo_ricorrenza_id || undefined,
-  settimaneRipetizione: b.settimane_ripetizione ? Number(b.settimane_ripetizione) : undefined,
-  recurrenceConfig: b.recurrence_config || undefined,
-  operatoreAssegnatoId: b.operatore_assegnato_id || undefined,
-  operatoreAssegnatoNome: b.operatore_assegnato_nome || undefined,
-  tariffaTotale: Number(b.tariffa_totale),
-  sconto: b.sconto ? Number(b.sconto) : 0,
-  statoPagamento: b.stato_pagamento,
-  metodoPagamento: b.metodo_pagamento || undefined,
-  richiesteStrumentazione: b.richieste_strumentazione || '',
-  note: b.note || '',
-});
+export const mapBookingFromDb = (b: any): Booking => {
+  const isLesson = isLessonBooking({
+    tipo: b.tipo,
+    insegnanteId: b.insegnante_id,
+    insegnanteNome: b.insegnante_nome,
+  });
+
+  return {
+    id: b.id,
+    clienteId: b.cliente_id,
+    clienteNome: b.cliente_nome,
+    salaId: b.sala_id,
+    salaNome: b.sala_nome,
+    tipo: isLesson ? 'lezione' : (b.tipo || 'prove'),
+    insegnanteId: b.insegnante_id || undefined,
+    insegnanteNome: b.insegnante_nome || undefined,
+    data: b.data,
+    oraInizio: b.ora_inizio,
+    oraFine: b.ora_fine,
+    durataOre: Number(b.durata_ore),
+    ripetizioneSettimanale: Boolean(b.ripetizione_settimanale),
+    gruppoRicorrenzaId: b.gruppo_ricorrenza_id || undefined,
+    settimaneRipetizione: b.settimane_ripetizione ? Number(b.settimane_ripetizione) : undefined,
+    recurrenceConfig: b.recurrence_config || undefined,
+    operatoreAssegnatoId: isLesson ? undefined : (b.operatore_assegnato_id || undefined),
+    operatoreAssegnatoNome: isLesson ? undefined : (b.operatore_assegnato_nome || undefined),
+    tariffaTotale: isLesson ? 0 : Number(b.tariffa_totale),
+    sconto: isLesson ? 0 : (b.sconto ? Number(b.sconto) : 0),
+    statoPagamento: isLesson ? 'pagato' : b.stato_pagamento,
+    metodoPagamento: isLesson ? undefined : (b.metodo_pagamento || undefined),
+    richiesteStrumentazione: b.richieste_strumentazione || '',
+    note: b.note || '',
+  };
+};
 
 export const mapExpenseToDb = (e: Expense) => ({
   id: e.id,

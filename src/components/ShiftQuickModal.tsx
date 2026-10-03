@@ -15,7 +15,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { DailyShiftComputed, WorkShift } from '../types';
+import { DailyShiftComputed, WorkShift, isLessonBooking } from '../types';
 import { checkOperatorShiftAvailability } from '../utils/shiftUtils';
 
 interface ShiftQuickModalProps {
@@ -45,7 +45,7 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
   );
 
   const dayBookings = useMemo(
-    () => (shiftComputed ? bookings.filter((b) => b.data === shiftComputed.data) : []),
+    () => (shiftComputed ? bookings.filter((b) => b.data === shiftComputed.data && !isLessonBooking(b)) : []),
     [bookings, shiftComputed]
   );
 
@@ -484,7 +484,7 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
               className="mt-0.5 rounded text-yellow-400 focus:ring-yellow-400 w-4 h-4 border-neutral-700 bg-neutral-900 cursor-pointer"
             />
             <span className="text-neutral-300 leading-tight">
-              <strong>Assegna automaticamente l'operatore</strong> anche a tutte le prenotazioni ({dayBookings.length} attive oggi) che rientrano in questa fascia oraria.
+              <strong>Assegna automaticamente l'operatore</strong> anche a tutte le prove musicali ({dayBookings.length} attive oggi) che rientrano in questa fascia oraria (le lezioni non richiedono presidio).
             </span>
           </label>
         </div>

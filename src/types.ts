@@ -320,6 +320,20 @@ export type PaymentStatus = 'pagato' | 'da_saldare';
 export type PaymentMethod = 'contanti' | 'pos' | 'bonifico';
 
 /**
+ * Riconosce in modo robusto se una prenotazione rappresenta una lezione didattica
+ * (per tipo esplicito 'lezione', oppure presenza di docente/insegnante incaricato).
+ * Durante le lezioni il presidio dell'operatore non e necessario e non deve mai agganciarsi.
+ */
+export function isLessonBooking(b?: Partial<Booking> | null): boolean {
+  if (!b) return false;
+  const t = (b.tipo || '').toString().toLowerCase().trim();
+  if (t === 'lezione' || t === 'lezioni') return true;
+  if (b.insegnanteId && String(b.insegnanteId).trim().length > 0) return true;
+  if (b.insegnanteNome && String(b.insegnanteNome).trim().length > 0) return true;
+  return false;
+}
+
+/**
  * Singola prenotazione registrata a calendario.
  */
 export interface Booking {

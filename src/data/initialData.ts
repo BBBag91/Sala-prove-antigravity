@@ -329,8 +329,6 @@ export const INITIAL_BOOKINGS: Booking[] = [
     ripetizioneSettimanale: true,
     settimaneRipetizione: 6,
     gruppoRicorrenzaId: 'rec-lezione-canto',
-    operatoreAssegnatoId: 'staff-3',
-    operatoreAssegnatoNome: 'Davide Ferri',
     tariffaTotale: 33,
     statoPagamento: 'pagato',
     metodoPagamento: 'bonifico',

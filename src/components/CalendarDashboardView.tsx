@@ -36,7 +36,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Booking, DailyShiftComputed, DeleteRecurringMode, PaymentMethod, PaymentStatus } from '../types';
+import { Booking, DailyShiftComputed, DeleteRecurringMode, PaymentMethod, PaymentStatus, isLessonBooking } from '../types';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 import {
   formatDateToISO,
@@ -516,7 +516,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
   const { monthlyBookings, unassignedCount, totalHoursMonth, operatorHours } = useMemo(() => {
     const mBookings = bookings.filter(b => b.data.startsWith(monthString));
-    const uCount = mBookings.filter(b => b.tipo !== 'lezione' && !b.operatoreAssegnatoId).length;
+    const uCount = mBookings.filter(b => !isLessonBooking(b) && !b.operatoreAssegnatoId).length;
     const tHours = mBookings.reduce((s, b) => s + (b.durataOre || 0), 0);
     const opHours = getOperatorAccumulatedHours(staff, bookings, monthString);
     return {
@@ -2396,7 +2396,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   onClick={e => handleOpenEditBooking(activeBookingDetail, e)}
                   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black font-bold text-xs shadow-sm transition-all cursor-pointer"
                 >
-                  Modifica / Assegna Operatore
+                  {isLessonBooking(activeBookingDetail) ? 'Modifica Lezione' : 'Modifica / Assegna Operatore'}
                 </button>
               </div>
             </div>

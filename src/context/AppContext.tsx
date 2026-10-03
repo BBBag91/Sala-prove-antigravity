@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { DEFAULT_STUDIO_INFO, INITIAL_BOOKINGS, INITIAL_CLIENTS, INITIAL_EXPENSES, INITIAL_ROOMS, INITIAL_STAFF, INITIAL_SHIFTS } from '../data/initialData';
-import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig, WorkShift, DeleteRecurringMode } from '../types';
+import { Booking, Client, Expense, ManualIncome, Room, StaffMember, StudioInfo, RecurrenceConfig, WorkShift, DeleteRecurringMode, isLessonBooking } from '../types';
 import { calculateDurationHours, formatDateToISO, parseISODate, generateRecurrenceDates, timeToMinutes } from '../utils/dateUtils';
 import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
 import { computeDailyShifts, autoAssignWeeklyShifts, autoAssignMonthlyShifts } from '../utils/shiftUtils';
@@ -240,8 +240,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return pendingLocal.length > 0 ? [...remote.staff, ...pendingLocal] : remote.staff;
           });
         }
-        if (remote.clients.length > 0) setClients(remote.clients);
-        if (remote.bookings) setBookings(remote.bookings);
+        if (remote.bookings) {
+          const sanitized = remote.bookings.map((b) => {
+            if (isLessonBooking(b)) {
+              return {
+                ...b,
+                tipo: 'lezione' as const,
+                operatoreAssegnatoId: undefined,
+                operatoreAssegnatoNome: undefined,
+              };
+            }
+            return b;
+          });
+          setBookings(sanitized);
+        }
         if (remote.expenses.length > 0) setExpenses(remote.expenses);
         if (remote.incomes.length > 0) setIncomes(remote.incomes);
         if (remote.studioInfo) {
@@ -453,8 +465,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       nomeTurno: turnoNumero === 1 ? '1° Turno (Pomeridiano)' : '2° Turno (Serale)',
       oraInizioBase: baseStart,
       oraFineBase: baseEnd,
-      oraInizioEffettiva: existing?.oraInizioEffettiva,
-      oraFineEffettiva: existing?.oraFineEffettiva,
+      oraInizioEffettiva: existing?.isCustomHours ? existing?.oraInizioEffettiva : undefined,
+      oraFineEffettiva: existing?.isCustomHours ? existing?.oraFineEffettiva : undefined,
       operatoreId: effectiveOpId,
       operatoreNome: opName,
       note: existing?.note || '',
@@ -477,13 +489,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       let updatedAnyBooking = false;
       const updatedBookings = bookings.map((b) => {
         if (b.data !== date) return b;
-        // Non assegnare l'operatore di presidio alle lezioni (gestite dal docente)
-        if (b.tipo === 'lezione') return b;
+        // Non assegnare MAI l'operatore di presidio alle lezioni (gestite dal docente)
+        if (isLessonBooking(b)) {
+          if (b.operatoreAssegnatoId || b.operatoreAssegnatoNome) {
+            updatedAnyBooking = true;
+            return {
+              ...b,
+              tipo: 'lezione' as const,
+              operatoreAssegnatoId: undefined,
+              operatoreAssegnatoNome: undefined,
+            };
+          }
+          return b;
+        }
         const bStartMins = timeToMinutes(b.oraInizio);
         let bEndMins = timeToMinutes(b.oraFine);
         if (bEndMins <= bStartMins) bEndMins += 24 * 60;
 
-        // Se la prenotazione si sovrappone al turno
+        // Se la prenotazione (prova musicale) si sovrappone al turno
         if (bStartMins < shiftEndMins && bEndMins > shiftStartMins) {
           updatedAnyBooking = true;
           return {
@@ -602,15 +625,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    const isLesson = isLessonBooking(bookingData);
+
     const newBookings: Booking[] = datesToBook.map((dateStr, idx) => ({
       id: `book-${Date.now()}-${idx}`,
       clienteId: bookingData.clienteId,
       clienteNome: bookingData.clienteNome,
       salaId: bookingData.salaId,
       salaNome: bookingData.salaNome,
-      tipo: bookingData.tipo,
-      insegnanteId: bookingData.insegnanteId,
-      insegnanteNome: bookingData.insegnanteNome,
+      tipo: isLesson ? 'lezione' : (bookingData.tipo || 'prove'),
+      insegnanteId: isLesson ? bookingData.insegnanteId : undefined,
+      insegnanteNome: isLesson ? bookingData.insegnanteNome : undefined,
       data: dateStr,
       oraInizio: bookingData.oraInizio,
       oraFine: bookingData.oraFine,
@@ -619,12 +644,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       gruppoRicorrenzaId: recurrenceId,
       settimaneRipetizione: datesToBook.length,
       recurrenceConfig: bookingData.recurrenceConfig,
-      operatoreAssegnatoId: bookingData.operatoreAssegnatoId,
-      operatoreAssegnatoNome: bookingData.operatoreAssegnatoNome,
-      tariffaTotale: bookingData.tariffaTotale,
-      sconto: bookingData.sconto,
-      statoPagamento: idx === 0 ? bookingData.statoPagamento : 'da_saldare',
-      metodoPagamento: idx === 0 ? bookingData.metodoPagamento : undefined,
+      operatoreAssegnatoId: isLesson ? undefined : bookingData.operatoreAssegnatoId,
+      operatoreAssegnatoNome: isLesson ? undefined : bookingData.operatoreAssegnatoNome,
+      tariffaTotale: isLesson ? 0 : bookingData.tariffaTotale,
+      sconto: isLesson ? 0 : (bookingData.sconto || 0),
+      statoPagamento: isLesson ? 'pagato' : (idx === 0 ? bookingData.statoPagamento : 'da_saldare'),
+      metodoPagamento: isLesson ? undefined : (idx === 0 ? bookingData.metodoPagamento : undefined),
       richiesteStrumentazione: bookingData.richiesteStrumentazione,
       note: bookingData.note,
     }));
@@ -637,7 +662,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateBooking = (updated: Booking) => {
     const duration = calculateDurationHours(updated.oraInizio, updated.oraFine);
-    const finalBooking = { ...updated, durataOre: duration };
+    const isLesson = isLessonBooking(updated);
+    const finalBooking: Booking = {
+      ...updated,
+      durataOre: duration,
+      tipo: isLesson ? 'lezione' : (updated.tipo || 'prove'),
+      operatoreAssegnatoId: isLesson ? undefined : updated.operatoreAssegnatoId,
+      operatoreAssegnatoNome: isLesson ? undefined : updated.operatoreAssegnatoNome,
+    };
     setBookings((prev) =>
       prev.map((b) => (b.id === updated.id ? finalBooking : b))
     );
@@ -725,10 +757,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const runAutoAssignment = (monthFilter?: string): AutoAssignResult => {
-    // Filter bookings without operator or all target bookings in timeframe (escludendo le lezioni)
+    // Filter bookings without operator or all target bookings in timeframe (escludendo categoricamente le lezioni)
     const targetBookings = bookings.filter((b) => {
       const matchMonth = !monthFilter || b.data.startsWith(monthFilter);
-      return matchMonth && b.tipo !== 'lezione' && !b.operatoreAssegnatoId;
+      return matchMonth && !isLessonBooking(b) && !b.operatoreAssegnatoId;
     });
 
     const result = autoAssignOperators(targetBookings, bookings, staff, monthFilter);

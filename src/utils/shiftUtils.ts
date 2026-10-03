@@ -1,4 +1,4 @@
-import { Booking, DailyShiftComputed, StaffMember, WorkShift } from '../types';
+import { Booking, DailyShiftComputed, StaffMember, WorkShift, isLessonBooking } from '../types';
 import { parseISODate, timeToMinutes } from './dateUtils';
 import { isOperatorFreeFromPrimaryWork } from './scheduler';
 
@@ -45,7 +45,7 @@ export function computeDailyShifts(
   let earliestBookingMins = baseStartMins;
   let latestBookingMins = baseEndMins;
 
-  const rehearsalBookings = (bookingsOnDate || []).filter((b) => b.tipo !== 'lezione');
+  const rehearsalBookings = (bookingsOnDate || []).filter((b) => !isLessonBooking(b));
 
   if (rehearsalBookings.length > 0) {
     for (const b of rehearsalBookings) {
@@ -125,8 +125,19 @@ export function computeDailyShifts(
   let op2 = saved2?.operatoreId ? staffList.find((st) => st.id === saved2.operatoreId) : undefined;
 
   // Turno 1 calcolato
-  const s1Start = saved1?.isCustomHours && saved1.oraInizioEffettiva ? saved1.oraInizioEffettiva : minutesToTimeString(shift1StartMins);
-  const s1End = saved1?.isCustomHours && saved1.oraFineEffettiva ? saved1.oraFineEffettiva : minutesToTimeString(shift1EndMins);
+  let s1Start = saved1?.isCustomHours && saved1.oraInizioEffettiva ? saved1.oraInizioEffettiva : minutesToTimeString(shift1StartMins);
+  let s1End = saved1?.isCustomHours && saved1.oraFineEffettiva ? saved1.oraFineEffettiva : minutesToTimeString(shift1EndMins);
+
+  // Se non ci sono prove musicali prima delle 17:00, il 1° Turno non deve MAI agganciarsi prima delle 17:00
+  // (salvaguardia anche in presenza di orari custom pregressi ereditati da vecchi adattamenti alle lezioni)
+  const hasRehearsalBefore17 = rehearsalBookings.some((b) => timeToMinutes(b.oraInizio) < baseStartMins);
+  if (!hasRehearsalBefore17 && timeToMinutes(s1Start) < baseStartMins) {
+    s1Start = minutesToTimeString(baseStartMins);
+    if (timeToMinutes(s1End) < baseMidMins) {
+      s1End = minutesToTimeString(baseMidMins);
+    }
+  }
+
   const s1DurMins = timeToMinutes(s1End) - timeToMinutes(s1Start);
 
   const shift1: DailyShiftComputed = {
@@ -355,8 +366,8 @@ export function autoAssignShifts(
         nomeTurno: computed.nomeTurno,
         oraInizioBase: computed.oraInizioBase,
         oraFineBase: computed.oraFineBase,
-        oraInizioEffettiva: computed.oraInizio,
-        oraFineEffettiva: computed.oraFine,
+        oraInizioEffettiva: computed.isAdapted ? computed.oraInizio : undefined,
+        oraFineEffettiva: computed.isAdapted ? computed.oraFine : undefined,
         operatoreId: chosen.id,
         operatoreNome: `${chosen.nome} ${chosen.cognome}`,
         note: existing?.note || '',
