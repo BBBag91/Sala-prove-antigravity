@@ -70,11 +70,11 @@ export const FinanceView: React.FC = () => {
   const totalExpenses = paidExpenses.reduce((sum, e) => sum + e.importo, 0);
   const totalPendingExpenses = pendingExpenses.reduce((sum, e) => sum + e.importo, 0);
 
-  // Incomes from bookings for this month
+  // Incomes from bookings for this month (solo eventi sala saldati)
   const monthlyBookings = bookings.filter((b) => b.data.startsWith(monthStr));
   const bookingIncomePaid = monthlyBookings
-    .filter((b) => b.statoPagamento === 'pagato')
-    .reduce((sum, b) => sum + b.tariffaTotale, 0);
+    .filter((b) => b.statoPagamento === 'pagato' && b.tipo !== 'lezione')
+    .reduce((sum, b) => sum + (b.tariffaTotale || 0), 0);
 
   // Incomes from membership fees issued this month
   const monthlyMemberships = clients.filter(
@@ -122,10 +122,8 @@ export const FinanceView: React.FC = () => {
     historicalNettoSalaSum += Math.ceil(mNet / 3);
   });
 
-  // Entrate operative del mese (prove + lezioni saldate)
-  const operationalIncomes = bookingIncomePaid + teacherFees.totalSaldato;
-  // Totale complessivo entrate mese (inclusa la quota tessere saldata)
-  const totalIncomes = operationalIncomes + membershipIncomePaid;
+  // Entrate mese: SOLO eventi sala saldati (prove) e lezioni nel momento in cui cambia lo stato in saldate
+  const totalIncomes = bookingIncomePaid + teacherFees.totalSaldato;
   const netBalance = totalIncomes - totalExpenses;
 
   // Category breakdown for expenses (solo spese effettivamente pagate)
@@ -218,18 +216,8 @@ export const FinanceView: React.FC = () => {
           <p className="text-3xl font-bold font-mono text-slate-900">{formatCurrency(totalIncomes)}</p>
           <div className="text-[11px] text-slate-500 flex justify-between border-t border-slate-100 pt-1.5">
             <span>Prove saldate:</span>
-            <strong className="text-slate-800">{formatCurrency(bookingIncomePaid)}</strong>
+            <strong className="text-slate-800 font-mono">{formatCurrency(bookingIncomePaid)}</strong>
           </div>
-          <div className="text-[11px] text-slate-500 flex justify-between">
-            <span>Quote Tessere Saldate ({paidMonthlyMemberships.length}):</span>
-            <strong className="text-emerald-700 font-mono font-semibold">{formatCurrency(membershipIncomePaid)}</strong>
-          </div>
-          {membershipIncomePending > 0 && (
-            <div className="text-[11px] text-amber-700 flex justify-between font-semibold">
-              <span>Quote Tessere Da Saldare ({pendingMonthlyMemberships.length}):</span>
-              <strong className="text-amber-800 font-mono">{formatCurrency(membershipIncomePending)}</strong>
-            </div>
-          )}
           {teacherFees.totalSaldato > 0 && (
             <div className="text-[11px] text-purple-700 font-semibold flex justify-between">
               <span>Quote Lezioni Saldate (5€/h):</span>
@@ -303,7 +291,7 @@ export const FinanceView: React.FC = () => {
         currentMonthName={MESI_ITALIANI[currentMonth]}
         currentYear={currentYear}
         monthStr={monthStr}
-        totalIncomes={operationalIncomes}
+        totalIncomes={totalIncomes}
         totalExpenses={totalExpenses}
         residuoQuoteTessere={membershipIncomePaid}
         residuoQuoteTessereTotale={totalAllMembershipIncomePaid}
