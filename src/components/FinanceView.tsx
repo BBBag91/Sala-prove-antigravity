@@ -80,12 +80,52 @@ export const FinanceView: React.FC = () => {
   const monthlyMemberships = clients.filter(
     (c) => c.dataTesseramento && c.dataTesseramento.startsWith(monthStr)
   );
-  const membershipIncome = monthlyMemberships.reduce(
+  const paidMonthlyMemberships = monthlyMemberships.filter(
+    (c) => c.quotaPagata !== false && c.statoQuota !== 'da_saldare'
+  );
+  const pendingMonthlyMemberships = monthlyMemberships.filter(
+    (c) => c.quotaPagata === false || c.statoQuota === 'da_saldare'
+  );
+  const membershipIncomePaid = paidMonthlyMemberships.reduce(
+    (sum, c) => sum + (c.quotaTesseramento || 15),
+    0
+  );
+  const membershipIncomePending = pendingMonthlyMemberships.reduce(
     (sum, c) => sum + (c.quotaTesseramento || 15),
     0
   );
 
-  const totalIncomes = bookingIncomePaid + membershipIncome + teacherFees.totalSaldato;
+  // Totale storico tessere saldate (fondo cassa cumulato)
+  const allPaidMemberships = clients.filter(
+    (c) => c.quotaPagata !== false && c.statoQuota !== 'da_saldare'
+  );
+  const totalAllMembershipIncomePaid = allPaidMemberships.reduce(
+    (sum, c) => sum + (c.quotaTesseramento || 15),
+    0
+  );
+
+  // Calcolo storico "somma di ogni Netto Sala"
+  const allMonthKeys = new Set<string>();
+  bookings.forEach((b) => b.data && allMonthKeys.add(b.data.substring(0, 7)));
+  expenses.forEach((e) => e.data && allMonthKeys.add(e.data.substring(0, 7)));
+  allMonthKeys.add(monthStr);
+
+  let historicalNettoSalaSum = 0;
+  allMonthKeys.forEach((mStr) => {
+    const mBookings = bookings
+      .filter((b) => b.data && b.data.startsWith(mStr) && b.statoPagamento === 'pagato' && b.tipo !== 'lezione')
+      .reduce((sum, b) => sum + b.tariffaTotale, 0);
+    const mExpenses = expenses
+      .filter((e) => e.data && e.data.startsWith(mStr) && e.stato === 'pagato')
+      .reduce((sum, e) => sum + e.importo, 0);
+    const mNet = mBookings - mExpenses;
+    historicalNettoSalaSum += Math.ceil(mNet / 3);
+  });
+
+  // Entrate operative del mese (prove + lezioni saldate)
+  const operationalIncomes = bookingIncomePaid + teacherFees.totalSaldato;
+  // Totale complessivo entrate mese (inclusa la quota tessere saldata)
+  const totalIncomes = operationalIncomes + membershipIncomePaid;
   const netBalance = totalIncomes - totalExpenses;
 
   // Category breakdown for expenses (solo spese effettivamente pagate)
@@ -181,9 +221,15 @@ export const FinanceView: React.FC = () => {
             <strong className="text-slate-800">{formatCurrency(bookingIncomePaid)}</strong>
           </div>
           <div className="text-[11px] text-slate-500 flex justify-between">
-            <span>Quote Tesseramenti ({monthlyMemberships.length}):</span>
-            <strong className="text-slate-800">{formatCurrency(membershipIncome)}</strong>
+            <span>Quote Tessere Saldate ({paidMonthlyMemberships.length}):</span>
+            <strong className="text-emerald-700 font-mono font-semibold">{formatCurrency(membershipIncomePaid)}</strong>
           </div>
+          {membershipIncomePending > 0 && (
+            <div className="text-[11px] text-amber-700 flex justify-between font-semibold">
+              <span>Quote Tessere Da Saldare ({pendingMonthlyMemberships.length}):</span>
+              <strong className="text-amber-800 font-mono">{formatCurrency(membershipIncomePending)}</strong>
+            </div>
+          )}
           {teacherFees.totalSaldato > 0 && (
             <div className="text-[11px] text-purple-700 font-semibold flex justify-between">
               <span>Quote Lezioni Saldate (5€/h):</span>
@@ -257,8 +303,11 @@ export const FinanceView: React.FC = () => {
         currentMonthName={MESI_ITALIANI[currentMonth]}
         currentYear={currentYear}
         monthStr={monthStr}
-        totalIncomes={totalIncomes}
+        totalIncomes={operationalIncomes}
         totalExpenses={totalExpenses}
+        residuoQuoteTessere={membershipIncomePaid}
+        residuoQuoteTessereTotale={totalAllMembershipIncomePaid}
+        historicalNettoSalaSum={historicalNettoSalaSum}
       />
 
       {/* Ripartizione Spese per Categoria (Visual Breakdown) */}

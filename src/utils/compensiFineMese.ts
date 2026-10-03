@@ -33,6 +33,8 @@ export interface CompensiFineMeseInput {
   totaleEntrateMese: number; // B2
   totaleSpeseMese: number;   // Somma Spese
   G: VariabiliG;
+  residuoQuoteTessere?: number; // Quote delle tessere saldate (devolute a residuo)
+  sommaOgniNettoSala?: number;  // Somma di ogni netto sala storico
 }
 
 export interface CompensiFineMeseOutput {
@@ -43,6 +45,9 @@ export interface CompensiFineMeseOutput {
   B14: number; // Compenso Ale: Math.floor((E2 / Netto Sala) - Ale)
   B15: number; // Compenso Gab: Math.floor((E2 / Netto Sala) - Gab)
   B16: number; // Compenso Paolo: Math.floor((E2 / Netto Sala) - Paolo)
+  residuoQuoteTessere: number; // Quota tessere saldate (Residuo)
+  bilancioTotSala: number;     // Somma di ogni Netto Sala + Residuo quote tessere
+  bilancioTotSalaMese: number; // Netto Sala mese corrente (B13) + Residuo tessere mese
   dettagli: {
     nettoSalaDivisore: number; // G1
     anticipoGab: number;       // G2
@@ -50,6 +55,8 @@ export interface CompensiFineMeseOutput {
     anticipoPaolo: number;     // G4
     totaleAnticipiSoci: number; // G2 + G3 + G4
     quotaBaseNonArrotondata: number; // E2 / G1
+    residuoQuoteTessere: number;
+    sommaOgniNettoSala: number;
   };
 }
 
@@ -94,6 +101,18 @@ export function calcolaCompensiFineMese(input: CompensiFineMeseInput): CompensiF
   // B16 = Arrotonda per difetto ((E2 / G1) - G4) all'intero [Paolo]
   const B16 = Math.floor(quotaBase - G4);
 
+  // Residuo: quote delle tessere saldate
+  const residuoQuoteTessere = safeNum(input.residuoQuoteTessere, 0);
+
+  // Somma di ogni netto sala registrato (se non specificato, default a B13 del mese)
+  const sommaOgniNettoSala = safeNum(input.sommaOgniNettoSala, B13);
+
+  // Bilancio Tot Sala: somma di ogni netto sala + residuo quote tessere
+  const bilancioTotSala = sommaOgniNettoSala + residuoQuoteTessere;
+
+  // Bilancio Tot Sala del mese corrente (Netto Sala mese B13 + Residuo quote mese)
+  const bilancioTotSalaMese = B13 + residuoQuoteTessere;
+
   return {
     B2,
     E2,
@@ -102,6 +121,9 @@ export function calcolaCompensiFineMese(input: CompensiFineMeseInput): CompensiF
     B14,
     B15,
     B16,
+    residuoQuoteTessere,
+    bilancioTotSala,
+    bilancioTotSalaMese,
     dettagli: {
       nettoSalaDivisore: G1,
       anticipoGab: G2,
@@ -109,6 +131,8 @@ export function calcolaCompensiFineMese(input: CompensiFineMeseInput): CompensiF
       anticipoPaolo: G4,
       totaleAnticipiSoci: G2 + G3 + G4,
       quotaBaseNonArrotondata: quotaBase,
+      residuoQuoteTessere,
+      sommaOgniNettoSala,
     },
   };
 }
@@ -120,10 +144,14 @@ export class CompensiFineMeseCalculator {
   public totaleEntrateMese: number;
   public totaleSpeseMese: number;
   public G: VariabiliG;
+  public residuoQuoteTessere: number;
+  public sommaOgniNettoSala?: number;
 
   constructor(initial?: Partial<CompensiFineMeseInput>) {
     this.totaleEntrateMese = safeNum(initial?.totaleEntrateMese, 0);
     this.totaleSpeseMese = safeNum(initial?.totaleSpeseMese, 0);
+    this.residuoQuoteTessere = safeNum(initial?.residuoQuoteTessere, 0);
+    this.sommaOgniNettoSala = initial?.sommaOgniNettoSala !== undefined ? safeNum(initial.sommaOgniNettoSala, 0) : undefined;
     this.G = {
       G1: safeNum(initial?.G?.G1, 3), // Netto Sala
       G2: safeNum(initial?.G?.G2, 0), // Gab
@@ -169,6 +197,8 @@ export class CompensiFineMeseCalculator {
       totaleEntrateMese: this.totaleEntrateMese,
       totaleSpeseMese: this.totaleSpeseMese,
       G: this.G,
+      residuoQuoteTessere: this.residuoQuoteTessere,
+      sommaOgniNettoSala: this.sommaOgniNettoSala,
     });
   }
 }

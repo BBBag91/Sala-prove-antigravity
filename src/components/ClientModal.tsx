@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, UserCheck, ShieldCheck, Music, CheckCircle2 } from 'lucide-react';
+import { X, UserCheck, ShieldCheck, Music, CheckCircle2, Clock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
 import { formatDateToISO } from '../utils/dateUtils';
@@ -33,6 +33,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [dataTesseramento, setDataTesseramento] = useState(formatDateToISO(new Date()));
   const [dataScadenzaTesseramento, setDataScadenzaTesseramento] = useState('');
   const [quotaTesseramento, setQuotaTesseramento] = useState<string | number>(15);
+  const [statoQuota, setStatoQuota] = useState<'pagato' | 'da_saldare'>('pagato');
   const [descrizioneStrumentazione, setDescrizioneStrumentazione] = useState('');
   const [gruppoBand, setGruppoBand] = useState('');
   const [note, setNote] = useState('');
@@ -53,6 +54,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       setDataTesseramento(clientToEdit.dataTesseramento);
       setDataScadenzaTesseramento(clientToEdit.dataScadenzaTesseramento);
       setQuotaTesseramento(clientToEdit.quotaTesseramento);
+      setStatoQuota(clientToEdit.statoQuota || (clientToEdit.quotaPagata === false ? 'da_saldare' : 'pagato'));
       setDescrizioneStrumentazione(clientToEdit.descrizioneStrumentazione);
       setGruppoBand(clientToEdit.gruppoBand || '');
       setNote(clientToEdit.note || '');
@@ -75,6 +77,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       nextYear.setFullYear(today.getFullYear() + 1);
       setDataScadenzaTesseramento(formatDateToISO(nextYear));
       setQuotaTesseramento(15);
+      setStatoQuota('pagato');
       setDescrizioneStrumentazione('');
       setGruppoBand('');
       setNote('');
@@ -133,6 +136,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         dataTesseramento,
         dataScadenzaTesseramento,
         quotaTesseramento: quotaTesseramento === '' ? 0 : Number(quotaTesseramento),
+        statoQuota,
+        quotaPagata: statoQuota === 'pagato',
         descrizioneStrumentazione,
         gruppoBand: gruppoBand.trim() || undefined,
         note: note.trim() || undefined,
@@ -153,6 +158,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         dataTesseramento,
         dataScadenzaTesseramento,
         quotaTesseramento: quotaTesseramento === '' ? 0 : Number(quotaTesseramento),
+        statoQuota,
+        quotaPagata: statoQuota === 'pagato',
         descrizioneStrumentazione,
         gruppoBand: gruppoBand.trim() || undefined,
         note: note.trim() || undefined,
@@ -382,24 +389,57 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Quota Tessera (€)</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={quotaTesseramento}
-                  onFocus={handleNumericFocus}
-                  onClick={handleNumericClick}
-                  onBlur={handleNumericBlur}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === '' || /^\d*$/.test(val)) {
-                      setQuotaTesseramento(val);
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-600">Quota Tessera (€)</label>
+                  <span className="text-[10px] text-slate-400 font-medium">Stato quota</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative w-20 sm:w-24 shrink-0">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={quotaTesseramento}
+                      onFocus={handleNumericFocus}
+                      onClick={handleNumericClick}
+                      onBlur={handleNumericBlur}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          setQuotaTesseramento(val);
+                        }
+                      }}
+                      placeholder="0"
+                      className="w-full px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStatoQuota((prev) => (prev === 'pagato' ? 'da_saldare' : 'pagato'))}
+                    className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-1 cursor-pointer touch-manipulation shadow-2xs select-none ${
+                      statoQuota === 'pagato'
+                        ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+                    }`}
+                    title={
+                      statoQuota === 'pagato'
+                        ? 'Quota saldata. Clicca per impostare "Da saldare"'
+                        : 'Quota da saldare. Clicca per impostare "Saldato"'
                     }
-                  }}
-                  placeholder="0"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-                />
+                  >
+                    {statoQuota === 'pagato' ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="truncate">Saldato</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span className="truncate">Da saldare</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 

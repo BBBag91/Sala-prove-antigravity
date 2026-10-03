@@ -75,12 +75,17 @@ CREATE TABLE IF NOT EXISTS public.clients (
   data_tesseramento TEXT DEFAULT '',
   data_scadenza_tesseramento TEXT DEFAULT '',
   quota_tesseramento NUMERIC(10, 2) DEFAULT 15.00,
+  quota_pagata BOOLEAN DEFAULT true,
+  stato_quota TEXT DEFAULT 'pagato', -- 'pagato' | 'da_saldare'
   descrizione_strumentazione TEXT DEFAULT '',
   gruppo_band TEXT DEFAULT '',
   note TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS quota_pagata BOOLEAN DEFAULT true;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS stato_quota TEXT DEFAULT 'pagato';
 
 -- 5. Tabella Prenotazioni (Prove e Lezioni)
 CREATE TABLE IF NOT EXISTS public.bookings (

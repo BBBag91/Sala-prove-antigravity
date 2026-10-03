@@ -16,6 +16,9 @@ interface CompensiFineMeseSectionProps {
   monthStr: string;
   totalIncomes?: number;
   totalExpenses?: number;
+  residuoQuoteTessere?: number; // Quote tessere saldate nel mese
+  residuoQuoteTessereTotale?: number; // Totale storico quote tessere saldate
+  historicalNettoSalaSum?: number; // Somma di ogni netto sala storico registrato
 }
 
 export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = ({
@@ -24,6 +27,9 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
   monthStr,
   totalIncomes = 0,
   totalExpenses = 0,
+  residuoQuoteTessere = 0,
+  residuoQuoteTessereTotale = 0,
+  historicalNettoSalaSum = 0,
 }) => {
   const storageKey = `salaprove_compensi_v3_${monthStr}`;
 
@@ -108,6 +114,8 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
     totaleEntrateMese,
     totaleSpeseMese: totalExpenses,
     G,
+    residuoQuoteTessere,
+    sommaOgniNettoSala: historicalNettoSalaSum,
   });
 
   const handleSyncRealData = () => {
@@ -312,13 +320,13 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
           </span>
         </div>
 
-        {/* 1. Quadri di Sintesi Studio (B2, E2, B13) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        {/* 1. Quadri di Sintesi Studio (B2, E2, B13, Residuo, Bilancio Tot Sala) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
           {/* Card B2: Totale Rilevato */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">B2 • Totale Rilevato</span>
             <p className="text-2xl font-bold font-mono text-slate-900">{formatCurrency(output.B2)}</p>
-            <p className="text-[10px] text-slate-500 font-mono">Totale rilevato</p>
+            <p className="text-[10px] text-slate-500 font-mono">Entrate operative mese</p>
           </div>
 
           {/* Card E2 */}
@@ -330,11 +338,37 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
             <p className="text-[10px] text-slate-500 font-mono">B2 - Spese Mese</p>
           </div>
 
-          {/* Card B13: Netto Sala */}
-          <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 space-y-1">
+          {/* Card B13: Netto Sala (Foto 2) */}
+          <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 space-y-1 shadow-2xs">
             <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">B13 • Netto Sala</span>
             <p className="text-2xl font-bold font-mono text-blue-900">{formatCurrency(output.B13)}</p>
             <p className="text-[10px] text-blue-600 font-mono">Arrotonda per eccesso (E2 / 3)</p>
+          </div>
+
+          {/* Card Residuo: Quote Tessere */}
+          <div className="p-4 rounded-xl bg-indigo-50/70 border border-indigo-200 space-y-1 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">Residuo (Tessere)</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800">
+                Fondo Sala
+              </span>
+            </div>
+            <p className="text-2xl font-bold font-mono text-indigo-900">{formatCurrency(output.residuoQuoteTessere)}</p>
+            <p className="text-[10px] text-indigo-600 font-mono">Quote tessere saldate</p>
+          </div>
+
+          {/* Card Bilancio Tot Sala */}
+          <div className="p-4 rounded-xl bg-gradient-to-br from-blue-100/90 to-indigo-100/70 border border-blue-300 space-y-1 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">Bilancio Tot Sala</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-200/90 text-blue-900 font-mono">
+                B13 + Residuo
+              </span>
+            </div>
+            <p className="text-2xl font-bold font-mono text-blue-950">{formatCurrency(output.bilancioTotSalaMese)}</p>
+            <p className="text-[10px] text-blue-800 font-mono leading-tight">
+              Somma ogni Netto Sala: {formatCurrency(output.bilancioTotSala)}
+            </p>
           </div>
         </div>
 

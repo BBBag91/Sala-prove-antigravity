@@ -11,10 +11,12 @@ import {
   Mail,
   Printer,
   Download,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
-import { formatDateItalian, formatDateToISO } from '../utils/dateUtils';
+import { formatDateItalian, formatDateToISO, formatCurrency } from '../utils/dateUtils';
 
 const ClientModal = React.lazy(() => import('./ClientModal').then(m => ({ default: m.ClientModal })));
 const MembershipCardPrintModal = React.lazy(() => import('./MembershipCardPrintModal').then(m => ({ default: m.MembershipCardPrintModal })));
@@ -24,6 +26,7 @@ export const ClientsView: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | MembershipStatus>('all');
+  const [quotaFilter, setQuotaFilter] = useState<'all' | 'pagato' | 'da_saldare'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
 
@@ -40,12 +43,34 @@ export const ClientsView: React.FC = () => {
     const fullText = `${c.nome} ${c.cognome} ${c.codiceFiscale} ${c.gruppoBand || ''} ${c.residenza}`.toLowerCase();
     const matchSearch = fullText.includes(searchTerm.toLowerCase());
     const matchStatus = statusFilter === 'all' || c.statoTesseramento === statusFilter;
-    return matchSearch && matchStatus;
+    const isPaid = c.quotaPagata !== undefined ? c.quotaPagata : (c.statoQuota !== 'da_saldare');
+    const matchQuota = quotaFilter === 'all' || (quotaFilter === 'pagato' ? isPaid : !isPaid);
+    return matchSearch && matchStatus && matchQuota;
   });
 
   const activeCount = clients.filter((c) => c.statoTesseramento === 'attivo').length;
   const expiredCount = clients.filter((c) => c.statoTesseramento === 'scaduto').length;
   const pendingCount = clients.filter((c) => c.statoTesseramento === 'in_attesa').length;
+
+  const quoteSaldateCount = clients.filter((c) => (c.quotaPagata !== false && c.statoQuota !== 'da_saldare')).length;
+  const quoteSaldateTotal = clients
+    .filter((c) => (c.quotaPagata !== false && c.statoQuota !== 'da_saldare'))
+    .reduce((sum, c) => sum + (c.quotaTesseramento || 15), 0);
+
+  const quoteDaSaldareCount = clients.filter((c) => (c.quotaPagata === false || c.statoQuota === 'da_saldare')).length;
+  const quoteDaSaldareTotal = clients
+    .filter((c) => (c.quotaPagata === false || c.statoQuota === 'da_saldare'))
+    .reduce((sum, c) => sum + (c.quotaTesseramento || 15), 0);
+
+  const handleToggleQuotaPayment = (client: Client) => {
+    const isCurrentlyPaid = client.quotaPagata !== undefined ? client.quotaPagata : (client.statoQuota !== 'da_saldare');
+    const nextPaid = !isCurrentlyPaid;
+    updateClient({
+      ...client,
+      quotaPagata: nextPaid,
+      statoQuota: nextPaid ? 'pagato' : 'da_saldare',
+    });
+  };
 
   const handleRenewMembership = (client: Client) => {
     const today = new Date();
@@ -144,33 +169,46 @@ export const ClientsView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
+          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
             Totale Clienti
           </p>
-          <p className="text-2xl font-bold font-mono text-slate-900 mt-1">{clients.length}</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-slate-900 mt-1">{clients.length}</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
+          <p className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">
             Tessere Attive
           </p>
-          <p className="text-2xl font-bold font-mono text-emerald-600 mt-1">{activeCount}</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-600 mt-1">{activeCount}</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
+          <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wider">
             Tessere Scadute
           </p>
-          <p className="text-2xl font-bold font-mono text-amber-600 mt-1">{expiredCount}</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-amber-600 mt-1">{expiredCount}</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-            In Attesa / Nuovi
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 shadow-xs">
+          <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider flex items-center justify-between">
+            <span>Quote Saldate</span>
+            <span className="text-[10px] font-bold text-emerald-700 font-mono">({quoteSaldateCount})</span>
           </p>
-          <p className="text-2xl font-bold font-mono text-slate-700 mt-1">{pendingCount}</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 mt-1">{formatCurrency(quoteSaldateTotal)}</p>
+        </div>
+
+        <div className={`p-3.5 sm:p-4 rounded-xl border shadow-xs ${
+          quoteDaSaldareCount > 0
+            ? 'bg-amber-50/80 border-amber-300 text-amber-900'
+            : 'bg-white border-slate-200 text-slate-700'
+        }`}>
+          <p className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider flex items-center justify-between">
+            <span>Quote Da Saldare</span>
+            <span className="text-[10px] font-bold text-amber-700 font-mono">({quoteDaSaldareCount})</span>
+          </p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-amber-700 mt-1">{formatCurrency(quoteDaSaldareTotal)}</p>
         </div>
       </div>
 
@@ -197,6 +235,16 @@ export const ClientsView: React.FC = () => {
             <option value="attivo">Solo Attivi</option>
             <option value="scaduto">Solo Scaduti</option>
             <option value="in_attesa">Solo In Attesa</option>
+          </select>
+
+          <select
+            value={quotaFilter}
+            onChange={(e) => setQuotaFilter(e.target.value as any)}
+            className="px-3.5 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden touch-manipulation cursor-pointer"
+          >
+            <option value="all">Tutte le quote</option>
+            <option value="pagato">✅ Solo Saldate</option>
+            <option value="da_saldare">⏳ Solo Da Saldare</option>
           </select>
 
           <button
@@ -262,6 +310,15 @@ export const ClientsView: React.FC = () => {
                         : isExpired
                         ? 'Tessera Scaduta'
                         : 'In Attesa'}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border flex items-center gap-1 ${
+                        client.quotaPagata === false || client.statoQuota === 'da_saldare'
+                          ? 'bg-amber-50 border-amber-300 text-amber-800'
+                          : 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                      }`}
+                    >
+                      {client.quotaPagata === false || client.statoQuota === 'da_saldare' ? '⏳ Quota Da Saldare' : '✅ Quota Saldata'}
                     </span>
                   </div>
 
@@ -353,12 +410,42 @@ export const ClientsView: React.FC = () => {
 
               {/* Tesseramento info bar */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                <div>
-                  <span className="text-slate-500">Tessera N: </span>
-                  <strong className="text-slate-800 font-mono text-sm">{client.numeroTessera}</strong>
-                  <span className="text-slate-400 ml-2">
-                    (Scadenza: <strong>{formatDateItalian(client.dataScadenzaTesseramento, false)}</strong>)
-                  </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div>
+                    <span className="text-slate-500">Tessera N: </span>
+                    <strong className="text-slate-800 font-mono text-sm">{client.numeroTessera}</strong>
+                    <span className="text-slate-400 ml-2">
+                      (Scadenza: <strong>{formatDateItalian(client.dataScadenzaTesseramento, false)}</strong>)
+                    </span>
+                  </div>
+
+                  {/* Pulsante interattivo Saldato / Da Saldare */}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleQuotaPayment(client)}
+                    className={`px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer touch-manipulation shadow-2xs select-none ${
+                      client.quotaPagata === false || client.statoQuota === 'da_saldare'
+                        ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                    }`}
+                    title={
+                      client.quotaPagata === false || client.statoQuota === 'da_saldare'
+                        ? 'Quota non saldata. Clicca per impostare come SALDATO'
+                        : 'Quota saldata. Clicca per impostare come DA SALDARE'
+                    }
+                  >
+                    {client.quotaPagata === false || client.statoQuota === 'da_saldare' ? (
+                      <>
+                        <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>Da saldare ({formatCurrency(client.quotaTesseramento || 15)})</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>Saldato ({formatCurrency(client.quotaTesseramento || 15)})</span>
+                      </>
+                    )}
+                  </button>
                 </div>
                 <div className="flex items-center gap-2">
                   <button

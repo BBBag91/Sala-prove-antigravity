@@ -121,48 +121,83 @@ export const mapStaffFromDb = (s: any): StaffMember => {
   };
 };
 
-export const mapClientToDb = (c: Client) => ({
-  id: c.id,
-  nome: c.nome,
-  cognome: c.cognome,
-  codice_fiscale: c.codiceFiscale || '',
-  residenza: c.residenza || '',
-  sesso: c.sesso || 'M',
-  data_nascita: c.dataNascita || '',
-  luogo_nascita: c.luogoNascita || '',
-  telefono: c.telefono || '',
-  email: c.email || '',
-  stato_tesseramento: c.statoTesseramento || 'attivo',
-  numero_tessera: c.numeroTessera || '',
-  data_tesseramento: c.dataTesseramento || '',
-  data_scadenza_tesseramento: c.dataScadenzaTesseramento || '',
-  quota_tesseramento: c.quotaTesseramento || 15,
-  descrizione_strumentazione: c.descrizioneStrumentazione || '',
-  gruppo_band: c.gruppoBand || '',
-  note: c.note || '',
-  updated_at: new Date().toISOString(),
-});
+// Flag per ricordare se le colonne 'quota_pagata' / 'stato_quota' esistono nella tabella 'clients' di Supabase
+let hasClientQuotaColumn: boolean | null = null;
 
-export const mapClientFromDb = (c: any): Client => ({
-  id: c.id,
-  nome: c.nome,
-  cognome: c.cognome,
-  codiceFiscale: c.codice_fiscale || '',
-  residenza: c.residenza || '',
-  sesso: c.sesso || 'M',
-  dataNascita: c.data_nascita || '',
-  luogoNascita: c.luogo_nascita || '',
-  telefono: c.telefono || '',
-  email: c.email || '',
-  statoTesseramento: c.stato_tesseramento || 'attivo',
-  numeroTessera: c.numero_tessera || '',
-  dataTesseramento: c.data_tesseramento || '',
-  dataScadenzaTesseramento: c.data_scadenza_tesseramento || '',
-  quotaTesseramento: Number(c.quota_tesseramento || 15),
-  descrizioneStrumentazione: c.descrizione_strumentazione || '',
-  gruppoBand: c.gruppo_band || '',
-  note: c.note || '',
-});
+export const mapClientToDb = (c: Client, includeQuotaCol?: boolean) => {
+  const isPaid = c.quotaPagata !== undefined ? c.quotaPagata : (c.statoQuota !== 'da_saldare');
+  let cleanNote = c.note || '';
+  cleanNote = cleanNote.replace(/\[QUOTA_PAGAMENTO:(pagato|da_saldare)\]\s*/g, '').trim();
+  const noteWithMeta = `${cleanNote ? cleanNote + ' ' : ''}[QUOTA_PAGAMENTO:${isPaid ? 'pagato' : 'da_saldare'}]`.trim();
+
+  const result: any = {
+    id: c.id,
+    nome: c.nome,
+    cognome: c.cognome,
+    codice_fiscale: c.codiceFiscale || '',
+    residenza: c.residenza || '',
+    sesso: c.sesso || 'M',
+    data_nascita: c.dataNascita || '',
+    luogo_nascita: c.luogoNascita || '',
+    telefono: c.telefono || '',
+    email: c.email || '',
+    stato_tesseramento: c.statoTesseramento || 'attivo',
+    numero_tessera: c.numeroTessera || '',
+    data_tesseramento: c.dataTesseramento || '',
+    data_scadenza_tesseramento: c.dataScadenzaTesseramento || '',
+    quota_tesseramento: c.quotaTesseramento || 15,
+    descrizione_strumentazione: c.descrizioneStrumentazione || '',
+    gruppo_band: c.gruppoBand || '',
+    note: noteWithMeta,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (includeQuotaCol !== false) {
+    result.quota_pagata = isPaid;
+    result.stato_quota = isPaid ? 'pagato' : 'da_saldare';
+  }
+
+  return result;
+};
+
+export const mapClientFromDb = (c: any): Client => {
+  let isQuotaPagata = true;
+  const rawNote = c.note || '';
+  if (rawNote.includes('[QUOTA_PAGAMENTO:da_saldare]')) {
+    isQuotaPagata = false;
+  } else if (rawNote.includes('[QUOTA_PAGAMENTO:pagato]')) {
+    isQuotaPagata = true;
+  } else if (c.quota_pagata !== undefined && c.quota_pagata !== null) {
+    isQuotaPagata = Boolean(c.quota_pagata);
+  } else if (c.stato_quota) {
+    isQuotaPagata = c.stato_quota === 'pagato';
+  }
+
+  const displayNote = rawNote.replace(/\[QUOTA_PAGAMENTO:(pagato|da_saldare)\]\s*/g, '').trim();
+
+  return {
+    id: c.id,
+    nome: c.nome,
+    cognome: c.cognome,
+    codiceFiscale: c.codice_fiscale || '',
+    residenza: c.residenza || '',
+    sesso: c.sesso || 'M',
+    dataNascita: c.data_nascita || '',
+    luogoNascita: c.luogo_nascita || '',
+    telefono: c.telefono || '',
+    email: c.email || '',
+    statoTesseramento: c.stato_tesseramento || 'attivo',
+    numeroTessera: c.numero_tessera || '',
+    dataTesseramento: c.data_tesseramento || '',
+    dataScadenzaTesseramento: c.data_scadenza_tesseramento || '',
+    quotaTesseramento: Number(c.quota_tesseramento || 15),
+    statoQuota: isQuotaPagata ? 'pagato' : 'da_saldare',
+    quotaPagata: isQuotaPagata,
+    descrizioneStrumentazione: c.descrizione_strumentazione || '',
+    gruppoBand: c.gruppo_band || '',
+    note: displayNote,
+  };
+};
 
 export const mapBookingToDb = (b: Booking) => {
   const isLesson = isLessonBooking(b);
@@ -473,9 +508,26 @@ export const supabaseService = {
 
   // Clients
   async upsertClient(client: Client) {
-    if (!supabase) return;
-    const { error } = await supabase.from('clients').upsert(mapClientToDb(client));
-    if (error) console.error('[Supabase] Errore upsertClient:', error);
+    if (!supabase) return { error: null };
+    if (hasClientQuotaColumn !== false) {
+      const payload = mapClientToDb(client, true);
+      const { data, error } = await supabase.from('clients').upsert(payload);
+      if (!error) {
+        hasClientQuotaColumn = true;
+        return { data, error: null };
+      }
+      if (error.code === 'PGRST204' || error.message?.includes('quota_pagata') || error.message?.includes('stato_quota')) {
+        hasClientQuotaColumn = false;
+        console.warn('[Supabase] Colonne quota_pagata/stato_quota non trovate in clients. Attivato fallback trasparente.');
+      } else {
+        console.error('[Supabase] Errore upsertClient:', error);
+        return { error };
+      }
+    }
+    const fallbackPayload = mapClientToDb(client, false);
+    const { data, error } = await supabase.from('clients').upsert(fallbackPayload);
+    if (error) console.error('[Supabase] Errore upsertClient fallback:', error);
+    return { data, error };
   },
   async deleteClient(id: string) {
     if (!supabase) return;
@@ -631,7 +683,21 @@ export const supabaseService = {
         }
         return supabase.from('staff').upsert(data.staff.map((s) => mapStaffToDb(s, false)));
       })(),
-      supabase.from('clients').upsert(data.clients.map(mapClientToDb)),
+      (async () => {
+        if (hasClientQuotaColumn !== false) {
+          const res = await supabase.from('clients').upsert(data.clients.map((c) => mapClientToDb(c, true)));
+          if (!res.error) {
+            hasClientQuotaColumn = true;
+            return res;
+          }
+          if (res.error.code === 'PGRST204' || res.error.message?.includes('quota_pagata') || res.error.message?.includes('stato_quota')) {
+            hasClientQuotaColumn = false;
+          } else {
+            return res;
+          }
+        }
+        return supabase.from('clients').upsert(data.clients.map((c) => mapClientToDb(c, false)));
+      })(),
       data.bookings.length > 0 ? supabase.from('bookings').upsert(data.bookings.map(mapBookingToDb)) : Promise.resolve({ error: null }),
       data.expenses.length > 0 ? supabase.from('expenses').upsert(data.expenses.map(mapExpenseToDb)) : Promise.resolve({ error: null }),
       data.incomes.length > 0 ? supabase.from('incomes').upsert(data.incomes.map(mapIncomeToDb)) : Promise.resolve({ error: null }),

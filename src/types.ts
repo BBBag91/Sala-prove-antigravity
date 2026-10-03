@@ -213,6 +213,10 @@ export interface Client {
   dataScadenzaTesseramento: string;
   /** Quota versata per il tesseramento in Euro (€) */
   quotaTesseramento: number;
+  /** Stato del pagamento della quota tessera: 'pagato' (saldato) o 'da_saldare' */
+  statoQuota?: 'pagato' | 'da_saldare';
+  /** Flag che indica se la quota di tesseramento è stata saldata */
+  quotaPagata?: boolean;
   /** Specifiche della strumentazione richiesta dalla band/musicista */
   descrizioneStrumentazione: string;
   /** Nome della band o progetto musicale associato */

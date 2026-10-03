@@ -43,7 +43,7 @@ async function seed() {
 
   // 4. Clienti
   console.log('Caricamento clienti...');
-  const { error: errClients } = await client.from('clients').upsert(INITIAL_CLIENTS.map(mapClientToDb));
+  const { error: errClients } = await client.from('clients').upsert(INITIAL_CLIENTS.map((c) => mapClientToDb(c)));
   if (errClients) console.error('Errore clients:', errClients);
   else console.log(`✓ ${INITIAL_CLIENTS.length} clienti caricati!`);
 
