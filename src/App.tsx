@@ -197,13 +197,13 @@ const AppContent: React.FC = () => {
             <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0">
               {/* Logo / Brand */}
               <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center text-black font-bold shadow-md shadow-yellow-500/30 shrink-0">
-                  <Music2 className="w-4 h-4 text-black stroke-[2.5]" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/95 overflow-hidden shadow-md shadow-black/40 shrink-0 border border-yellow-500/40 flex items-center justify-center p-0.5">
+                  <img src="/apple-touch-icon.png" alt="Logo" className="w-full h-full object-contain rounded-lg" />
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-xs sm:text-sm font-bold tracking-tight leading-tight flex items-center gap-1">
                     <span className="hidden sm:inline shrink-0 bg-blue-600 text-white dark:bg-yellow-400 dark:text-black px-1.5 py-0.5 rounded-md">SALA PROVE</span>
-                    <span className="text-blue-600 dark:text-yellow-400 font-bold truncate max-w-[90px] sm:max-w-[130px] lg:max-w-[160px] 2xl:max-w-[220px]">
+                    <span className="text-blue-600 dark:text-yellow-400 font-bold truncate max-w-[110px] sm:max-w-[150px] lg:max-w-[180px] 2xl:max-w-[240px]">
                       <span className="sm:hidden">• </span>{studioInfo.nome}
                     </span>
                   </h1>
@@ -591,8 +591,8 @@ const AppContent: React.FC = () => {
             {/* Drawer Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-neutral-800 gap-3 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-yellow-400/10 border border-blue-200/80 dark:border-yellow-500/30 flex items-center justify-center text-blue-600 dark:text-yellow-400 shrink-0 shadow-2xs">
-                  <Music2 className="w-5 h-5 stroke-[2.5]" />
+                <div className="w-11 h-11 rounded-xl bg-white overflow-hidden shadow-md shrink-0 border border-slate-200 dark:border-yellow-500/30 flex items-center justify-center p-0.5">
+                  <img src="/apple-touch-icon.png" alt="Logo" className="w-full h-full object-contain rounded-lg" />
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">SALA PROVE</h3>

@@ -1,8 +1,8 @@
 import { Booking, Client, Expense, Room, StaffMember, StudioInfo, WorkShift } from '../types';
 
 export const DEFAULT_STUDIO_INFO: StudioInfo = {
-  nome: 'Sound Studio',
-  sottotitolo: 'Associazione Culturale Musicale • Centro Prove & Registrazione',
+  nome: 'La musica fa...',
+  sottotitolo: 'Scuola di Musica • Sale Prova • Studio di Registrazione',
   indirizzo: 'Via delle Note Musicali, 12',
   citta: 'Milano',
   cap: '20100',

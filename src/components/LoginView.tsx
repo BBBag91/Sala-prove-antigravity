@@ -47,14 +47,14 @@ export const LoginView: React.FC = () => {
       <div className="w-full max-w-md relative z-10 space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-yellow-400 text-black shadow-xl shadow-yellow-500/25 mb-1 border-2 border-yellow-300">
-            <Music2 className="w-7 h-7 stroke-[2.5]" />
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white shadow-xl shadow-yellow-500/20 mb-2 border-2 border-yellow-400/40 p-1.5 overflow-hidden">
+            <img src="/apple-touch-icon.png" alt="La musica fa... Logo" className="w-full h-full object-contain rounded-xl" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-            SALA PROVE MUSICALE
+            La musica fa...
           </h1>
           <p className="text-xs sm:text-sm text-yellow-400/80 font-medium">
-            Accedi con le tue credenziali
+            Scuola di Musica • Sale Prova • Studio di Registrazione
           </p>
         </div>
 
