@@ -258,6 +258,13 @@ export const extractMemberDataFromImage = async (
     throw new Error('Chiave API Gemini non configurata. Inserisci la tua API key nelle impostazioni scansione.');
   }
 
+  // Rileva automaticamente mimeType corretto da eventuale data URL header
+  let detectedMime = mimeType || 'image/jpeg';
+  const mimeMatch = imageBase64.match(/^data:([^;]+);base64,/);
+  if (mimeMatch && mimeMatch[1]) {
+    detectedMime = mimeMatch[1];
+  }
+
   // Rimuovi eventuale data URL header (es. data:image/jpeg;base64,)
   const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, '');
 
@@ -316,7 +323,7 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
           { text: prompt },
           {
             inlineData: {
-              mimeType: mimeType || 'image/jpeg',
+              mimeType: detectedMime,
               data: base64Data,
             },
           },
@@ -326,14 +333,19 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
     generationConfig: {
       temperature: 0.1,
       responseMimeType: 'application/json',
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
     },
   };
 
-  // Modelli Gemini attivi e veloci per estrazione testo da immagini (ultra-rapidi e precisi)
+  // Modelli Gemini attivi con supporto vision, fallback a catena su modelli ultra-veloci
   const modelsToTry = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-3.7-flash',
+    'gemini-3.5-flash',
+    'gemini-3.8-flash',
   ];
   let lastError: any = null;
 
@@ -376,7 +388,7 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
 
       const parsed: ExtractedMemberData = JSON.parse(cleanJsonStr);
 
-      // Post-elaborazione e validazione
+      // Post-elaborazione e validazione Codice Fiscale
       if (parsed.codiceFiscale) {
         parsed.codiceFiscale = parsed.codiceFiscale.toUpperCase().replace(/\s+/g, '');
         // Se manca la data di nascita o sesso ma il CF è valido, ricaviamoli
@@ -386,6 +398,15 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
         }
         if ((!parsed.dataNascita || !/^\d{4}-\d{2}-\d{2}$/.test(parsed.dataNascita)) && cfDecoded.dataNascita) {
           parsed.dataNascita = cfDecoded.dataNascita;
+        }
+      }
+
+      // Normalizzazione data nascita a formato YYYY-MM-DD se scritta come DD-MM-YYYY o DD/MM/YYYY
+      if (parsed.dataNascita) {
+        const d = parsed.dataNascita.trim();
+        const dmy = d.match(/^(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})$/);
+        if (dmy) {
+          parsed.dataNascita = `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
         }
       }
 
@@ -399,6 +420,12 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
         parsed.sesso = 'M';
       }
 
+      // Normalizza CAP
+      if (!parsed.cap && parsed.residenzaCompleta) {
+        const capMatch = parsed.residenzaCompleta.match(/\b\d{5}\b/);
+        if (capMatch) parsed.cap = capMatch[0];
+      }
+
       // Costruisci residenzaCompleta se non fornita
       if (!parsed.residenzaCompleta) {
         const parts = [
@@ -408,6 +435,10 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
           parsed.provinciaResidenza ? `(${parsed.provinciaResidenza})` : '',
         ].filter(Boolean);
         parsed.residenzaCompleta = parts.join(' ').trim();
+      }
+
+      if (!parsed.indirizzo && parsed.residenzaCompleta) {
+        parsed.indirizzo = parsed.residenzaCompleta;
       }
 
       return parsed;

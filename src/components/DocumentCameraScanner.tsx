@@ -158,6 +158,44 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
     setMode('preview');
   };
 
+  // Ridimensiona e ottimizza l'immagine prima dell'invio se supera 1920px (velocizza l'upload ed evita timeout)
+  const compressImageIfNeeded = (dataUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1920;
+        let { width, height } = img;
+        if (width <= maxDim && height <= maxDim && dataUrl.length < 2_000_000) {
+          resolve(dataUrl);
+          return;
+        }
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(dataUrl);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.88));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
   // Caricamento file immagine da disco
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -165,10 +203,11 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
 
     setErrorMessage(null);
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const result = event.target?.result as string;
       if (result) {
-        setCapturedImage(result);
+        const optimized = await compressImageIfNeeded(result);
+        setCapturedImage(optimized);
         setMode('preview');
       }
     };
@@ -182,8 +221,8 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
 
   // Esegui scansione con Gemini AI
   const runAiAnalysis = async (imageDataUrl?: string) => {
-    const imageToScan = imageDataUrl || capturedImage;
-    if (!imageToScan) return;
+    const rawImage = imageDataUrl || capturedImage;
+    if (!rawImage) return;
 
     // Se non c'è una chiave API configurata, apri il modal per richiederla
     const currentKey = getGeminiApiKey();
@@ -196,10 +235,18 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
     setErrorMessage(null);
 
     try {
+      const imageToScan = await compressImageIfNeeded(rawImage);
       const data = await extractMemberDataFromImage(imageToScan);
       setExtractedData(data);
       onDataExtracted(data);
       setMode('success');
+
+      // Compila e scarica automaticamente il file Excel (.csv con 17 colonne formattate)
+      try {
+        downloadMemberExcelFile(data);
+      } catch (dlErr) {
+        console.warn('Download automatico Excel:', dlErr);
+      }
     } catch (err: any) {
       console.error('Errore estrazione IA:', err);
       const msg = err.message || 'Errore durante l\'analisi IA dell\'immagine.';
