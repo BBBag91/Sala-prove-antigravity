@@ -5,10 +5,11 @@ import { useAuth } from '../context/AuthContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig, DeleteRecurringMode } from '../types';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 import { PastBookingConfirmModal } from './PastBookingConfirmModal';
-import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime } from '../utils/dateUtils';
+import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime, getHolidayOrSundayInfo } from '../utils/dateUtils';
 import { RecurrenceModal } from './RecurrenceModal';
 import { SmartTimePicker } from './SmartTimePicker';
 import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
+import { checkOperatorsCoverageForTimeSlot } from '../utils/scheduler';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -59,9 +60,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     tipoFine: 'per_sempre',
     conteggioOccorrenze: 4,
   });
-  const [tariffaBase, setTariffaBase] = useState<string | number>(36);
+  const [tariffaBase, setTariffaBase] = useState<string | number>(0);
   const [sconto, setSconto] = useState<string | number>(0);
-  const [tariffaTotale, setTariffaTotale] = useState<string | number>(36);
+  const [tariffaTotale, setTariffaTotale] = useState<string | number>(0);
   const [customTariffa, setCustomTariffa] = useState(false);
   const [statoPagamento, setStatoPagamento] = useState<PaymentStatus>('da_saldare');
   const [metodoPagamento, setMetodoPagamento] = useState<PaymentMethod>('pos');
@@ -153,7 +154,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setIsManualClient(true);
       setManualClientName('');
       setClienteId('');
-      setSalaId(initialRoomId || rooms[0]?.id || '');
+      setSalaId(initialRoomId || '');
       setTipo(defaultTipo);
       setInsegnanteId('');
       const start = initialStartTime || '18:00';
@@ -321,7 +322,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       return;
     }
     const room = rooms.find((r) => r.id === salaId);
-    if (!room) return;
+    if (!room) {
+      if (!customTariffa) {
+        setTariffaBase(0);
+        setTariffaTotale(0);
+      }
+      return;
+    }
     const hours = calculateDurationHours(oraInizio, oraFine);
     const rate = room.tariffaOraria;
     const base = Math.round(hours * rate);
@@ -390,33 +397,86 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       }));
   }, [rooms, overlappingBookingsByRoom]);
 
-  // Se la sala selezionata è già occupata, reimposta automaticamente alla prima sala libera
-  useEffect(() => {
-    if (!isOpen) return;
-    if (!salaId) {
-      if (availableRooms.length > 0) {
-        setSalaId(availableRooms[0].id);
+  // Mappa delle sovrapposizioni orarie per insegnante (lezioni contemporanee, escludendo l'evento in modifica)
+  const overlappingBookingsByTeacher = useMemo(() => {
+    const map = new Map<string, Booking[]>();
+    if (!data || !oraInizio || !oraFine) return map;
+
+    const startM = timeToMinutes(oraInizio);
+    let endM = timeToMinutes(oraFine);
+    if (endM <= startM) endM += 24 * 60;
+
+    bookings.forEach((b) => {
+      if (b.tipo !== 'lezione') return;
+      if (bookingToEdit && b.id === bookingToEdit.id) return;
+      if (b.data !== data) return;
+
+      const bStart = timeToMinutes(b.oraInizio);
+      let bEnd = timeToMinutes(b.oraFine);
+      if (bEnd <= bStart) bEnd += 24 * 60;
+
+      // Sovrapposizione temporale parziale o totale: startM < bEnd && endM > bStart
+      if (startM < bEnd && endM > bStart) {
+        const tId =
+          b.insegnanteId ||
+          staff.find(
+            (s) =>
+              b.insegnanteNome &&
+              `${s.nome} ${s.cognome}`.trim().toLowerCase() === b.insegnanteNome.trim().toLowerCase()
+          )?.id;
+
+        if (tId) {
+          const list = map.get(tId) || [];
+          list.push(b);
+          map.set(tId, list);
+        }
       }
-      return;
+    });
+
+    return map;
+  }, [bookings, bookingToEdit, data, oraInizio, oraFine, staff]);
+
+  // Insegnanti candidati
+  const teacherCandidates = useMemo(() => {
+    return staff.filter(
+      (s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi')
+    );
+  }, [staff]);
+
+  // Insegnanti disponibili (senza altre lezioni nell'orario selezionato)
+  const availableTeachers = useMemo(() => {
+    return teacherCandidates.filter((t) => !overlappingBookingsByTeacher.has(t.id));
+  }, [teacherCandidates, overlappingBookingsByTeacher]);
+
+  // Insegnanti occupati con dettaglio dei conflitti
+  const occupiedTeachers = useMemo(() => {
+    return teacherCandidates
+      .filter((t) => overlappingBookingsByTeacher.has(t.id))
+      .map((t) => ({
+        teacher: t,
+        conflicts: overlappingBookingsByTeacher.get(t.id) || [],
+      }));
+  }, [teacherCandidates, overlappingBookingsByTeacher]);
+
+  // Controllo giorni festivi e domeniche (giorni segnati in rosso sul calendario)
+  const holidayInfo = useMemo(() => {
+    if (!data) return { isHolidayOrSunday: false, isSunday: false, isHoliday: false, name: '', shortBadge: '' };
+    return getHolidayOrSundayInfo(data);
+  }, [data]);
+
+  // Controllo presenza e copertura operatori di sala (liberi da lavoro primario)
+  const operatorCoverage = useMemo(() => {
+    if (!data || !oraInizio || !oraFine) {
+      return { hasCoverage: true, totalOperatorsCount: 0, availableOperators: [], unavailableOperators: [] };
     }
-    if (overlappingBookingsByRoom.has(salaId)) {
-      const firstFree = availableRooms[0];
-      if (firstFree) {
-        setSalaId(firstFree.id);
-      }
-    }
-  }, [isOpen, availableRooms, overlappingBookingsByRoom, salaId]);
+    return checkOperatorsCoverageForTimeSlot(staff, data, oraInizio, oraFine);
+  }, [staff, data, oraInizio, oraFine]);
 
   if (!isOpen) return null;
 
   const durationHours = calculateDurationHours(oraInizio, oraFine);
   const selectedClient = clients.find((c) => c.id === clienteId);
   const selectedRoom = rooms.find((r) => r.id === salaId);
-
-  // Teachers list
-  const teacherCandidates = staff.filter(
-    (s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi')
-  );
 
   const executeActualSave = () => {
     const finalClienteNome = isManualClient
@@ -677,7 +737,33 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       ? (bookingToEdit?.clienteId?.startsWith('manual-') ? bookingToEdit.clienteId : `manual-${Date.now()}`)
       : (selectedClient?.id || '');
 
-    if (!finalClienteNome || !selectedRoom) return;
+    if (!finalClienteNome) {
+      alert('Inserisci il nome del cliente o della band.');
+      return;
+    }
+    if (!selectedRoom) {
+      alert('Seleziona una sala prove prima di procedere.');
+      return;
+    }
+
+    // Controllo bloccante festività nazionali e domeniche (chiusura totale struttura)
+    if (holidayInfo.isHolidayOrSunday) {
+      alert(
+        `Impossibile inserire o modificare la prenotazione:\n\nLa data selezionata (${data}) corrisponde a un giorno di chiusura festiva (${holidayInfo.name}).\n\nLa struttura è chiusa nei giorni festivi e tutte le domeniche.`
+      );
+      return;
+    }
+
+    // Controllo bloccante copertura operatori (Nessun operatore disponibile causa lavoro primario)
+    if (!operatorCoverage.hasCoverage) {
+      const details = operatorCoverage.unavailableOperators
+        .map((u) => `• ${u.operator.nome} ${u.operator.cognome}: ${u.reason}`)
+        .join('\n');
+      alert(
+        `Impossibile inserire o modificare la prenotazione:\n\nNessuno dei ${operatorCoverage.totalOperatorsCount} operatori della struttura risulta disponibile il ${data} nella fascia oraria ${oraInizio} - ${oraFine} a causa dei turni di lavoro primario:\n\n${details}\n\nLa prenotazione di nuovi eventi è bloccata quando la struttura non può essere presidiata da almeno un operatore.`
+      );
+      return;
+    }
 
     // Controllo bloccante univocità sala: nessuna sovrapposizione oraria ammessa
     if (overlappingBookingsByRoom.has(salaId)) {
@@ -686,6 +772,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         `Impossibile inserire la prenotazione:\n\nLa sala "${selectedRoom.nome}" risulta già occupata il ${data} nella fascia oraria ${oraInizio} - ${oraFine} da:\n${conflicts
           .map((c) => `• ${c.clienteNome} (${c.oraInizio} - ${c.oraFine})`)
           .join('\n')}\n\nDue eventi non possono coincidere o occupare la stessa sala nello stesso intervallo. Seleziona una sala libera tra quelle disponibili.`
+      );
+      return;
+    }
+
+    // Controllo bloccante univocità insegnante: un insegnante non può essere in due lezioni contemporaneamente
+    if (tipo === 'lezione' && insegnanteId && overlappingBookingsByTeacher.has(insegnanteId)) {
+      const conflicts = overlappingBookingsByTeacher.get(insegnanteId) || [];
+      const teacherObj = staff.find((s) => s.id === insegnanteId);
+      const teacherName = teacherObj ? `${teacherObj.nome} ${teacherObj.cognome}` : 'L\'insegnante selezionato';
+      alert(
+        `Impossibile inserire la lezione:\n\n${teacherName} risulta già impegnato/a in un'altra lezione il ${data} nella fascia oraria ${oraInizio} - ${oraFine} con:\n${conflicts
+          .map((c) => `• ${c.clienteNome} in ${c.salaNome || 'Sala'} (${c.oraInizio} - ${c.oraFine})`)
+          .join('\n')}\n\nUn insegnante non può essere assegnato a più lezioni nello stesso orario. Seleziona un insegnante disponibile o cambia orario.`
       );
       return;
     }
@@ -801,9 +900,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black text-sm shadow-md shadow-blue-500/25 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                disabled={!operatorCoverage.hasCoverage || holidayInfo.isHolidayOrSunday}
+                className={`px-5 py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center gap-2 ${
+                  !operatorCoverage.hasCoverage || holidayInfo.isHolidayOrSunday
+                    ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
+                }`}
+                title={
+                  holidayInfo.isHolidayOrSunday
+                    ? `Prenotazione bloccata: giorno festivo di chiusura (${holidayInfo.name})`
+                    : !operatorCoverage.hasCoverage
+                      ? 'Prenotazione bloccata: nessun operatore disponibile per lavoro primario'
+                      : ''
+                }
               >
-                <CheckCircle2 className="w-4 h-4" />
+                {!operatorCoverage.hasCoverage || holidayInfo.isHolidayOrSunday ? <AlertTriangle className="w-4 h-4 text-white" /> : <CheckCircle2 className="w-4 h-4" />}
                 <span>{bookingToEdit ? 'Salva Modifiche' : 'Conferma Prenotazione'}</span>
               </button>
             </div>
@@ -811,6 +922,65 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
           {/* Form Scrollable Body */}
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
+          {/* Alert Bloccante Festività Nazionali & Domeniche */}
+          {holidayInfo.isHolidayOrSunday && (
+            <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-500 dark:border-rose-600 rounded-xl flex items-start gap-3 shadow-sm animate-pulse">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+              </div>
+              <div className="text-xs text-rose-950 dark:text-rose-100 space-y-1.5 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-sm text-rose-800 dark:text-rose-300">
+                    🚫 Struttura Chiusa: {holidayInfo.name}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-600 text-white tracking-wide shadow-2xs">
+                    Prenotazioni Bloccate
+                  </span>
+                </div>
+                <p className="text-rose-800 dark:text-rose-200/90 leading-relaxed font-medium">
+                  Il giorno <strong>{data}</strong> è contrassegnato in rosso sul calendario come giorno di chiusura festiva (<strong>{holidayInfo.name}</strong>). La struttura è chiusa nei giorni festivi e in tutte le domeniche. Non è consentito inserire o confermare prenotazioni in questa data.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Alert Bloccante Presidio Operatori (Lavoro Primario) */}
+          {!holidayInfo.isHolidayOrSunday && !operatorCoverage.hasCoverage && (
+            <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-400 dark:border-rose-600 rounded-xl flex items-start gap-3 shadow-sm animate-pulse">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="text-xs text-rose-950 dark:text-rose-100 space-y-1.5 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-sm text-rose-800 dark:text-rose-300">
+                    🚨 Nessun Operatore Presente (Lavoro Primario)
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-600 text-white tracking-wide shadow-2xs">
+                    Prenotazioni Bloccate
+                  </span>
+                </div>
+                <p className="text-rose-800 dark:text-rose-200/90 leading-relaxed font-medium">
+                  Nessuno dei {operatorCoverage.totalOperatorsCount} operatori della struttura è disponibile per presidio il <strong>{data}</strong> dalle <strong>{oraInizio}</strong> alle <strong>{oraFine}</strong> a causa dei turni di lavoro primario. Non è possibile inserire nuovi eventi in questo intervallo.
+                </p>
+                {operatorCoverage.unavailableOperators.length > 0 && (
+                  <div className="mt-1 pt-1.5 border-t border-rose-200 dark:border-rose-800/60">
+                    <span className="font-bold text-[11px] text-rose-900 dark:text-rose-200 block mb-0.5">
+                      Dettaglio indisponibilità lavoro primario:
+                    </span>
+                    <ul className="space-y-0.5 text-rose-700 dark:text-rose-300 text-[11px]">
+                      {operatorCoverage.unavailableOperators.map((u, idx) => (
+                        <li key={idx} className="flex items-start gap-1">
+                          <span className="font-bold shrink-0">• {u.operator.nome} {u.operator.cognome}:</span>
+                          <span>{u.reason}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Tipo prenotazione: Prove vs Lezione */}
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
@@ -1022,22 +1192,79 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
           {/* Insegnante (se lezione) */}
           {tipo === 'lezione' && (
-            <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-lg">
-              <label className="block text-xs font-semibold text-indigo-900 uppercase tracking-wider mb-1.5">
-                Docente / Insegnante incaricato
-              </label>
+            <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 rounded-lg">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
+                  Docente / Insegnante incaricato *
+                </label>
+                {data && oraInizio && oraFine && (
+                  <span
+                    className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                      availableTeachers.length > 0
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                        : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                    }`}
+                  >
+                    {availableTeachers.length} su {teacherCandidates.length} {availableTeachers.length === 1 ? 'disponibile' : 'disponibili'}
+                  </span>
+                )}
+              </div>
               <select
                 value={insegnanteId}
                 onChange={(e) => setInsegnanteId(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-lg border border-indigo-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                className={`w-full px-3.5 py-2.5 rounded-lg border text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all ${
+                  insegnanteId && overlappingBookingsByTeacher.has(insegnanteId)
+                    ? 'border-red-500 bg-red-50 text-red-900 ring-2 ring-red-400'
+                    : 'border-indigo-300 bg-white text-slate-800'
+                }`}
               >
-                <option value="">-- Seleziona insegnante --</option>
-                {teacherCandidates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nome} {t.cognome} {t.materieInsegnamento ? `(${t.materieInsegnamento})` : ''}
+                <option value="">-- Seleziona insegnante ({availableTeachers.length} disponibili) --</option>
+                {/* Insegnanti Disponibili */}
+                {availableTeachers.map((t) => (
+                  <option key={t.id} value={t.id} className="font-bold text-slate-900">
+                    ✓ {t.nome} {t.cognome} {t.materieInsegnamento ? `(${t.materieInsegnamento})` : ''}
                   </option>
                 ))}
+                {/* Insegnanti già impegnati in altra lezione: disabilitati e non selezionabili */}
+                {occupiedTeachers.length > 0 && (
+                  <optgroup label="── Insegnanti già impegnati in altra lezione (Non selezionabili) ──">
+                    {occupiedTeachers.map(({ teacher: t, conflicts }) => (
+                      <option
+                        key={t.id}
+                        value={t.id}
+                        disabled
+                        className="text-slate-400 bg-slate-100 italic"
+                      >
+                        🚫 {t.nome} {t.cognome} - OCCUPATO/A ({conflicts.map((c) => `${c.clienteNome} in ${c.salaNome || 'Sala'} ${c.oraInizio}-${c.oraFine}`).join(', ')})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
+
+              {/* Avviso in tempo reale se l'insegnante scelto ha un conflitto */}
+              {insegnanteId && overlappingBookingsByTeacher.has(insegnanteId) && (
+                <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-300 text-red-800 text-xs flex items-start gap-2 animate-in fade-in duration-150">
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold">Insegnante già occupato/a in questa fascia oraria!</strong>
+                    <span>
+                      {(overlappingBookingsByTeacher.get(insegnanteId) || []).map((c) => `• ${c.clienteNome} in ${c.salaNome || 'Sala'} (${c.oraInizio} - ${c.oraFine})`).join(' ')}
+                    </span>
+                    <span className="block mt-1 font-semibold text-red-900">
+                      Seleziona un altro insegnante disponibile tra quelli liberi.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Notifica se tutti gli insegnanti sono occupati */}
+              {availableTeachers.length === 0 && teacherCandidates.length > 0 && (
+                <div className="mt-2 p-2.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Tutti gli insegnanti risultano già impegnati tra le {oraInizio} e le {oraFine}. Cambia orario o data.</span>
+                </div>
+              )}
             </div>
           )}
 

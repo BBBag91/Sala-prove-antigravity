@@ -21,6 +21,7 @@ export function formatMorningBriefingMessage({
   dailyShifts,
   bookings,
   rooms,
+  staff = [],
   config,
 }: {
   dateStr: string;
@@ -43,7 +44,6 @@ export function formatMorningBriefingMessage({
   const sortedBookings = [...bookings].sort((a, b) => a.oraInizio.localeCompare(b.oraInizio));
 
   const totalOre = sortedBookings.reduce((sum, b) => sum + (b.durataOre || 0), 0);
-  const totalIncasso = sortedBookings.reduce((sum, b) => sum + (b.tariffaTotale || 0), 0);
 
   const lines: string[] = [];
 
@@ -76,27 +76,144 @@ export function formatMorningBriefingMessage({
   if (countBookings === 0) {
     lines.push(`_Nessuna prenotazione registrata in calendario per oggi._`);
   } else {
-    sortedBookings.forEach((b, idx) => {
+    const getTeacherName = (b: Booking): string => {
+      const teacherMember = staff.find((s) => s.id === b.insegnanteId);
+      return (
+        b.insegnanteNome?.trim() ||
+        (teacherMember ? `${teacherMember.nome} ${teacherMember.cognome}`.trim() : '') ||
+        b.clienteNome?.trim() ||
+        'Insegnante'
+      );
+    };
+
+    // Raggruppiamo le lezioni per (Docente + Sala)
+    interface LessonGroup {
+      docenteNome: string;
+      roomNome: string;
+      bookings: Booking[];
+    }
+
+    const lessonGroupsMap = new Map<string, LessonGroup>();
+    const standardBookings: Booking[] = [];
+
+    sortedBookings.forEach((b) => {
+      if (b.tipo === 'lezione') {
+        const docenteNome = getTeacherName(b);
+        const room = rooms.find((r) => r.id === b.salaId);
+        const roomNome = room?.nome || b.salaNome || 'Sala';
+        const key = `${docenteNome.toLowerCase()}:::${b.salaId || roomNome.toLowerCase()}`;
+
+        const existing = lessonGroupsMap.get(key);
+        if (existing) {
+          existing.bookings.push(b);
+        } else {
+          lessonGroupsMap.set(key, {
+            docenteNome,
+            roomNome,
+            bookings: [b],
+          });
+        }
+      } else {
+        standardBookings.push(b);
+      }
+    });
+
+    // Elementi da visualizzare ordinati per orario di inizio
+    interface DisplayItem {
+      earliestStart: string;
+      renderLines: () => string[];
+    }
+
+    const displayItems: DisplayItem[] = [];
+
+    // 1. Processa i gruppi di lezioni
+    lessonGroupsMap.forEach((group) => {
+      const intervals = group.bookings
+        .map((b) => ({ start: b.oraInizio, end: b.oraFine }))
+        .sort((a, b) => a.start.localeCompare(b.start));
+
+      // Unisci intervalli contigui o sovrapposti (es. 16:00-17:00, 17:00-18:00 -> 16:00-18:00)
+      const merged: { start: string; end: string }[] = [];
+      for (const curr of intervals) {
+        if (merged.length === 0) {
+          merged.push({ ...curr });
+        } else {
+          const prev = merged[merged.length - 1];
+          if (curr.start <= prev.end) {
+            if (curr.end > prev.end) {
+              prev.end = curr.end;
+            }
+          } else {
+            merged.push({ ...curr });
+          }
+        }
+      }
+
+      const timeStrings = merged.map((m) => `${m.start} - ${m.end}`);
+      const orarioFormatted =
+        timeStrings.length === 1
+          ? timeStrings[0]
+          : timeStrings.slice(0, -1).join(', ') + ' e ' + timeStrings[timeStrings.length - 1];
+
+      const allNotes = Array.from(
+        new Set(group.bookings.map((b) => b.note?.trim()).filter(Boolean))
+      );
+
+      const allDotazioni = config?.includiDotazione
+        ? Array.from(
+            new Set(group.bookings.map((b) => b.richiesteStrumentazione?.trim()).filter(Boolean))
+          )
+        : [];
+
+      displayItems.push({
+        earliestStart: intervals[0].start,
+        renderLines: () => {
+          const itemLines: string[] = [];
+          itemLines.push(
+            `🕒 *${orarioFormatted}* | 🎓 Lezione "${group.docenteNome}" in "${group.roomNome}"`
+          );
+          if (allDotazioni.length > 0) {
+            itemLines.push(`   • 📦 Dotazione: _${allDotazioni.join('; ')}_`);
+          }
+          if (allNotes.length > 0) {
+            itemLines.push(`   • 📝 Nota: _${allNotes.join('; ')}_`);
+          }
+          return itemLines;
+        },
+      });
+    });
+
+    // 2. Processa le prenotazioni standard
+    standardBookings.forEach((b) => {
       const room = rooms.find((r) => r.id === b.salaId);
       const roomNome = room?.nome || b.salaNome || 'Sala';
-      const tipoIcon = b.tipo === 'lezione' ? '🎓 Lezione' : '🎸 Prove';
-      const insegnanteNote = b.tipo === 'lezione' && b.insegnanteNome ? ` [Docente: ${b.insegnanteNome}]` : '';
 
-      lines.push(`${idx + 1}️⃣ 🕒 *${b.oraInizio} - ${b.oraFine}* | 🚪 *${roomNome}*`);
-      lines.push(`   • Band/Cliente: *${b.clienteNome}* (${tipoIcon}${insegnanteNote})`);
+      displayItems.push({
+        earliestStart: b.oraInizio,
+        renderLines: () => {
+          const itemLines: string[] = [];
+          itemLines.push(`🕒 *${b.oraInizio} - ${b.oraFine}* | 🚪 *${roomNome}*`);
+          itemLines.push(`   • Band/Cliente: *${b.clienteNome}*`);
+          if (config?.includiDotazione && b.richiesteStrumentazione) {
+            itemLines.push(`   • 📦 Dotazione: _${b.richiesteStrumentazione}_`);
+          }
+          if (b.note && b.note.trim()) {
+            itemLines.push(`   • 📝 Nota: _${b.note.trim()}_`);
+          }
+          return itemLines;
+        },
+      });
+    });
 
-      if (config?.includiStatoPagamenti !== false) {
-        const pagato = b.statoPagamento === 'pagato';
-        const statoStr = pagato ? `✅ Saldato (€${b.tariffaTotale.toFixed(2)})` : `⏳ Da Saldare (€${b.tariffaTotale.toFixed(2)})`;
-        lines.push(`   • Pagamento: ${statoStr}`);
-      }
+    // Ordina tutti gli elementi per orario d'inizio cronologico
+    displayItems.sort((a, b) => a.earliestStart.localeCompare(b.earliestStart));
 
-      if (config?.includiDotazione && b.richiesteStrumentazione) {
-        lines.push(`   • 📦 Dotazione: _${b.richiesteStrumentazione}_`);
-      }
-
-      if (b.note && b.note.trim()) {
-        lines.push(`   • 📝 Nota: _${b.note.trim()}_`);
+    // Renderizza numerando ogni elemento
+    displayItems.forEach((item, idx) => {
+      const rendered = item.renderLines();
+      if (rendered.length > 0) {
+        rendered[0] = `${idx + 1}️⃣ ${rendered[0]}`;
+        lines.push(...rendered);
       }
     });
   }
@@ -104,7 +221,7 @@ export function formatMorningBriefingMessage({
   // Riepilogo finale
   lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
   if (countBookings > 0) {
-    lines.push(`📊 *Riepilogo:* ${countBookings} prenotazioni | ${totalOre.toFixed(1)}h totali | €${totalIncasso.toFixed(2)} previsti`);
+    lines.push(`📊 *Riepilogo:* ${countBookings} prenotazioni | ${totalOre.toFixed(1)}h totali`);
   }
   lines.push(`✨ _Buona giornata e buon lavoro a tutto lo staff!_ 🎶`);
 

@@ -15,7 +15,7 @@ export const DEFAULT_STUDIO_INFO: StudioInfo = {
     provider: 'manual',
     orarioNotifica: '10:00',
     chatId: '',
-    includiStatoPagamenti: true,
+    includiStatoPagamenti: false,
     includiDotazione: false,
     autoSendMorning: false,
     browserNotificationEnabled: true,

@@ -48,7 +48,7 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
     chatId: '',
     groupName: '',
     groupInviteLink: '',
-    includiStatoPagamenti: true,
+    includiStatoPagamenti: false,
     includiDotazione: false,
     autoSendMorning: true,
     browserNotificationEnabled: true,
@@ -64,7 +64,7 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
   const [webhookUrl, setWebhookUrl] = useState(currentConfig.webhookUrl || '');
   const [orarioNotifica, setOrarioNotifica] = useState(currentConfig.orarioNotifica || '10:00');
   const [includiStatoPagamenti, setIncludiStatoPagamenti] = useState(
-    currentConfig.includiStatoPagamenti ?? true
+    currentConfig.includiStatoPagamenti ?? false
   );
   const [includiDotazione, setIncludiDotazione] = useState(
     currentConfig.includiDotazione ?? false

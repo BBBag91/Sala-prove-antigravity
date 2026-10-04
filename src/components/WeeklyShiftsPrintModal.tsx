@@ -34,6 +34,7 @@ const GIORNI_LUN_VEN = [
   { short: 'MER', name: 'Mercoledì' },
   { short: 'GIO', name: 'Giovedì' },
   { short: 'VEN', name: 'Venerdì' },
+  { short: 'SAB', name: 'Sabato' },
 ];
 
 export const WeeklyShiftsPrintModal: React.FC<WeeklyShiftsPrintModalProps> = ({
@@ -249,7 +250,7 @@ export const WeeklyShiftsPrintModal: React.FC<WeeklyShiftsPrintModalProps> = ({
                   📅 {periodTitle}
                 </h2>
                 <p className="text-[11px] text-slate-600 mt-0.5">
-                  Fasce orarie presidio: 1° Turno (17:00 &ndash; 20:00) &bull; 2° Turno (20:00 &ndash; 23:00+)
+                  Presidio: Lun &ndash; Ven (17:00 &ndash; 20:00 / 20:00 &ndash; 23:00+) &bull; Sabato (09:00 &ndash; 12:00 / 14:00 &ndash; 18:00)
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -260,7 +261,7 @@ export const WeeklyShiftsPrintModal: React.FC<WeeklyShiftsPrintModalProps> = ({
                 <div className="bg-white border border-slate-300 px-2.5 py-1 rounded text-center">
                   <div className="text-[9px] font-bold text-slate-500 uppercase">Copertura</div>
                   <div className={`text-xs font-black font-mono ${stats.unassignedShifts === 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
-                    {stats.coveredShifts}/10
+                    {stats.coveredShifts}/{stats.totalShifts}
                   </div>
                 </div>
               </div>

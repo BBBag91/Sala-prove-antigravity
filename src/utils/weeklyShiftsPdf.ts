@@ -24,6 +24,7 @@ const GIORNI_LUN_VEN = [
   { short: 'MER', name: 'Mercoledì' },
   { short: 'GIO', name: 'Giovedì' },
   { short: 'VEN', name: 'Venerdì' },
+  { short: 'SAB', name: 'Sabato' },
 ];
 
 /**
@@ -32,7 +33,7 @@ const GIORNI_LUN_VEN = [
 export function compileWeeklyStats(computedWeekShifts: WeeklyShiftDayData[]) {
   let totalOperatingHours = 0;
   let coveredShifts = 0;
-  const totalShifts = 10;
+  const totalShifts = (computedWeekShifts && computedWeekShifts.length > 0) ? computedWeekShifts.length * 2 : 12;
   const opMap: Record<string, { id: string; name: string; shiftsCount: number; hours: number }> = {};
 
   computedWeekShifts.forEach(({ shift1, shift2 }) => {
@@ -78,12 +79,13 @@ export function buildWeeklyShiftsHtml(options: WeeklyShiftsPrintOptions): string
   const startMonth = MESI_ITALIANI[currentMonday.getMonth()];
   const endDay = weekFriday.getDate();
   const endMonth = MESI_ITALIANI[weekFriday.getMonth()];
+  const endDayName = weekFriday.getDay() === 6 ? 'Sabato' : 'Venerdì';
   const year = weekFriday.getFullYear();
 
   const periodTitle =
     startMonth === endMonth
-      ? `Da Lunedì ${startDay} a Venerdì ${endDay} ${startMonth} ${year}`
-      : `Da Lunedì ${startDay} ${startMonth} a Venerdì ${endDay} ${endMonth} ${year}`;
+      ? `Da Lunedì ${startDay} a ${endDayName} ${endDay} ${startMonth} ${year}`
+      : `Da Lunedì ${startDay} ${startMonth} a ${endDayName} ${endDay} ${endMonth} ${year}`;
 
   const todayStr = new Date().toLocaleDateString('it-IT');
 
@@ -245,7 +247,7 @@ export function buildWeeklyShiftsHtml(options: WeeklyShiftsPrintOptions): string
           📅 ${periodTitle}
         </div>
         <div style="font-size: 9.5px; color: #475569; margin-top: 2px;">
-          Presidio sale Lunedì &ndash; Venerdì: 1° Turno (17:00&ndash;20:00) &bull; 2° Turno (20:00&ndash;23:00+)
+          Presidio: Lun &ndash; Ven (17:00&ndash;20:00 / 20:00&ndash;23:00+) &bull; Sabato (09:00&ndash;12:00 / 14:00&ndash;18:00)
         </div>
       </div>
       <div style="display: flex; gap: 8px;">

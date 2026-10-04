@@ -357,12 +357,33 @@ export function getEasterSunday(year: number): { month: number; day: number } {
   return { month, day };
 }
 
+export interface HolidayOrSundayInfo {
+  isHolidayOrSunday: boolean;
+  isSunday: boolean;
+  isHoliday: boolean;
+  name: string; // e.g. "Natale", "Pasqua", "1 Maggio", "2 Giugno", "Domenica"
+  shortBadge: string; // e.g. "Natale", "Pasqua", "1 Maggio", "Domenica"
+}
+
+export const FIXED_HOLIDAYS_MAP: Record<string, string> = {
+  '01-01': 'Capodanno',
+  '01-06': 'Epifania',
+  '04-25': '25 Aprile (Liberazione)',
+  '05-01': '1 Maggio (Festa Lavoratori)',
+  '06-02': '2 Giugno (Festa Repubblica)',
+  '08-15': 'Ferragosto (Assunzione)',
+  '11-01': '1 Novembre (Tutti i Santi)',
+  '12-08': '8 Dicembre (Immacolata)',
+  '12-25': 'Natale',
+  '12-26': 'Santo Stefano',
+};
+
 /**
- * Restituisce true se la data corrisponde a una festività nazionale italiana
- * (Capodanno, Epifania, Pasquetta, 25 Aprile, 1 Maggio, 2 Giugno, 15 Agosto,
- * 1 Novembre, 8 Dicembre, 25 Dicembre, 26 Dicembre).
+ * Restituisce i dettagli completi se una data è festività nazionale italiana o Domenica.
+ * Identifica i giorni segnati in rosso sul calendario (Natale, Pasqua, 1 Maggio, 2 Giugno, ecc.)
+ * e tutte le domeniche.
  */
-export function isItalianHoliday(dateOrStr: Date | string): boolean {
+export function getHolidayOrSundayInfo(dateOrStr: Date | string): HolidayOrSundayInfo {
   let date: Date;
   if (typeof dateOrStr === 'string') {
     const [y, m, d] = dateOrStr.split('-').map(Number);
@@ -374,39 +395,83 @@ export function isItalianHoliday(dateOrStr: Date | string): boolean {
   const year = date.getFullYear();
   const month = date.getMonth() + 1; // 1-12
   const day = date.getDate();
+  const dayOfWeek = date.getDay(); // 0 = Domenica
 
-  // Festività fisse (MM-DD)
-  const fixedHolidays = [
-    '01-01', // Capodanno
-    '01-06', // Epifania
-    '04-25', // Festa della Liberazione
-    '05-01', // Festa dei Lavoratori
-    '06-02', // Festa della Repubblica
-    '08-15', // Ferragosto / Assunzione
-    '11-01', // Ognissanti / Tutti i Santi
-    '12-08', // Immacolata Concezione
-    '12-25', // Natale
-    '12-26', // Santo Stefano
-  ];
+  const isSunday = dayOfWeek === 0;
 
+  // 1. Festività fisse nazionali italiane (MM-DD)
   const monthDayStr = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  if (fixedHolidays.includes(monthDayStr)) {
-    return true;
+  if (FIXED_HOLIDAYS_MAP[monthDayStr]) {
+    const holName = FIXED_HOLIDAYS_MAP[monthDayStr];
+    return {
+      isHolidayOrSunday: true,
+      isSunday,
+      isHoliday: true,
+      name: isSunday ? `${holName} (Domenica)` : holName,
+      shortBadge: holName.split(' ')[0],
+    };
   }
 
-  // Pasquetta (Lunedì dell'Angelo = Pasqua + 1 giorno)
+  // 2. Pasqua e Pasquetta (calcolo mobile su anno)
   const easter = getEasterSunday(year);
+  const easterDate = new Date(year, easter.month - 1, easter.day);
   const pasquettaDate = new Date(year, easter.month - 1, easter.day + 1);
+
+  if (
+    date.getFullYear() === easterDate.getFullYear() &&
+    date.getMonth() === easterDate.getMonth() &&
+    date.getDate() === easterDate.getDate()
+  ) {
+    return {
+      isHolidayOrSunday: true,
+      isSunday: true,
+      isHoliday: true,
+      name: 'Pasqua',
+      shortBadge: 'Pasqua',
+    };
+  }
 
   if (
     date.getFullYear() === pasquettaDate.getFullYear() &&
     date.getMonth() === pasquettaDate.getMonth() &&
     date.getDate() === pasquettaDate.getDate()
   ) {
-    return true;
+    return {
+      isHolidayOrSunday: true,
+      isSunday: false,
+      isHoliday: true,
+      name: "Lunedì dell'Angelo (Pasquetta)",
+      shortBadge: 'Pasquetta',
+    };
   }
 
-  return false;
+  // 3. Tutte le domeniche
+  if (isSunday) {
+    return {
+      isHolidayOrSunday: true,
+      isSunday: true,
+      isHoliday: false,
+      name: 'Domenica',
+      shortBadge: 'Domenica',
+    };
+  }
+
+  return {
+    isHolidayOrSunday: false,
+    isSunday: false,
+    isHoliday: false,
+    name: '',
+    shortBadge: '',
+  };
+}
+
+/**
+ * Restituisce true se la data corrisponde a una festività nazionale italiana
+ * (Capodanno, Epifania, Pasqua, Pasquetta, 25 Aprile, 1 Maggio, 2 Giugno, 15 Agosto,
+ * 1 Novembre, 8 Dicembre, 25 Dicembre, 26 Dicembre).
+ */
+export function isItalianHoliday(dateOrStr: Date | string): boolean {
+  return getHolidayOrSundayInfo(dateOrStr).isHoliday;
 }
 
 /**

@@ -340,3 +340,56 @@ export function autoAssignOperators(
     logs,
   };
 }
+
+/**
+ * Verifica se tra tutti gli operatori attivi c'è almeno un operatore presente/disponibile
+ * (libero da turni di lavoro primario ed indisponibilità).
+ * Se NESSUNO degli operatori è presente causa lavoro primario, ritorna hasCoverage: false.
+ */
+export function checkOperatorsCoverageForTimeSlot(
+  staffList: StaffMember[],
+  dateStr: string,
+  startTime: string,
+  endTime: string
+): {
+  hasCoverage: boolean;
+  totalOperatorsCount: number;
+  availableOperators: StaffMember[];
+  unavailableOperators: { operator: StaffMember; reason: string }[];
+} {
+  const eligibleOps = (staffList || []).filter(
+    (s) => s.attivo && (s.ruolo === 'operatore' || s.ruolo === 'entrambi')
+  );
+
+  if (eligibleOps.length === 0) {
+    return {
+      hasCoverage: true,
+      totalOperatorsCount: 0,
+      availableOperators: [],
+      unavailableOperators: [],
+    };
+  }
+
+  const availableOperators: StaffMember[] = [];
+  const unavailableOperators: { operator: StaffMember; reason: string }[] = [];
+
+  for (const op of eligibleOps) {
+    const check = isOperatorFreeFromPrimaryWork(op, dateStr, startTime, endTime);
+    if (check.isFree) {
+      availableOperators.push(op);
+    } else {
+      unavailableOperators.push({
+        operator: op,
+        reason: check.conflictReason || 'In turno lavoro primario',
+      });
+    }
+  }
+
+  return {
+    hasCoverage: availableOperators.length > 0,
+    totalOperatorsCount: eligibleOps.length,
+    availableOperators,
+    unavailableOperators,
+  };
+}
+

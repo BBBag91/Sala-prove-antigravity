@@ -1,11 +1,16 @@
 import { Booking, DailyShiftComputed, StaffMember, WorkShift, isLessonBooking } from '../types';
-import { parseISODate, timeToMinutes } from './dateUtils';
+import { parseISODate, timeToMinutes, isItalianHoliday } from './dateUtils';
 import { isOperatorFreeFromPrimaryWork } from './scheduler';
 
 export const BASE_SHIFT_1_START = '17:00';
 export const BASE_SHIFT_1_END = '20:00';
 export const BASE_SHIFT_2_START = '20:00';
 export const BASE_SHIFT_2_END = '23:00';
+
+export const SATURDAY_SHIFT_1_START = '09:00';
+export const SATURDAY_SHIFT_1_END = '12:00';
+export const SATURDAY_SHIFT_2_START = '14:00';
+export const SATURDAY_SHIFT_2_END = '18:00';
 
 export function minutesToTimeString(totalMinutes: number): string {
   // Normalize within 0 to 24*60 or handle past midnight
@@ -15,20 +20,32 @@ export function minutesToTimeString(totalMinutes: number): string {
   return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 }
 
+export function isSaturdayDate(dateStr: string): boolean {
+  try {
+    const d = parseISODate(dateStr);
+    return d.getDay() === 6;
+  } catch {
+    return false;
+  }
+}
+
 export function isWeekdayDate(dateStr: string): boolean {
   try {
     const d = parseISODate(dateStr);
     const day = d.getDay(); // 0 = Sun, 1 = Mon ... 6 = Sat
-    return day >= 1 && day <= 5;
+    if (day === 0) return false; // Tutte le domeniche: chiusura
+    if (isItalianHoliday(d)) return false; // Festività nazionali italiane: chiusura
+    return day >= 1 && day <= 6; // Include Lunedì - Sabato feriali (giorni operativi con presidio studio)
   } catch {
     return false;
   }
 }
 
 /**
- * Calcola i due turni per una data (Turno 1: 17-20, Turno 2: 20-23)
- * applicando l'adattamento dinamico in base alle prenotazioni della giornata
- * (spalmando equamente i minuti extra se l'ultima prenotazione va oltre le 23:00 o la prima prima delle 17:00).
+ * Calcola i due turni per una data:
+ * - Lunedì - Venerdì: Turno 1 (17:00-20:00), Turno 2 (20:00-23:00)
+ * - Sabato: Turno 1 (09:00-12:00), Turno 2 (14:00-18:00)
+ * applicando l'adattamento dinamico in base alle prenotazioni delle prove della giornata.
  */
 export function computeDailyShifts(
   dateStr: string,
@@ -36,9 +53,12 @@ export function computeDailyShifts(
   savedShifts: WorkShift[] = [],
   staffList: StaffMember[] = []
 ): [DailyShiftComputed, DailyShiftComputed] {
-  const baseStartMins = timeToMinutes(BASE_SHIFT_1_START); // 1020 (17:00)
-  const baseMidMins = timeToMinutes(BASE_SHIFT_1_END); // 1200 (20:00)
-  const baseEndMins = timeToMinutes(BASE_SHIFT_2_END); // 1380 (23:00)
+  const isSaturday = isSaturdayDate(dateStr);
+
+  const baseStartMins = timeToMinutes(isSaturday ? SATURDAY_SHIFT_1_START : BASE_SHIFT_1_START);
+  const baseMidMins = timeToMinutes(isSaturday ? SATURDAY_SHIFT_1_END : BASE_SHIFT_1_END);
+  const baseStart2Mins = timeToMinutes(isSaturday ? SATURDAY_SHIFT_2_START : BASE_SHIFT_2_START);
+  const baseEndMins = timeToMinutes(isSaturday ? SATURDAY_SHIFT_2_END : BASE_SHIFT_2_END);
 
   // Calcola orario prima e ultima prenotazione (SOLO prove musicali, NON lezioni didattiche)
   // La copertura operatore e l'adattamento dei turni servono solo per le prove, non per le lezioni
@@ -67,7 +87,7 @@ export function computeDailyShifts(
 
   let shift1StartMins = baseStartMins;
   let shift1EndMins = baseMidMins;
-  let shift2StartMins = baseMidMins;
+  let shift2StartMins = baseStart2Mins;
   let shift2EndMins = baseEndMins;
 
   let adaptationReason1 = '';
@@ -76,43 +96,52 @@ export function computeDailyShifts(
   let extraMinsPerTurn = 0;
 
   if (extraLateMins > 0 && extraEarlyMins === 0) {
-    // Caso standard: le prenotazioni si prolungano (es. fino alle 23:30)
-    // Distribuzione equa del tempo extra sui 2 turni (es. +15 min a turno)
     extraMinsPerTurn = Math.round(extraLateMins / 2);
-    shift1StartMins = baseStartMins; // 17:00
-    shift1EndMins = baseMidMins + extraMinsPerTurn; // es. 20:15
-    shift2StartMins = shift1EndMins; // es. 20:15
-    shift2EndMins = latestBookingMins; // es. 23:30
-
+    if (isSaturday) {
+      shift2EndMins = latestBookingMins;
+      adaptationReason2 = `Esteso alle ${minutesToTimeString(latestBookingMins)} per prove tardive`;
+    } else {
+      shift1StartMins = baseStartMins;
+      shift1EndMins = baseMidMins + extraMinsPerTurn;
+      shift2StartMins = shift1EndMins;
+      shift2EndMins = latestBookingMins;
+      adaptationReason1 = `+${extraMinsPerTurn} min (chiusura posticipata alle ${minutesToTimeString(latestBookingMins)} spalmata equamente)`;
+      adaptationReason2 = `+${extraMinsPerTurn} min (chiusura posticipata alle ${minutesToTimeString(latestBookingMins)} spalmata equamente)`;
+    }
     isAdapted = true;
-    adaptationReason1 = `+${extraMinsPerTurn} min (chiusura posticipata alle ${minutesToTimeString(latestBookingMins)} spalmata equamente)`;
-    adaptationReason2 = `+${extraMinsPerTurn} min (chiusura posticipata alle ${minutesToTimeString(latestBookingMins)} spalmata equamente)`;
   } else if (extraEarlyMins > 0 && extraLateMins === 0) {
-    // Anticipo orario di apertura prima delle 17:00
     extraMinsPerTurn = Math.round(extraEarlyMins / 2);
-    shift1StartMins = earliestBookingMins; // es. 16:00
-    shift1EndMins = baseMidMins - extraMinsPerTurn; // es. 19:30
-    shift2StartMins = shift1EndMins; // es. 19:30
-    shift2EndMins = baseEndMins; // es. 23:00
-
+    if (isSaturday) {
+      shift1StartMins = earliestBookingMins;
+      adaptationReason1 = `Apertura anticipata alle ${minutesToTimeString(earliestBookingMins)} per prove mattutine`;
+    } else {
+      shift1StartMins = earliestBookingMins;
+      shift1EndMins = baseMidMins - extraMinsPerTurn;
+      shift2StartMins = shift1EndMins;
+      shift2EndMins = baseEndMins;
+      adaptationReason1 = `+${extraMinsPerTurn} min (apertura anticipata alle ${minutesToTimeString(earliestBookingMins)} spalmata equamente)`;
+      adaptationReason2 = `+${extraMinsPerTurn} min (apertura anticipata alle ${minutesToTimeString(earliestBookingMins)} spalmata equamente)`;
+    }
     isAdapted = true;
-    adaptationReason1 = `+${extraMinsPerTurn} min (apertura anticipata alle ${minutesToTimeString(earliestBookingMins)} spalmata equamente)`;
-    adaptationReason2 = `+${extraMinsPerTurn} min (apertura anticipata alle ${minutesToTimeString(earliestBookingMins)} spalmata equamente)`;
   } else if (extraEarlyMins > 0 && extraLateMins > 0) {
-    // Sia anticipo che posticipo: calcolo equo sul totale
-    const totalDuration = latestBookingMins - earliestBookingMins;
-    const halfDuration = Math.round(totalDuration / 2);
-
-    shift1StartMins = earliestBookingMins;
-    shift1EndMins = earliestBookingMins + halfDuration;
-    shift2StartMins = shift1EndMins;
-    shift2EndMins = latestBookingMins;
-
-    const totalExtra = extraEarlyMins + extraLateMins;
-    extraMinsPerTurn = Math.round(totalExtra / 2);
+    if (isSaturday) {
+      shift1StartMins = earliestBookingMins;
+      shift2EndMins = latestBookingMins;
+      adaptationReason1 = `Apertura anticipata alle ${minutesToTimeString(earliestBookingMins)}`;
+      adaptationReason2 = `Chiusura posticipata alle ${minutesToTimeString(latestBookingMins)}`;
+    } else {
+      const totalDuration = latestBookingMins - earliestBookingMins;
+      const halfDuration = Math.round(totalDuration / 2);
+      shift1StartMins = earliestBookingMins;
+      shift1EndMins = earliestBookingMins + halfDuration;
+      shift2StartMins = shift1EndMins;
+      shift2EndMins = latestBookingMins;
+      const totalExtra = extraEarlyMins + extraLateMins;
+      extraMinsPerTurn = Math.round(totalExtra / 2);
+      adaptationReason1 = `+${extraMinsPerTurn} min (orario esteso ${minutesToTimeString(earliestBookingMins)}-${minutesToTimeString(latestBookingMins)})`;
+      adaptationReason2 = `+${extraMinsPerTurn} min (orario esteso ${minutesToTimeString(earliestBookingMins)}-${minutesToTimeString(latestBookingMins)})`;
+    }
     isAdapted = true;
-    adaptationReason1 = `+${extraMinsPerTurn} min (orario esteso ${minutesToTimeString(earliestBookingMins)}-${minutesToTimeString(latestBookingMins)})`;
-    adaptationReason2 = `+${extraMinsPerTurn} min (orario esteso ${minutesToTimeString(earliestBookingMins)}-${minutesToTimeString(latestBookingMins)})`;
   }
 
   // Risolve i dati salvati (assegnazione operatore, note, custom hours)
@@ -128,10 +157,8 @@ export function computeDailyShifts(
   let s1Start = saved1?.isCustomHours && saved1.oraInizioEffettiva ? saved1.oraInizioEffettiva : minutesToTimeString(shift1StartMins);
   let s1End = saved1?.isCustomHours && saved1.oraFineEffettiva ? saved1.oraFineEffettiva : minutesToTimeString(shift1EndMins);
 
-  // Se non ci sono prove musicali prima delle 17:00, il 1° Turno non deve MAI agganciarsi prima delle 17:00
-  // (salvaguardia anche in presenza di orari custom pregressi ereditati da vecchi adattamenti alle lezioni)
-  const hasRehearsalBefore17 = rehearsalBookings.some((b) => timeToMinutes(b.oraInizio) < baseStartMins);
-  if (!hasRehearsalBefore17 && timeToMinutes(s1Start) < baseStartMins) {
+  const hasRehearsalBeforeBase = rehearsalBookings.some((b) => timeToMinutes(b.oraInizio) < baseStartMins);
+  if (!hasRehearsalBeforeBase && timeToMinutes(s1Start) < baseStartMins) {
     s1Start = minutesToTimeString(baseStartMins);
     if (timeToMinutes(s1End) < baseMidMins) {
       s1End = minutesToTimeString(baseMidMins);
@@ -144,9 +171,9 @@ export function computeDailyShifts(
     id: saved1?.id || `shift-${dateStr}-1`,
     data: dateStr,
     turnoNumero: 1,
-    nomeTurno: '1° Turno (Pomeridiano)',
-    oraInizioBase: BASE_SHIFT_1_START,
-    oraFineBase: BASE_SHIFT_1_END,
+    nomeTurno: isSaturday ? '1° Turno (Mattina)' : '1° Turno (Pomeridiano)',
+    oraInizioBase: isSaturday ? SATURDAY_SHIFT_1_START : BASE_SHIFT_1_START,
+    oraFineBase: isSaturday ? SATURDAY_SHIFT_1_END : BASE_SHIFT_1_END,
     oraInizio: s1Start,
     oraFine: s1End,
     durataMinuti: s1DurMins,
@@ -170,9 +197,9 @@ export function computeDailyShifts(
     id: saved2?.id || `shift-${dateStr}-2`,
     data: dateStr,
     turnoNumero: 2,
-    nomeTurno: '2° Turno (Serale)',
-    oraInizioBase: BASE_SHIFT_2_START,
-    oraFineBase: BASE_SHIFT_2_END,
+    nomeTurno: isSaturday ? '2° Turno (Pomeriggio)' : '2° Turno (Serale)',
+    oraInizioBase: isSaturday ? SATURDAY_SHIFT_2_START : BASE_SHIFT_2_START,
+    oraFineBase: isSaturday ? SATURDAY_SHIFT_2_END : BASE_SHIFT_2_END,
     oraInizio: s2Start,
     oraFine: s2End,
     durataMinuti: s2DurMins,

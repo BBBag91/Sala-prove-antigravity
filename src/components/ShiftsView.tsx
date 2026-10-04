@@ -38,6 +38,7 @@ const GIORNI_LUN_VEN = [
   { index: 3, name: 'Mercoledì', short: 'Mer' },
   { index: 4, name: 'Giovedì', short: 'Gio' },
   { index: 5, name: 'Venerdì', short: 'Ven' },
+  { index: 6, name: 'Sabato', short: 'Sab' },
 ];
 
 function getMonday(d: Date): Date {
@@ -70,15 +71,16 @@ export const ShiftsView: React.FC = () => {
   const [isWeeklyPrintModalOpen, setIsWeeklyPrintModalOpen] = useState(false);
   const [viewFormat, setViewFormat] = useState<'table' | 'cards'>('table');
 
-  // Calcola i 5 giorni della settimana selezionata (Lunedì - Venerdì)
-  const weekDays = [0, 1, 2, 3, 4].map((offset) => {
+  // Calcola i 6 giorni della settimana selezionata (Lunedì - Sabato)
+  const weekDays = [0, 1, 2, 3, 4, 5].map((offset) => {
     const d = new Date(currentMonday);
     d.setDate(currentMonday.getDate() + offset);
     return formatDateToISO(d);
   });
 
-  const weekFriday = new Date(currentMonday);
-  weekFriday.setDate(currentMonday.getDate() + 4);
+  const weekEndDay = new Date(currentMonday);
+  weekEndDay.setDate(currentMonday.getDate() + 5);
+  const weekFriday = weekEndDay;
 
   // Navigazione settimane
   const handlePrevWeek = () => {
@@ -224,7 +226,7 @@ export const ShiftsView: React.FC = () => {
     });
 
     const csvContent = `${headers.join(';')}\n${rows.join('\n')}`;
-    const filename = `turni_settimana_${weekDays[0]}_al_${weekDays[4]}.csv`;
+    const filename = `turni_settimana_${weekDays[0]}_al_${weekDays[weekDays.length - 1]}.csv`;
 
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -237,7 +239,7 @@ export const ShiftsView: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const periodLabelWeek = `Settimana dal Lunedì ${currentMonday.getDate()} a Venerdì ${weekFriday.getDate()} ${MESI_ITALIANI[weekFriday.getMonth()]} ${weekFriday.getFullYear()}`;
+  const periodLabelWeek = `Settimana dal Lunedì ${currentMonday.getDate()} a Sabato ${weekEndDay.getDate()} ${MESI_ITALIANI[weekEndDay.getMonth()]} ${weekEndDay.getFullYear()}`;
 
   return (
     <div className="space-y-6 w-full max-w-full overflow-x-hidden">
@@ -369,12 +371,12 @@ export const ShiftsView: React.FC = () => {
               <Calendar className="w-4 h-4 text-yellow-400 shrink-0" />
               <span className="font-bold text-xs sm:text-sm text-yellow-100 whitespace-nowrap">
                 <span className="sm:hidden">
-                  {currentMonday.getDate()} {MESI_ITALIANI[currentMonday.getMonth()].substring(0, 3)} &ndash; {weekFriday.getDate()} {MESI_ITALIANI[weekFriday.getMonth()].substring(0, 3)}
+                  {currentMonday.getDate()} {MESI_ITALIANI[currentMonday.getMonth()].substring(0, 3)} &ndash; {weekEndDay.getDate()} {MESI_ITALIANI[weekEndDay.getMonth()].substring(0, 3)}
                 </span>
                 <span className="hidden sm:inline">
-                  Lun {currentMonday.getDate()} {MESI_ITALIANI[currentMonday.getMonth()]} &ndash; Ven{' '}
-                  {weekFriday.getDate()} {MESI_ITALIANI[weekFriday.getMonth()]}{' '}
-                  {weekFriday.getFullYear()}
+                  Lun {currentMonday.getDate()} {MESI_ITALIANI[currentMonday.getMonth()]} &ndash; Sab{' '}
+                  {weekEndDay.getDate()} {MESI_ITALIANI[weekEndDay.getMonth()]}{' '}
+                  {weekEndDay.getFullYear()}
                 </span>
               </span>
             </div>
@@ -1469,7 +1471,7 @@ export const ShiftsView: React.FC = () => {
             isOpen={isWeeklyPrintModalOpen}
             onClose={() => setIsWeeklyPrintModalOpen(false)}
             currentMonday={currentMonday}
-            weekFriday={weekFriday}
+            weekFriday={weekEndDay}
             computedWeekShifts={computedWeekShifts}
             onPrevWeek={handlePrevWeek}
             onNextWeek={handleNextWeek}

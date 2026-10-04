@@ -45,8 +45,9 @@ import {
   timeToMinutes,
   minutesToTime,
   formatDateItalian,
+  getHolidayOrSundayInfo,
 } from '../utils/dateUtils';
-import { AutoAssignResult, getOperatorAccumulatedHours } from '../utils/scheduler';
+import { AutoAssignResult, getOperatorAccumulatedHours, checkOperatorsCoverageForTimeSlot } from '../utils/scheduler';
 import { computeDailyShifts, isWeekdayDate } from '../utils/shiftUtils';
 import { getAllEquipmentForBooking } from '../utils/equipmentUtils';
 
@@ -537,6 +538,16 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
   const handleDayClick = (dateStr: string, e?: React.MouseEvent<HTMLDivElement>) => {
     if (dragJustEndedRef.current) return;
+
+    // Controllo bloccante per festività e domeniche (struttura chiusa)
+    const holidayInfo = getHolidayOrSundayInfo(dateStr);
+    if (holidayInfo.isHolidayOrSunday) {
+      alert(
+        `Impossibile prendere prenotazioni:\n\nLa data selezionata (${formatDateItalian(dateStr)}) è ${holidayInfo.name || 'un giorno festivo o domenica'}.\n\nLa struttura è chiusa nei giorni festivi e in tutte le domeniche.`
+      );
+      return;
+    }
+
     let startHourStr = '18:00';
     if (e) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -547,6 +558,20 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       const h = Math.floor(clampedMins / 60);
       const m = clampedMins % 60;
       startHourStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+      // Controllo bloccante presenza operatori (lavoro primario) per lo slot cliccato
+      const endMins = Math.min(24 * 60, clampedMins + 60);
+      const endHourStr = minutesToTime(endMins);
+      const coverage = checkOperatorsCoverageForTimeSlot(staff, dateStr, startHourStr, endHourStr);
+      if (!coverage.hasCoverage) {
+        const details = coverage.unavailableOperators
+          .map((u) => `• ${u.operator.nome} ${u.operator.cognome}: ${u.reason}`)
+          .join('\n');
+        alert(
+          `Impossibile prenotare in questo intervallo orario:\n\nNessuno dei ${coverage.totalOperatorsCount} operatori della struttura risulta disponibile il ${dateStr} alle ore ${startHourStr} - ${endHourStr} a causa dei turni di lavoro primario:\n\n${details}\n\nLa prenotazione di nuovi eventi è bloccata quando la struttura non può essere presidiata.`
+        );
+        return;
+      }
     }
     setSelectedDateForBooking(dateStr);
     setSelectedStartTimeForBooking(startHourStr);
@@ -713,16 +738,58 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       const targetOraInizio = minutesToTime(snappedStartMins);
       const targetOraFine = minutesToTime(snappedEndMins);
 
-      // Rilevamento conflitti nella stessa sala nel giorno di destinazione
+      // Rilevamento conflitti nella stessa sala o stesso insegnante nel giorno di destinazione
       const conflicts = bookings.filter((other) => {
         if (other.id === booking.id) return false;
         if (other.data !== targetDate) return false;
-        if (other.salaId !== booking.salaId) return false;
+
         const oStart = timeToMinutes(other.oraInizio);
         let oEnd = timeToMinutes(other.oraFine);
         if (oEnd <= oStart) oEnd += 24 * 60;
-        return oStart < snappedEndMins && oEnd > snappedStartMins;
+        const timeOverlap = oStart < snappedEndMins && oEnd > snappedStartMins;
+        if (!timeOverlap) return false;
+
+        // Conflitto Sala
+        const isSameRoom = other.salaId === booking.salaId;
+
+        // Conflitto Insegnante (se è una lezione e lo stesso docente)
+        const isSameTeacher =
+          booking.tipo === 'lezione' &&
+          other.tipo === 'lezione' &&
+          ((booking.insegnanteId && other.insegnanteId && booking.insegnanteId === other.insegnanteId) ||
+           (booking.insegnanteNome && other.insegnanteNome && booking.insegnanteNome.trim().toLowerCase() === other.insegnanteNome.trim().toLowerCase()));
+
+        return isSameRoom || isSameTeacher;
       });
+
+      const conflictDescriptions = conflicts.map((c) => {
+        const isRoomConflict = c.salaId === booking.salaId;
+        const isTeacherConflict =
+          booking.tipo === 'lezione' &&
+          c.tipo === 'lezione' &&
+          ((booking.insegnanteId && c.insegnanteId && booking.insegnanteId === c.insegnanteId) ||
+           (booking.insegnanteNome && c.insegnanteNome && booking.insegnanteNome.trim().toLowerCase() === c.insegnanteNome.trim().toLowerCase()));
+
+        if (isRoomConflict && isTeacherConflict) {
+          return `Sala e Insegnante: ${c.clienteNome}`;
+        }
+        if (isTeacherConflict) {
+          return `Insegnante (${booking.insegnanteNome || 'Docente'}) già occupato con: ${c.clienteNome} in ${c.salaNome || 'altra sala'}`;
+        }
+        return `Sala "${booking.salaNome}" occupata da: ${c.clienteNome}`;
+      });
+
+      // Controllo festività o domenica nella data target
+      const holidayTarget = getHolidayOrSundayInfo(targetDate);
+      if (holidayTarget.isHolidayOrSunday) {
+        conflictDescriptions.unshift(`Struttura Chiusa: ${holidayTarget.name || 'Giorno Festivo o Domenica'}`);
+      }
+
+      // Controllo bloccante presenza operatori per la fascia oraria target (lavoro primario)
+      const opCoverage = checkOperatorsCoverageForTimeSlot(staff, targetDate, targetOraInizio, targetOraFine);
+      if (!opCoverage.hasCoverage) {
+        conflictDescriptions.unshift('Nessun operatore disponibile per presidio sala (impegnati in lavoro primario)');
+      }
 
       return {
         targetDate,
@@ -730,11 +797,11 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         targetEndMins: snappedEndMins,
         targetOraInizio,
         targetOraFine,
-        hasConflict: conflicts.length > 0,
-        conflictNames: conflicts.map((c) => c.clienteNome),
+        hasConflict: conflicts.length > 0 || !opCoverage.hasCoverage || holidayTarget.isHolidayOrSunday,
+        conflictNames: conflictDescriptions,
       };
     },
-    [cellHeight, currentTotalHours, bookings]
+    [cellHeight, currentTotalHours, bookings, staff]
   );
 
   const startDrag = useCallback(
@@ -881,9 +948,9 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         if (hasMoved) {
           if (dragState.hasConflict) {
             alert(
-              `Spostamento non consentito:\n\nLa sala "${booking.salaNome}" risulta già occupata il ${targetDate} nella fascia oraria ${targetOraInizio} - ${targetOraFine} da:\n${dragState.conflictNames
+              `Spostamento non consentito:\n\nRilevato conflitto il ${targetDate} nella fascia oraria ${targetOraInizio} - ${targetOraFine}:\n${dragState.conflictNames
                 .map((c) => `• ${c}`)
-                .join('\n')}\n\nNon è possibile sovrapporre due eventi nella stessa sala.`
+                .join('\n')}\n\nNon è possibile sovrapporre due eventi nella stessa sala o assegnare un insegnante a più lezioni contemporanee.`
             );
             setDragState(null);
             return;
@@ -1268,18 +1335,27 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 : displayDayStrs.includes(dStr);
               const isToday = dStr === todayStr;
               const count = (bookings.filter(b => b.data === dStr) || []).length;
+              const holidayInfo = getHolidayOrSundayInfo(d);
+              const isClosed = holidayInfo.isHolidayOrSunday;
+
               return (
                 <button
                   key={dStr}
                   onClick={() => setCurrentDate(d)}
+                  title={isClosed ? `Chiuso per Festività: ${holidayInfo.name || 'Domenica'}` : undefined}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs shrink-0 transition-all ${
                     isSelected
-                      ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black font-bold shadow-xs'
-                      : 'bg-white dark:bg-neutral-900 text-slate-700 dark:text-yellow-200/80 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-blue-600 dark:hover:text-yellow-300 border border-slate-200 dark:border-yellow-500/20'
+                      ? isClosed
+                        ? 'bg-rose-600 text-white font-bold shadow-xs'
+                        : 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black font-bold shadow-xs'
+                      : isClosed
+                        ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800/60 font-semibold'
+                        : 'bg-white dark:bg-neutral-900 text-slate-700 dark:text-yellow-200/80 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-blue-600 dark:hover:text-yellow-300 border border-slate-200 dark:border-yellow-500/20'
                   }`}
                 >
-                  <span>{SHORT_DAYS[i]} {d.getDate()}</span>
-                  {isToday && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white dark:bg-black' : 'bg-blue-600 dark:bg-yellow-400'}`} />}
+                  <span className={isClosed ? 'font-bold' : ''}>{SHORT_DAYS[i]} {d.getDate()}</span>
+                  {isClosed && <span className="text-[9px] leading-none">🚫</span>}
+                  {isToday && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white dark:bg-black' : isClosed ? 'bg-rose-600' : 'bg-blue-600 dark:bg-yellow-400'}`} />}
                   {count > 0 && (
                     <span className={`text-[10px] px-1 rounded-full font-bold ${
                       isSelected ? 'bg-white/20 text-white dark:bg-black/20 dark:text-black' : 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-yellow-400/20 dark:text-yellow-300'
@@ -1486,37 +1562,78 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 const isToday = ds === todayStr;
                 const cnt = bookingsByDay[ds]?.length ?? 0;
                 const dayNameIdx = day.getDay() === 0 ? 6 : day.getDay() - 1;
+                const holidayInfo = getHolidayOrSundayInfo(day);
+                const isClosed = holidayInfo.isHolidayOrSunday;
                 const isWeekday = isWeekdayDate(ds);
                 const [s1, s2] = isWeekday
                   ? computeDailyShifts(ds, bookingsByDay[ds] || [], shifts, staff)
                   : [null, null];
+                const cov1 = s1 ? checkOperatorsCoverageForTimeSlot(staff, ds, s1.oraInizio, s1.oraFine) : null;
+                const cov2 = s2 ? checkOperatorsCoverageForTimeSlot(staff, ds, s2.oraInizio, s2.oraFine) : null;
+                const isT1Blocked = !!(cov1 && !cov1.hasCoverage);
+                const isT2Blocked = !!(cov2 && !cov2.hasCoverage);
 
                 return (
                   <div
                     key={ds}
                     className={`py-1.5 sm:py-2 px-1 text-center border-r border-slate-200 dark:border-yellow-500/20 last:border-r-0 cursor-pointer hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors flex flex-col justify-between ${
-                      isToday ? 'bg-blue-50/70 dark:bg-yellow-400/10' : ''
+                      isClosed
+                        ? 'bg-rose-50/80 dark:bg-rose-950/40 border-b-2 border-b-rose-400 dark:border-b-rose-700'
+                        : isToday
+                          ? 'bg-blue-50/70 dark:bg-yellow-400/10'
+                          : ''
                     }`}
                     onClick={() => handleDayClick(ds)}
                   >
                     <div>
-                      <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-blue-600 dark:text-yellow-400' : 'text-slate-500 dark:text-neutral-400'}`}>
+                      <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${
+                        isClosed
+                          ? 'text-rose-600 dark:text-rose-400 font-black'
+                          : isToday
+                            ? 'text-blue-600 dark:text-yellow-400'
+                            : 'text-slate-500 dark:text-neutral-400'
+                      }`}>
                         {SHORT_DAYS[dayNameIdx]}
                       </p>
                       <div
                         className={`mx-auto mt-0.5 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm ${
-                          isToday ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-bold' : 'text-slate-800 dark:text-yellow-100'
+                          isClosed
+                            ? 'bg-rose-600 text-white font-black shadow-xs'
+                            : isToday
+                              ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-bold'
+                              : 'text-slate-800 dark:text-yellow-100'
                         }`}
                       >
-                        <span className={isToday ? 'text-white dark:text-black' : ''}>{day.getDate()}</span>
+                        <span className={isToday || isClosed ? 'text-white dark:text-white' : ''}>{day.getDate()}</span>
                       </div>
+                      {isClosed && (
+                        <div
+                          className="mt-1 px-1 py-0.5 rounded bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700/80 text-rose-800 dark:text-rose-200 text-[7.5px] sm:text-[8px] font-black truncate flex items-center justify-center gap-1 shadow-2xs"
+                          title={`Chiuso per Festività: ${holidayInfo.name || 'Domenica'}`}
+                        >
+                          <span className="leading-none text-[8.5px]">🚫</span>
+                          <span className="truncate">{holidayInfo.name || 'Domenica'}</span>
+                        </div>
+                      )}
                       {cnt > 0 && (
                         <div className="flex justify-center items-center mt-0.5 gap-0.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-yellow-400 shrink-0" />
-                          <span className="text-[8px] sm:text-[9px] font-mono text-blue-600 dark:text-yellow-400/80">{cnt}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isClosed ? 'bg-rose-600' : 'bg-blue-600 dark:bg-yellow-400'}`} />
+                          <span className={`text-[8px] sm:text-[9px] font-mono ${isClosed ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-blue-600 dark:text-yellow-400/80'}`}>{cnt}</span>
                         </div>
                       )}
                     </div>
+
+                    {/* Badge Chiusura per Festivi e Domeniche */}
+                    {isClosed && (
+                      <div className="mt-1.5 pt-1 border-t border-rose-200 dark:border-rose-900/60 flex flex-col items-center justify-center py-1 select-none">
+                        <span className="text-[7.5px] sm:text-[8px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-300">
+                          Struttura Chiusa
+                        </span>
+                        <span className="text-[6.5px] sm:text-[7px] text-rose-500/90 dark:text-rose-400/80 font-semibold truncate max-w-full">
+                          Prenotazioni bloccate
+                        </span>
+                      </div>
+                    )}
 
                     {/* Blocchi Turno (1° e 2° Turno Presidio Sala) */}
                     {isWeekday && s1 && s2 && (
@@ -1527,12 +1644,16 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             setSelectedShiftForEdit(s1);
                             setIsShiftModalOpen(true);
                           }}
-                          className="mt-1 pt-1 border-t border-slate-200 dark:border-yellow-500/20 flex items-center justify-center gap-1 cursor-pointer hover:bg-blue-50 dark:hover:bg-yellow-400/10 px-1 py-0.5 rounded transition-all group/hdr"
-                          title={`Turni di oggi:\n• T1 (${s1.oraInizio}-${s1.oraFine}): ${s1.operatoreNome || 'Da assegnare'}\n• T2 (${s2.oraInizio}-${s2.oraFine}): ${s2.operatoreNome || 'Da assegnare'}\n(Clicca per gestire)`}
+                          className={`mt-1 pt-1 border-t flex items-center justify-center gap-1 cursor-pointer px-1 py-0.5 rounded transition-all group/hdr ${
+                            isT1Blocked || isT2Blocked
+                              ? 'border-rose-300 dark:border-rose-700 bg-rose-50/60 dark:bg-rose-950/40'
+                              : 'border-slate-200 dark:border-yellow-500/20 hover:bg-blue-50 dark:hover:bg-yellow-400/10'
+                          }`}
+                          title={`Turni di oggi:\n• T1 (${s1.oraInizio}-${s1.oraFine}): ${isT1Blocked ? '🚨 NESSUN OPERATORE (Lavoro primario)' : (s1.operatoreNome || 'Da assegnare')}\n• T2 (${s2.oraInizio}-${s2.oraFine}): ${isT2Blocked ? '🚨 NESSUN OPERATORE (Lavoro primario)' : (s2.operatoreNome || 'Da assegnare')}\n(Clicca per gestire)`}
                         >
-                          <Shield className="w-2.5 h-2.5 text-blue-600 dark:text-yellow-400 shrink-0" />
-                          <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-700 dark:text-yellow-200/90 group-hover/hdr:text-blue-600 dark:group-hover/hdr:text-yellow-300 truncate">
-                            {s1.operatoreNome ? s1.operatoreNome.split(' ')[0] : '⚠️'} &bull; {s2.operatoreNome ? s2.operatoreNome.split(' ')[0] : '⚠️'}
+                          <Shield className={`w-2.5 h-2.5 shrink-0 ${isT1Blocked || isT2Blocked ? 'text-rose-600' : 'text-blue-600 dark:text-yellow-400'}`} />
+                          <span className={`text-[7.5px] sm:text-[8px] font-bold truncate ${isT1Blocked || isT2Blocked ? 'text-rose-700 dark:text-rose-300 font-black' : 'text-slate-700 dark:text-yellow-200/90 group-hover/hdr:text-blue-600 dark:group-hover/hdr:text-yellow-300'}`}>
+                            {isT1Blocked ? '🚨 No Op.' : s1.operatoreNome ? s1.operatoreNome.split(' ')[0] : '⚠️'} &bull; {isT2Blocked ? '🚨 No Op.' : s2.operatoreNome ? s2.operatoreNome.split(' ')[0] : '⚠️'}
                           </span>
                         </div>
                       ) : (
@@ -1544,17 +1665,23 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                               setIsShiftModalOpen(true);
                             }}
                             className={`p-1 rounded-md border text-left cursor-pointer transition-all hover:scale-[1.02] shadow-2xs ${
-                              s1.operatoreNome
-                                ? 'bg-white dark:bg-neutral-900/90 border-slate-200 dark:border-yellow-500/30 hover:border-blue-400 dark:hover:border-yellow-400'
-                                : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/35 hover:border-amber-500'
+                              isT1Blocked
+                                ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-700/60 hover:border-rose-500'
+                                : s1.operatoreNome
+                                  ? 'bg-white dark:bg-neutral-900/90 border-slate-200 dark:border-yellow-500/30 hover:border-blue-400 dark:hover:border-yellow-400'
+                                  : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/35 hover:border-amber-500'
                             }`}
-                            title={`1° Turno (${s1.oraInizio} - ${s1.oraFine}): ${s1.operatoreNome || 'Non assegnato'} (Clicca per visualizzare/modificare)`}
+                            title={
+                              isT1Blocked
+                                ? `🚨 1° Turno (${s1.oraInizio} - ${s1.oraFine}): NESSUN OPERATORE DISPONIBILE (Lavoro primario):\n${cov1?.unavailableOperators.map(u => `• ${u.operator.nome}: ${u.reason}`).join('\n')}\nPrenotazioni bloccate.`
+                                : `1° Turno (${s1.oraInizio} - ${s1.oraFine}): ${s1.operatoreNome || 'Non assegnato'} (Clicca per visualizzare/modificare)`
+                            }
                           >
                             <div className="flex items-center justify-between gap-0.5 leading-none">
-                              <span className="text-[7.5px] font-black px-0.5 py-0.2 rounded bg-blue-50 dark:bg-yellow-400/25 text-blue-700 dark:text-yellow-300">
+                              <span className={`text-[7.5px] font-black px-0.5 py-0.2 rounded ${isT1Blocked ? 'bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200' : 'bg-blue-50 dark:bg-yellow-400/25 text-blue-700 dark:text-yellow-300'}`}>
                                 T1
                               </span>
-                              <span className="text-[8px] sm:text-[8.5px] font-mono font-bold text-slate-700 dark:text-yellow-200 truncate">
+                              <span className={`text-[8px] sm:text-[8.5px] font-mono font-bold truncate ${isT1Blocked ? 'text-rose-700 dark:text-rose-300' : 'text-slate-700 dark:text-yellow-200'}`}>
                                 {s1.oraInizio.slice(0, 5)}-{s1.oraFine.slice(0, 5)}
                               </span>
                               {s1.isAdapted && (
@@ -1564,7 +1691,11 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                               )}
                             </div>
                             <div className="mt-0.5 flex items-center gap-1 min-w-0">
-                              {s1.operatoreNome ? (
+                              {isT1Blocked ? (
+                                <span className="text-[7.5px] font-bold text-rose-600 dark:text-rose-400 truncate flex items-center gap-0.5">
+                                  🚨 No Operatori
+                                </span>
+                              ) : s1.operatoreNome ? (
                                 <>
                                   <span
                                     className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -1589,17 +1720,23 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                               setIsShiftModalOpen(true);
                             }}
                             className={`p-1 rounded-md border text-left cursor-pointer transition-all hover:scale-[1.02] shadow-2xs ${
-                              s2.operatoreNome
-                                ? 'bg-white dark:bg-neutral-900/90 border-slate-200 dark:border-yellow-500/30 hover:border-blue-400 dark:hover:border-yellow-400'
-                                : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/35 hover:border-amber-500'
+                              isT2Blocked
+                                ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-700/60 hover:border-rose-500'
+                                : s2.operatoreNome
+                                  ? 'bg-white dark:bg-neutral-900/90 border-slate-200 dark:border-yellow-500/30 hover:border-blue-400 dark:hover:border-yellow-400'
+                                  : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/35 hover:border-amber-500'
                             }`}
-                            title={`2° Turno (${s2.oraInizio} - ${s2.oraFine}): ${s2.operatoreNome || 'Non assegnato'} (Clicca per visualizzare/modificare)`}
+                            title={
+                              isT2Blocked
+                                ? `🚨 2° Turno (${s2.oraInizio} - ${s2.oraFine}): NESSUN OPERATORE DISPONIBILE (Lavoro primario):\n${cov2?.unavailableOperators.map(u => `• ${u.operator.nome}: ${u.reason}`).join('\n')}\nPrenotazioni bloccate.`
+                                : `2° Turno (${s2.oraInizio} - ${s2.oraFine}): ${s2.operatoreNome || 'Non assegnato'} (Clicca per visualizzare/modificare)`
+                            }
                           >
                             <div className="flex items-center justify-between gap-0.5 leading-none">
-                              <span className="text-[7.5px] font-black px-0.5 py-0.2 rounded bg-blue-50 dark:bg-yellow-400/25 text-blue-700 dark:text-yellow-300">
+                              <span className={`text-[7.5px] font-black px-0.5 py-0.2 rounded ${isT2Blocked ? 'bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200' : 'bg-blue-50 dark:bg-yellow-400/25 text-blue-700 dark:text-yellow-300'}`}>
                                 T2
                               </span>
-                              <span className="text-[8px] sm:text-[8.5px] font-mono font-bold text-slate-700 dark:text-yellow-200 truncate">
+                              <span className={`text-[8px] sm:text-[8.5px] font-mono font-bold truncate ${isT2Blocked ? 'text-rose-700 dark:text-rose-300' : 'text-slate-700 dark:text-yellow-200'}`}>
                                 {s2.oraInizio.slice(0, 5)}-{s2.oraFine.slice(0, 5)}
                               </span>
                               {s2.isAdapted && (
@@ -1609,7 +1746,11 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                               )}
                             </div>
                             <div className="mt-0.5 flex items-center gap-1 min-w-0">
-                              {s2.operatoreNome ? (
+                              {isT2Blocked ? (
+                                <span className="text-[7.5px] font-bold text-rose-600 dark:text-rose-400 truncate flex items-center gap-0.5">
+                                  🚨 No Operatori
+                                </span>
+                              ) : s2.operatoreNome ? (
                                 <>
                                   <span
                                     className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -1671,6 +1812,10 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 const [s1Col, s2Col] = isWeekdayCol
                   ? computeDailyShifts(ds, dayBks, shifts, staff)
                   : [null, null];
+                const cov1Col = s1Col ? checkOperatorsCoverageForTimeSlot(staff, ds, s1Col.oraInizio, s1Col.oraFine) : null;
+                const cov2Col = s2Col ? checkOperatorsCoverageForTimeSlot(staff, ds, s2Col.oraInizio, s2Col.oraFine) : null;
+                const isT1ColBlocked = !!(cov1Col && !cov1Col.hasCoverage);
+                const isT2ColBlocked = !!(cov2Col && !cov2Col.hasCoverage);
 
                 let s1TopPx = 0;
                 let s1HeightPx = 0;
@@ -1730,41 +1875,103 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   if (currentGroup.length > 0) groups.push(currentGroup);
 
                   groups.forEach(group => {
-                    const colEnds: number[] = [];
-                    const assignments: { booking: Booking; col: number }[] = [];
-
+                    // Raggruppa per saletta in modo che ogni saletta mantenga la propria colonna coerente
+                    const groupRoomsMap = new Map<string, Booking[]>();
                     group.forEach(bk => {
-                      const bkStart = timeToMinutes(bk.oraInizio);
-                      let bkEnd = timeToMinutes(bk.oraFine);
-                      if (bkEnd <= bkStart) bkEnd += 24 * 60;
-
-                      let placedCol = -1;
-                      for (let c = 0; c < colEnds.length; c++) {
-                        if (colEnds[c] <= bkStart) {
-                          placedCol = c;
-                          colEnds[c] = bkEnd;
-                          break;
-                        }
+                      const roomId = bk.salaId || 'unknown';
+                      if (!groupRoomsMap.has(roomId)) {
+                        groupRoomsMap.set(roomId, []);
                       }
-                      if (placedCol === -1) {
-                        placedCol = colEnds.length;
-                        colEnds.push(bkEnd);
-                      }
-                      assignments.push({ booking: bk, col: placedCol });
+                      groupRoomsMap.get(roomId)!.push(bk);
                     });
 
-                    const totalCols = Math.max(1, colEnds.length);
-                    assignments.forEach(({ booking, col }) => {
-                      layouts.push({ booking, col, cols: totalCols });
+                    // Ordina le salette presenti nel gruppo in base all'ordine ufficiale delle salette (rooms)
+                    const orderedRoomIds = Array.from(groupRoomsMap.keys()).sort((a, b) => {
+                      const idxA = rooms.findIndex(r => r.id === a);
+                      const idxB = rooms.findIndex(r => r.id === b);
+                      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                      if (idxA !== -1) return -1;
+                      if (idxB !== -1) return 1;
+                      return a.localeCompare(b);
+                    });
+
+                    // Per ogni saletta, assegna sub-colonne (gestisce anche eventuali doppie prenotazioni nella stessa saletta)
+                    interface RoomLayout {
+                      numCols: number;
+                      assignments: { booking: Booking; subCol: number }[];
+                    }
+
+                    const roomLayouts: RoomLayout[] = [];
+
+                    orderedRoomIds.forEach(roomId => {
+                      const roomBks = groupRoomsMap.get(roomId)!;
+                      roomBks.sort((a, b) => {
+                        const diff = a.oraInizio.localeCompare(b.oraInizio);
+                        if (diff !== 0) return diff;
+                        return a.id.localeCompare(b.id);
+                      });
+
+                      const subColEnds: number[] = [];
+                      const roomAssignments: { booking: Booking; subCol: number }[] = [];
+
+                      roomBks.forEach(bk => {
+                        const bkStart = timeToMinutes(bk.oraInizio);
+                        let bkEnd = timeToMinutes(bk.oraFine);
+                        if (bkEnd <= bkStart) bkEnd += 24 * 60;
+
+                        let placedSub = -1;
+                        for (let c = 0; c < subColEnds.length; c++) {
+                          if (subColEnds[c] <= bkStart) {
+                            placedSub = c;
+                            subColEnds[c] = bkEnd;
+                            break;
+                          }
+                        }
+                        if (placedSub === -1) {
+                          placedSub = subColEnds.length;
+                          subColEnds.push(bkEnd);
+                        }
+                        roomAssignments.push({ booking: bk, subCol: placedSub });
+                      });
+
+                      roomLayouts.push({
+                        numCols: Math.max(1, subColEnds.length),
+                        assignments: roomAssignments,
+                      });
+                    });
+
+                    // Calcola il totale colonne e assegna col definitivo per ogni booking
+                    const totalCols = Math.max(1, roomLayouts.reduce((sum, rl) => sum + rl.numCols, 0));
+                    let currentOffset = 0;
+
+                    roomLayouts.forEach(rl => {
+                      const baseCol = currentOffset;
+                      rl.assignments.forEach(({ booking, subCol }) => {
+                        layouts.push({
+                          booking,
+                          col: baseCol + subCol,
+                          cols: totalCols,
+                        });
+                      });
+                      currentOffset += rl.numCols;
                     });
                   });
                 }
+
+                const colHolidayInfo = getHolidayOrSundayInfo(ds);
+                const isColClosed = colHolidayInfo.isHolidayOrSunday;
 
                 return (
                   <div
                     key={ds}
                     data-day-column={ds}
-                    className={`relative border-r border-slate-200 dark:border-yellow-500/20 last:border-r-0 ${isToday ? 'bg-blue-50/40 dark:bg-yellow-400/[0.03]' : 'bg-white dark:bg-[#0a0a0a]'}`}
+                    className={`relative border-r border-slate-200 dark:border-yellow-500/20 last:border-r-0 transition-colors ${
+                      isColClosed
+                        ? 'bg-[repeating-linear-gradient(45deg,rgba(244,63,94,0.06),rgba(244,63,94,0.06)_10px,transparent_10px,transparent_20px)] bg-rose-50/25 dark:bg-rose-950/25 cursor-not-allowed'
+                        : isToday
+                          ? 'bg-blue-50/40 dark:bg-yellow-400/[0.03]'
+                          : 'bg-white dark:bg-[#0a0a0a]'
+                    }`}
                     style={{ height: `${(currentTotalHours + 1) * cellHeight}px` }}
                     onClick={(e) => handleDayClick(ds, e)}
                   >
@@ -1784,6 +1991,22 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                         style={{ top: `${i * cellHeight + cellHeight / 2}px` }}
                       />
                     ))}
+
+                    {/* Floating Holiday / Sunday Closure Indicator */}
+                    {isColClosed && (
+                      <div className="sticky top-2 z-[6] mx-1 sm:mx-1.5 my-2 p-2 sm:p-2.5 rounded-xl bg-rose-100/95 dark:bg-rose-950/95 border-2 border-rose-300 dark:border-rose-800 shadow-md pointer-events-none text-center backdrop-blur-xs select-none">
+                        <div className="flex items-center justify-center gap-1 text-rose-700 dark:text-rose-300 font-black text-[9px] sm:text-[10px]">
+                          <span className="text-base leading-none">🚫</span>
+                          <span className="truncate uppercase tracking-wider">Chiuso</span>
+                        </div>
+                        <div className="mt-0.5 text-[8.5px] sm:text-[9.5px] font-bold text-rose-800 dark:text-rose-200 truncate">
+                          {colHolidayInfo.name || 'Domenica'}
+                        </div>
+                        <div className="text-[7.5px] sm:text-[8px] text-rose-600/90 dark:text-rose-400/90 font-medium truncate mt-0.5">
+                          Prenotazioni bloccate
+                        </div>
+                      </div>
+                    )}
 
                     {/* Ghost Drop Target Preview when dragging onto this day column */}
                     {dragState && dragState.isDragging && dragState.targetDate === ds && (
@@ -1834,7 +2057,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       </div>
                     )}
 
-                    {/* Sfondi Turni Operatore (Background Blocks: 17:00-20:00 e 20:00-23:00 con adattamento dinamico) */}
+                    {/* Sfondi Turni Operatore (Background Blocks con adattamento dinamico ed alert presidio) */}
                     {showShiftsInGrid && isWeekdayCol && s1Col && s2Col && (
                       <>
                         {/* Blocco Sfondo 1° Turno */}
@@ -1844,28 +2067,46 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             height: `${s1HeightPx}px`,
                             left: 0,
                             right: 0,
-                            borderLeftColor: s1Col.operatoreBadgeColor || (s1Col.operatoreId ? '#f59e0b' : '#ef4444'),
+                            borderLeftColor: isT1ColBlocked
+                              ? '#f43f5e'
+                              : (s1Col.operatoreBadgeColor || (s1Col.operatoreId ? '#f59e0b' : '#ef4444')),
                           }}
-                          className="absolute z-[1] pointer-events-none border-l-[3px] transition-all bg-gradient-to-b from-amber-500/[0.08] via-amber-500/[0.03] to-transparent overflow-hidden"
+                          className={`absolute z-[1] pointer-events-none border-l-[3px] transition-all overflow-hidden ${
+                            isT1ColBlocked
+                              ? 'bg-[repeating-linear-gradient(45deg,rgba(244,63,94,0.12),rgba(244,63,94,0.12)_10px,rgba(244,63,94,0.03)_10px,rgba(244,63,94,0.03)_20px)]'
+                              : 'bg-gradient-to-b from-amber-500/[0.08] via-amber-500/[0.03] to-transparent'
+                          }`}
                         >
-                          {/* Header compatto del turno nello sfondo (Visibilità ottimizzata per smartphone) */}
+                          {/* Header compatto del turno nello sfondo */}
                           <div
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedShiftForEdit(s1Col);
                               setIsShiftModalOpen(true);
                             }}
-                            className="pointer-events-auto flex items-center justify-between px-1 sm:px-1.5 py-0.5 bg-white/95 dark:bg-neutral-950/95 border-b border-amber-400/50 dark:border-amber-500/40 hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors cursor-pointer group/hdr1 select-none shadow-xs"
-                            title={`1° Turno Presidio (${s1Col.oraInizio} - ${s1Col.oraFine}): ${s1Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`}
+                            className={`pointer-events-auto flex items-center justify-between px-1 sm:px-1.5 py-0.5 border-b transition-colors cursor-pointer group/hdr1 select-none shadow-xs ${
+                              isT1ColBlocked
+                                ? 'bg-rose-100/90 dark:bg-rose-950/90 border-rose-300 dark:border-rose-700 text-rose-800'
+                                : 'bg-white/95 dark:bg-neutral-950/95 border-amber-400/50 dark:border-amber-500/40 hover:bg-slate-100 dark:hover:bg-neutral-900'
+                            }`}
+                            title={
+                              isT1ColBlocked
+                                ? `🚨 1° Turno (${s1Col.oraInizio}-${s1Col.oraFine}): NESSUN OPERATORE DISPONIBILE (Lavoro primario):\n${cov1Col?.unavailableOperators.map(u => `• ${u.operator.nome}: ${u.reason}`).join('\n')}\nPrenotazioni bloccate.`
+                                : `1° Turno Presidio (${s1Col.oraInizio} - ${s1Col.oraFine}): ${s1Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`
+                            }
                           >
                             <div className="flex items-center gap-1 min-w-0 flex-1 truncate">
                               <span
                                 className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full shrink-0 shadow-xs ring-1 ring-black/70"
-                                style={{ backgroundColor: s1Col.operatoreBadgeColor || (s1Col.operatoreId ? '#f59e0b' : '#ef4444') }}
+                                style={{ backgroundColor: isT1ColBlocked ? '#f43f5e' : (s1Col.operatoreBadgeColor || (s1Col.operatoreId ? '#f59e0b' : '#ef4444')) }}
                               />
-                              <span className="text-[9.5px] sm:text-[10.5px] font-black text-slate-800 dark:text-yellow-300 group-hover/hdr1:text-blue-600 dark:group-hover/hdr1:text-yellow-100 truncate tracking-tight dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                              <span className={`text-[9.5px] sm:text-[10.5px] font-black truncate tracking-tight ${
+                                isT1ColBlocked
+                                  ? 'text-rose-700 dark:text-rose-300'
+                                  : 'text-slate-800 dark:text-yellow-300 group-hover/hdr1:text-blue-600 dark:group-hover/hdr1:text-yellow-100 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]'
+                              }`}>
                                 <span className="opacity-75 font-mono text-[8px] mr-0.5">T1:</span>
-                                {s1Col.operatoreNome ? s1Col.operatoreNome.split(' ')[0] : '⚠️ Non Assegn.'}
+                                {isT1ColBlocked ? '🚨 NESSUN PRESIDIO' : (s1Col.operatoreNome ? s1Col.operatoreNome.split(' ')[0] : '⚠️ Non Assegn.')}
                               </span>
                             </div>
                             <div className="hidden sm:flex items-center gap-1 shrink-0 ml-1">
@@ -1883,43 +2124,70 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             </div>
                           </div>
 
-                          {/* Badge Operatore ben visibile al centro del turno (Stile front-end scuro/oro ad alto contrasto - Cliccabile) */}
+                          {/* Badge Operatore ben visibile al centro del turno */}
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none p-1 z-[1]">
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedShiftForEdit(s1Col);
-                                setIsShiftModalOpen(true);
-                              }}
-                              title="Clicca per gestire o assegnare il 1° Turno"
-                              className="pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-white/95 dark:bg-neutral-950/90 border border-amber-400/60 dark:border-amber-500/50 hover:border-amber-500 dark:hover:border-amber-400 backdrop-blur-xs shadow-md shadow-slate-200/60 dark:shadow-black/90 hover:shadow-lg max-w-[94%]"
-                            >
-                              <div className="flex items-center gap-1 justify-center mb-0.5">
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"
-                                  style={{ backgroundColor: s1Col.operatoreBadgeColor || '#f59e0b' }}
-                                />
-                                <span className="text-[7.5px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400/90 font-mono">
-                                  Turno 1
+                            {isT1ColBlocked ? (
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  alert(`Fascia oraria 1° Turno (${s1Col.oraInizio} - ${s1Col.oraFine}) non presidiabile:\n\nTutti gli operatori risultano impegnati con turni di lavoro primario:\n${cov1Col?.unavailableOperators.map(u => `• ${u.operator.nome} ${u.operator.cognome}: ${u.reason}`).join('\n')}\n\nNon è possibile inserire prenotazioni.`);
+                                }}
+                                title="Fascia oraria non presidiata a causa del lavoro primario. Prenotazioni bloccate."
+                                className="pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center text-center px-2 py-1.5 rounded-lg bg-rose-50/95 dark:bg-rose-950/90 border-2 border-rose-500/70 backdrop-blur-xs shadow-md shadow-rose-500/20 max-w-[94%]"
+                              >
+                                <div className="flex items-center gap-1 justify-center mb-0.5">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-bounce" />
+                                  <span className="text-[8px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-300 font-mono">
+                                    Turno 1 Bloccato
+                                  </span>
+                                </div>
+                                <span className="text-[10px] sm:text-xs font-black text-rose-900 dark:text-rose-100 tracking-tight leading-tight truncate max-w-full">
+                                  NESSUN PRESIDIO
+                                </span>
+                                <span className="text-[7.5px] font-bold text-rose-600 dark:text-rose-400 leading-tight mt-0.5">
+                                  Lavoro primario
+                                </span>
+                                <span className="text-[7.5px] font-mono font-bold text-rose-800 dark:text-rose-200 mt-1 leading-none bg-rose-200/70 dark:bg-rose-900/60 px-1 py-0.5 rounded border border-rose-300 dark:border-rose-700">
+                                  {s1Col.oraInizio.slice(0, 5)} - {s1Col.oraFine.slice(0, 5)}
                                 </span>
                               </div>
-                              <span className="text-[10.5px] sm:text-xs font-black text-slate-900 dark:text-yellow-100 tracking-tight leading-tight truncate max-w-full dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                                {s1Col.operatoreNome ? s1Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
-                              </span>
-                              {s1Col.operatoreNome && s1Col.operatoreNome.split(' ').length > 1 && (
-                                <span className="text-[8.5px] font-bold text-slate-600 dark:text-yellow-200/70 leading-none truncate max-w-full hidden sm:block">
-                                  {s1Col.operatoreNome.split(' ').slice(1).join(' ')}
+                            ) : (
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedShiftForEdit(s1Col);
+                                  setIsShiftModalOpen(true);
+                                }}
+                                title="Clicca per gestire o assegnare il 1° Turno"
+                                className="pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-white/95 dark:bg-neutral-950/90 border border-amber-400/60 dark:border-amber-500/50 hover:border-amber-500 dark:hover:border-amber-400 backdrop-blur-xs shadow-md shadow-slate-200/60 dark:shadow-black/90 hover:shadow-lg max-w-[94%]"
+                              >
+                                <div className="flex items-center gap-1 justify-center mb-0.5">
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"
+                                    style={{ backgroundColor: s1Col.operatoreBadgeColor || '#f59e0b' }}
+                                  />
+                                  <span className="text-[7.5px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400/90 font-mono">
+                                    Turno 1
+                                  </span>
+                                </div>
+                                <span className="text-[10.5px] sm:text-xs font-black text-slate-900 dark:text-yellow-100 tracking-tight leading-tight truncate max-w-full dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                  {s1Col.operatoreNome ? s1Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
                                 </span>
-                              )}
-                              <span className="text-[8px] font-mono font-bold text-slate-700 dark:text-yellow-400/80 mt-1 leading-none bg-slate-100 dark:bg-black/70 px-1 py-0.5 rounded border border-slate-200 dark:border-yellow-500/25">
-                                {s1Col.oraInizio.slice(0, 5)} - {s1Col.oraFine.slice(0, 5)}
-                              </span>
-                              {s1Col.isAdapted && (
-                                <span className="text-[7px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/25 px-1 py-0.2 rounded mt-1 border border-amber-300 dark:border-amber-500/40">
-                                  +{s1Col.minutiExtra}m extra
+                                {s1Col.operatoreNome && s1Col.operatoreNome.split(' ').length > 1 && (
+                                  <span className="text-[8.5px] font-bold text-slate-600 dark:text-yellow-200/70 leading-none truncate max-w-full hidden sm:block">
+                                    {s1Col.operatoreNome.split(' ').slice(1).join(' ')}
+                                  </span>
+                                )}
+                                <span className="text-[8px] font-mono font-bold text-slate-700 dark:text-yellow-400/80 mt-1 leading-none bg-slate-100 dark:bg-black/70 px-1 py-0.5 rounded border border-slate-200 dark:border-yellow-500/25">
+                                  {s1Col.oraInizio.slice(0, 5)} - {s1Col.oraFine.slice(0, 5)}
                                 </span>
-                              )}
-                            </div>
+                                {s1Col.isAdapted && (
+                                  <span className="text-[7px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/25 px-1 py-0.2 rounded mt-1 border border-amber-300 dark:border-amber-500/40">
+                                    +{s1Col.minutiExtra}m extra
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -1930,28 +2198,46 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             height: `${s2HeightPx}px`,
                             left: 0,
                             right: 0,
-                            borderLeftColor: s2Col.operatoreBadgeColor || (s2Col.operatoreId ? '#eab308' : '#ef4444'),
+                            borderLeftColor: isT2ColBlocked
+                              ? '#f43f5e'
+                              : (s2Col.operatoreBadgeColor || (s2Col.operatoreId ? '#eab308' : '#ef4444')),
                           }}
-                          className="absolute z-[1] pointer-events-none border-l-[3px] transition-all bg-gradient-to-b from-yellow-500/[0.08] via-yellow-500/[0.03] to-transparent overflow-hidden"
+                          className={`absolute z-[1] pointer-events-none border-l-[3px] transition-all overflow-hidden ${
+                            isT2ColBlocked
+                              ? 'bg-[repeating-linear-gradient(45deg,rgba(244,63,94,0.12),rgba(244,63,94,0.12)_10px,rgba(244,63,94,0.03)_10px,rgba(244,63,94,0.03)_20px)]'
+                              : 'bg-gradient-to-b from-yellow-500/[0.08] via-yellow-500/[0.03] to-transparent'
+                          }`}
                         >
-                          {/* Header compatto del turno nello sfondo (Visibilità ottimizzata per smartphone) */}
+                          {/* Header compatto del turno nello sfondo */}
                           <div
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedShiftForEdit(s2Col);
                               setIsShiftModalOpen(true);
                             }}
-                            className="pointer-events-auto flex items-center justify-between px-1 sm:px-1.5 py-0.5 bg-white/95 dark:bg-neutral-950/95 border-b border-yellow-400/50 dark:border-yellow-500/40 hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors cursor-pointer group/hdr2 select-none shadow-xs"
-                            title={`2° Turno Presidio (${s2Col.oraInizio} - ${s2Col.oraFine}): ${s2Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`}
+                            className={`pointer-events-auto flex items-center justify-between px-1 sm:px-1.5 py-0.5 border-b transition-colors cursor-pointer group/hdr2 select-none shadow-xs ${
+                              isT2ColBlocked
+                                ? 'bg-rose-100/90 dark:bg-rose-950/90 border-rose-300 dark:border-rose-700 text-rose-800'
+                                : 'bg-white/95 dark:bg-neutral-950/95 border-yellow-400/50 dark:border-yellow-500/40 hover:bg-slate-100 dark:hover:bg-neutral-900'
+                            }`}
+                            title={
+                              isT2ColBlocked
+                                ? `🚨 2° Turno (${s2Col.oraInizio}-${s2Col.oraFine}): NESSUN OPERATORE DISPONIBILE (Lavoro primario):\n${cov2Col?.unavailableOperators.map(u => `• ${u.operator.nome}: ${u.reason}`).join('\n')}\nPrenotazioni bloccate.`
+                                : `2° Turno Presidio (${s2Col.oraInizio} - ${s2Col.oraFine}): ${s2Col.operatoreNome || 'Non assegnato'} (Clicca per gestire)`
+                            }
                           >
                             <div className="flex items-center gap-1 min-w-0 flex-1 truncate">
                               <span
                                 className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full shrink-0 shadow-xs ring-1 ring-black/70"
-                                style={{ backgroundColor: s2Col.operatoreBadgeColor || (s2Col.operatoreId ? '#eab308' : '#ef4444') }}
+                                style={{ backgroundColor: isT2ColBlocked ? '#f43f5e' : (s2Col.operatoreBadgeColor || (s2Col.operatoreId ? '#eab308' : '#ef4444')) }}
                               />
-                              <span className="text-[9.5px] sm:text-[10.5px] font-black text-slate-800 dark:text-yellow-300 group-hover/hdr2:text-blue-600 dark:group-hover/hdr2:text-yellow-100 truncate tracking-tight dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                              <span className={`text-[9.5px] sm:text-[10.5px] font-black truncate tracking-tight ${
+                                isT2ColBlocked
+                                  ? 'text-rose-700 dark:text-rose-300'
+                                  : 'text-slate-800 dark:text-yellow-300 group-hover/hdr2:text-blue-600 dark:group-hover/hdr2:text-yellow-100 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]'
+                              }`}>
                                 <span className="opacity-75 font-mono text-[8px] mr-0.5">T2:</span>
-                                {s2Col.operatoreNome ? s2Col.operatoreNome.split(' ')[0] : '⚠️ Non Assegn.'}
+                                {isT2ColBlocked ? '🚨 NESSUN PRESIDIO' : (s2Col.operatoreNome ? s2Col.operatoreNome.split(' ')[0] : '⚠️ Non Assegn.')}
                               </span>
                             </div>
                             <div className="hidden sm:flex items-center gap-1 shrink-0 ml-1">
@@ -1969,50 +2255,119 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             </div>
                           </div>
 
-                          {/* Badge Operatore ben visibile al centro del turno (Stile front-end scuro/oro ad alto contrasto - Cliccabile) */}
+                          {/* Badge Operatore ben visibile al centro del turno */}
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none p-1 z-[1]">
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedShiftForEdit(s2Col);
-                                setIsShiftModalOpen(true);
-                              }}
-                              title="Clicca per gestire o assegnare il 2° Turno"
-                              className="pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-white/95 dark:bg-neutral-950/90 border border-yellow-400/60 dark:border-yellow-500/50 hover:border-yellow-500 dark:hover:border-yellow-400 backdrop-blur-xs shadow-md shadow-slate-200/60 dark:shadow-black/90 hover:shadow-lg max-w-[94%]"
-                            >
-                              <div className="flex items-center gap-1 justify-center mb-0.5">
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"
-                                  style={{ backgroundColor: s2Col.operatoreBadgeColor || '#eab308' }}
-                                />
-                                <span className="text-[7.5px] font-black uppercase tracking-wider text-yellow-600 dark:text-yellow-400/90 font-mono">
-                                  Turno 2
+                            {isT2ColBlocked ? (
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  alert(`Fascia oraria 2° Turno (${s2Col.oraInizio} - ${s2Col.oraFine}) non presidiabile:\n\nTutti gli operatori risultano impegnati con turni di lavoro primario:\n${cov2Col?.unavailableOperators.map(u => `• ${u.operator.nome} ${u.operator.cognome}: ${u.reason}`).join('\n')}\n\nNon è possibile inserire prenotazioni.`);
+                                }}
+                                title="Fascia oraria non presidiata a causa del lavoro primario. Prenotazioni bloccate."
+                                className="pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center text-center px-2 py-1.5 rounded-lg bg-rose-50/95 dark:bg-rose-950/90 border-2 border-rose-500/70 backdrop-blur-xs shadow-md shadow-rose-500/20 max-w-[94%]"
+                              >
+                                <div className="flex items-center gap-1 justify-center mb-0.5">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-bounce" />
+                                  <span className="text-[8px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-300 font-mono">
+                                    Turno 2 Bloccato
+                                  </span>
+                                </div>
+                                <span className="text-[10px] sm:text-xs font-black text-rose-900 dark:text-rose-100 tracking-tight leading-tight truncate max-w-full">
+                                  NESSUN PRESIDIO
+                                </span>
+                                <span className="text-[7.5px] font-bold text-rose-600 dark:text-rose-400 leading-tight mt-0.5">
+                                  Lavoro primario
+                                </span>
+                                <span className="text-[7.5px] font-mono font-bold text-rose-800 dark:text-rose-200 mt-1 leading-none bg-rose-200/70 dark:bg-rose-900/60 px-1 py-0.5 rounded border border-rose-300 dark:border-rose-700">
+                                  {s2Col.oraInizio.slice(0, 5)} - {s2Col.oraFine.slice(0, 5)}
                                 </span>
                               </div>
-                              <span className="text-[10.5px] sm:text-xs font-black text-slate-900 dark:text-yellow-100 tracking-tight leading-tight truncate max-w-full dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                                {s2Col.operatoreNome ? s2Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
-                              </span>
-                              {s2Col.operatoreNome && s2Col.operatoreNome.split(' ').length > 1 && (
-                                <span className="text-[8.5px] font-bold text-slate-600 dark:text-yellow-200/70 leading-none truncate max-w-full hidden sm:block">
-                                  {s2Col.operatoreNome.split(' ').slice(1).join(' ')}
+                            ) : (
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedShiftForEdit(s2Col);
+                                  setIsShiftModalOpen(true);
+                                }}
+                                title="Clicca per gestire o assegnare il 2° Turno"
+                                className="pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center text-center px-1.5 py-1.5 rounded-lg bg-white/95 dark:bg-neutral-950/90 border border-yellow-400/60 dark:border-yellow-500/50 hover:border-yellow-500 dark:hover:border-yellow-400 backdrop-blur-xs shadow-md shadow-slate-200/60 dark:shadow-black/90 hover:shadow-lg max-w-[94%]"
+                              >
+                                <div className="flex items-center gap-1 justify-center mb-0.5">
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"
+                                    style={{ backgroundColor: s2Col.operatoreBadgeColor || '#eab308' }}
+                                  />
+                                  <span className="text-[7.5px] font-black uppercase tracking-wider text-yellow-600 dark:text-yellow-400/90 font-mono">
+                                    Turno 2
+                                  </span>
+                                </div>
+                                <span className="text-[10.5px] sm:text-xs font-black text-slate-900 dark:text-yellow-100 tracking-tight leading-tight truncate max-w-full dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                  {s2Col.operatoreNome ? s2Col.operatoreNome.split(' ')[0] : 'DA ASSEGNARE'}
                                 </span>
-                              )}
-                              <span className="text-[8px] font-mono font-bold text-slate-700 dark:text-yellow-400/80 mt-1 leading-none bg-slate-100 dark:bg-black/70 px-1 py-0.5 rounded border border-slate-200 dark:border-yellow-500/25">
-                                {s2Col.oraInizio.slice(0, 5)} - {s2Col.oraFine.slice(0, 5)}
-                              </span>
-                              {s2Col.isAdapted && (
-                                <span className="text-[7px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/25 px-1 py-0.2 rounded mt-1 border border-amber-300 dark:border-amber-500/40">
-                                  +{s2Col.minutiExtra}m extra
+                                {s2Col.operatoreNome && s2Col.operatoreNome.split(' ').length > 1 && (
+                                  <span className="text-[8.5px] font-bold text-slate-600 dark:text-yellow-200/70 leading-none truncate max-w-full hidden sm:block">
+                                    {s2Col.operatoreNome.split(' ').slice(1).join(' ')}
+                                  </span>
+                                )}
+                                <span className="text-[8px] font-mono font-bold text-slate-700 dark:text-yellow-400/80 mt-1 leading-none bg-slate-100 dark:bg-black/70 px-1 py-0.5 rounded border border-slate-200 dark:border-yellow-500/25">
+                                  {s2Col.oraInizio.slice(0, 5)} - {s2Col.oraFine.slice(0, 5)}
                                 </span>
-                              )}
-                            </div>
+                                {s2Col.isAdapted && (
+                                  <span className="text-[7px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/25 px-1 py-0.2 rounded mt-1 border border-amber-300 dark:border-amber-500/40">
+                                    +{s2Col.minutiExtra}m extra
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </>
                     )}
 
-                    {/* Linea indicatore Cambio Turno (T1 -> T2) */}
-                    {isWeekdayCol && s1Col && s2Col && (
+                    {/* Alert Overlay se showShiftsInGrid è false ma c'è un turno bloccato per lavoro primario */}
+                    {!showShiftsInGrid && isWeekdayCol && (isT1ColBlocked || isT2ColBlocked) && (
+                      <>
+                        {isT1ColBlocked && (
+                          <div
+                            style={{ top: `${s1TopPx}px`, height: `${s1HeightPx}px` }}
+                            className="absolute left-0 right-0 z-[5] bg-[repeating-linear-gradient(45deg,rgba(244,63,94,0.18),rgba(244,63,94,0.18)_10px,rgba(244,63,94,0.06)_10px,rgba(244,63,94,0.06)_20px)] border-2 border-rose-500/80 rounded flex flex-col items-center justify-center p-1 text-center pointer-events-auto backdrop-blur-[1px]"
+                            title={`🚨 1° Turno (${s1Col?.oraInizio}-${s1Col?.oraFine}): Nessun operatore presente (Lavoro primario). Prenotazioni bloccate.`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              alert(`Fascia oraria 1° Turno (${s1Col?.oraInizio}-${s1Col?.oraFine}) bloccata:\nNessun operatore disponibile per lavoro primario.`);
+                            }}
+                          >
+                            <span className="bg-rose-600 text-white font-black text-[9px] px-2 py-0.5 rounded shadow-sm">
+                              🚨 NESSUN PRESIDIO
+                            </span>
+                            <span className="text-[7.5px] font-bold text-rose-800 dark:text-rose-200 mt-0.5 bg-white/90 dark:bg-black/90 px-1 rounded">
+                              Prenotazioni Bloccate ({s1Col?.oraInizio.slice(0, 5)}-{s1Col?.oraFine.slice(0, 5)})
+                            </span>
+                          </div>
+                        )}
+                        {isT2ColBlocked && (
+                          <div
+                            style={{ top: `${s2TopPx}px`, height: `${s2HeightPx}px` }}
+                            className="absolute left-0 right-0 z-[5] bg-[repeating-linear-gradient(45deg,rgba(244,63,94,0.18),rgba(244,63,94,0.18)_10px,rgba(244,63,94,0.06)_10px,rgba(244,63,94,0.06)_20px)] border-2 border-rose-500/80 rounded flex flex-col items-center justify-center p-1 text-center pointer-events-auto backdrop-blur-[1px]"
+                            title={`🚨 2° Turno (${s2Col?.oraInizio}-${s2Col?.oraFine}): Nessun operatore presente (Lavoro primario). Prenotazioni bloccate.`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              alert(`Fascia oraria 2° Turno (${s2Col?.oraInizio}-${s2Col?.oraFine}) bloccata:\nNessun operatore disponibile per lavoro primario.`);
+                            }}
+                          >
+                            <span className="bg-rose-600 text-white font-black text-[9px] px-2 py-0.5 rounded shadow-sm">
+                              🚨 NESSUN PRESIDIO
+                            </span>
+                            <span className="text-[7.5px] font-bold text-rose-800 dark:text-rose-200 mt-0.5 bg-white/90 dark:bg-black/90 px-1 rounded">
+                              Prenotazioni Bloccate ({s2Col?.oraInizio.slice(0, 5)}-{s2Col?.oraFine.slice(0, 5)})
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Linea indicatore Cambio Turno (T1 -> T2) solo se contigui */}
+                    {isWeekdayCol && s1Col && s2Col && s1Col.oraFine === s2Col.oraInizio && (
                       <div
                         style={{ top: `${s2TopPx}px` }}
                         className="absolute left-0 right-0 border-t border-blue-400/50 dark:border-yellow-500/40 border-dashed z-[3] pointer-events-none flex items-center justify-center"
