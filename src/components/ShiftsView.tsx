@@ -245,132 +245,136 @@ export const ShiftsView: React.FC = () => {
     <div className="space-y-6 w-full max-w-full overflow-x-hidden">
       
       {/* ── 1. TESTATA: SCHEMA RIEPILOGATIVO SETTIMANALE DEI TURNI ── */}
-      <div className="bg-[#0e0e0e] rounded-2xl p-4 sm:p-6 border border-yellow-500/25 shadow-xl space-y-4 print:hidden">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div className="space-y-1 max-w-3xl">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="w-8 h-8 rounded-lg bg-yellow-400 text-black flex items-center justify-center font-black text-sm shadow-sm">
-                <Clock className="w-4 h-4 stroke-[2.5]" />
-              </span>
-              <h2 className="text-lg sm:text-xl font-black text-yellow-100 tracking-tight">
-                Schema Riepilogativo Settimanale dei Turni
-              </h2>
-              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-500/30">
-                Lunedì &ndash; Sabato
-              </span>
-            </div>
-            <p className="text-xs text-neutral-300 leading-relaxed mt-1">
-              Visualizzazione tabellare chiara e schematica dei presidi settimanali con le fasce orarie stabilite:{' '}
-              <strong className="text-yellow-400">1° Turno (17:00 &ndash; 20:00)</strong> e{' '}
-              <strong className="text-yellow-400">2° Turno (20:00 &ndash; 23:00)</strong> nei giorni feriali,{' '}
-              <strong className="text-yellow-400">Sabato (09:00 &ndash; 12:00 e 14:00 &ndash; 18:00)</strong>, con adattamento orario automatico in base alle prenotazioni serali.
-            </p>
+      {/* ── 1. TESTATA: SCHEMA RIEPILOGATIVO SETTIMANALE DEI TURNI ── */}
+      <div className="bg-white dark:bg-[#0e0e0e] rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-yellow-500/25 shadow-sm space-y-4 print:hidden">
+        {/* Titolo e Descrizione a tutta larghezza (evita che il testo venga schiacciato) */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="w-9 h-9 rounded-xl bg-blue-600 dark:bg-yellow-400 text-white dark:text-black flex items-center justify-center font-black text-sm shadow-xs shrink-0">
+              <Clock className="w-5 h-5 stroke-[2.5]" />
+            </span>
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-yellow-100 tracking-tight">
+              Schema Riepilogativo Settimanale dei Turni
+            </h2>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-yellow-400/20 text-blue-700 dark:text-yellow-300 border border-blue-200 dark:border-yellow-500/30">
+              Lunedì &ndash; Sabato
+            </span>
           </div>
+          <p className="text-xs text-slate-600 dark:text-neutral-300 leading-relaxed max-w-5xl">
+            Visualizzazione tabellare chiara e schematica dei presidi settimanali con le fasce orarie stabilite:{' '}
+            <strong className="text-blue-700 dark:text-yellow-400 font-bold">1° Turno (17:00 &ndash; 20:00)</strong> e{' '}
+            <strong className="text-blue-700 dark:text-yellow-400 font-bold">2° Turno (20:00 &ndash; 23:00)</strong> nei giorni feriali,{' '}
+            <strong className="text-blue-700 dark:text-yellow-400 font-bold">Sabato (09:00 &ndash; 12:00 e 14:00 &ndash; 18:00)</strong>, con adattamento orario automatico in base alle prenotazioni serali.
+          </p>
+        </div>
 
-          {/* Azioni Amministrazione & Stampa */}
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            {isAdmin && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleAutoAssignWeek}
-                  className="px-4 py-2.5 min-h-[44px] bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
-                  title="Autoassegna i turni della settimana combinando lavoro primario, ferie ed equità delle ore"
-                >
-                  <Wand2 className="w-4 h-4 stroke-[2.5]" />
-                  <span>Auto-Assegna Settimana</span>
-                </button>
+        {/* ── BARRA DELLE AZIONI ORDINATA E RAGGRUPPATA (Pianificazione & Stampa/Export) ── */}
+        <div className="pt-3 border-t border-slate-200/80 dark:border-yellow-500/20 flex flex-wrap items-center justify-between gap-3">
+          {/* Gruppo 1: Pianificazione & Assegnazione Turni */}
+          {isAdmin ? (
+            <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-slate-100 dark:bg-neutral-950 rounded-xl border border-slate-200 dark:border-yellow-500/20 shadow-2xs flex-wrap">
+              <button
+                type="button"
+                onClick={handleAutoAssignWeek}
+                className="px-3.5 py-2 min-h-[40px] bg-blue-600 hover:bg-blue-700 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black font-extrabold text-xs rounded-lg shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active"
+                title="Autoassegna i turni della settimana combinando lavoro primario, ferie ed equità delle ore"
+              >
+                <Wand2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Auto-Assegna Settimana</span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={handleAutoAssignMonth}
-                  className="px-3.5 py-2.5 min-h-[44px] bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/40 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
-                  title="Autoassegna tutti i turni del mese corrente con rotazione equa"
-                >
-                  <Sparkles className="w-4 h-4 text-yellow-400" />
-                  <span>Auto-Assegna Mese</span>
-                </button>
+              <button
+                type="button"
+                onClick={handleAutoAssignMonth}
+                className="px-3 py-2 min-h-[40px] bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:text-yellow-300 dark:border-yellow-500/40 font-bold text-xs rounded-lg shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active"
+                title="Autoassegna tutti i turni del mese corrente con rotazione equa"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400" />
+                <span>Auto-Assegna Mese</span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={handleCopyFromPreviousWeek}
-                  className="px-3.5 py-2.5 min-h-[44px] bg-neutral-900 hover:bg-neutral-800 text-yellow-200 border border-yellow-500/30 font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
-                  title="Copia gli operatori assegnati nella settimana precedente"
-                >
-                  <Copy className="w-4 h-4 text-yellow-400" />
-                  <span className="hidden sm:inline">Copia Prec.</span>
-                </button>
+              <button
+                type="button"
+                onClick={handleCopyFromPreviousWeek}
+                className="px-3 py-2 min-h-[40px] bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:text-yellow-200 dark:border-yellow-500/30 font-semibold text-xs rounded-lg shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active"
+                title="Copia gli operatori assegnati nella settimana precedente"
+              >
+                <Copy className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400" />
+                <span>Copia Prec.</span>
+              </button>
+            </div>
+          ) : <div />}
 
-                <button
-                  type="button"
-                  onClick={() => setIsMonthlyPdfModalOpen(true)}
-                  className="px-3.5 py-2.5 min-h-[44px] bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/40 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
-                  title="Esporta il documento PDF riassuntivo del mese (1 Pagina Landscape)"
-                >
-                  <Download className="w-4 h-4 text-yellow-400" />
-                  <span>PDF Mese</span>
-                </button>
-              </>
-            )}
-
-            {/* Stampa al Volo Settimana (1 Foglio A4) */}
+          {/* Gruppo 2: Stampa & Esportazioni */}
+          <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-slate-100 dark:bg-neutral-950 rounded-xl border border-slate-200 dark:border-yellow-500/20 shadow-2xs flex-wrap">
             <button
               type="button"
               onClick={handlePrintWeekly}
-              className="px-4 py-2.5 min-h-[44px] bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
+              className="px-3.5 py-2 min-h-[40px] bg-blue-600 hover:bg-blue-700 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black font-extrabold text-xs rounded-lg shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active"
               title="Stampa al volo lo schema dei turni di questa settimana su 1 singolo foglio A4"
             >
-              <Printer className="w-4 h-4 stroke-[2.5]" />
+              <Printer className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Stampa Settimana (1 Foglio)</span>
             </button>
 
-            {/* Anteprima Completa & Download PDF Settimana */}
             <button
               type="button"
               onClick={() => setIsWeeklyPrintModalOpen(true)}
-              className="px-3.5 py-2.5 min-h-[44px] bg-neutral-900 hover:bg-neutral-800 text-yellow-300 border border-yellow-500/40 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
+              className="px-3 py-2 min-h-[40px] bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:text-yellow-300 dark:border-yellow-500/40 font-bold text-xs rounded-lg shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active"
               title="Anteprima a schermo con opzioni firme e download PDF"
             >
-              <FileText className="w-4 h-4 text-yellow-400" />
+              <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400" />
               <span>Anteprima &amp; PDF</span>
             </button>
 
-            {/* Scarica File Excel (.csv) dei turni settimanali */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsMonthlyPdfModalOpen(true)}
+                className="px-3 py-2 min-h-[40px] bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:text-yellow-300 dark:border-yellow-500/40 font-bold text-xs rounded-lg shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active"
+                title="Esporta il documento PDF riassuntivo del mese (1 Pagina Landscape)"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400" />
+                <span>PDF Mese</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handleExportWeeklyShiftsExcel}
-              className="px-3.5 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
+              className="px-3 py-2 min-h-[40px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active"
               title="Scarica lo schema dei turni settimanali in file Excel (.csv)"
             >
-              <Download className="w-4 h-4" />
-              <span>Scarica Excel</span>
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Scarica Excel</span>
+              <span className="sm:hidden">Excel</span>
             </button>
           </div>
         </div>
 
         {/* Feedback Alert */}
         {feedbackMessage && (
-          <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-fade-in">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{feedbackMessage}</span>
           </div>
         )}
 
         {/* ── 2. BARRA NAVIGAZIONE SETTIMANA & SELETTORE LAYOUT ── */}
-        <div className="pt-3 border-t border-yellow-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-wrap">
+        <div className="pt-3 border-t border-slate-200/80 dark:border-yellow-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={handlePrevWeek}
-              className="w-11 h-11 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-400 border border-yellow-500/25 flex items-center justify-center transition-all cursor-pointer touch-manipulation touch-active"
+              className="w-10 h-10 rounded-xl bg-white dark:bg-neutral-900 hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-400 border border-slate-200 dark:border-yellow-500/25 flex items-center justify-center transition-all cursor-pointer touch-manipulation touch-active shadow-2xs"
               title="Settimana precedente"
               aria-label="Settimana precedente"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 sm:py-2.5 min-h-[44px] rounded-xl bg-neutral-950 border border-yellow-500/25">
-              <Calendar className="w-4 h-4 text-yellow-400 shrink-0" />
-              <span className="font-bold text-xs sm:text-sm text-yellow-100 whitespace-nowrap">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 min-h-[40px] rounded-xl bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-yellow-500/25 shadow-2xs">
+              <Calendar className="w-4 h-4 text-blue-600 dark:text-yellow-400 shrink-0" />
+              <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-yellow-100 whitespace-nowrap">
                 <span className="sm:hidden">
                   {currentMonday.getDate()} {MESI_ITALIANI[currentMonday.getMonth()].substring(0, 3)} &ndash; {weekEndDay.getDate()} {MESI_ITALIANI[weekEndDay.getMonth()].substring(0, 3)}
                 </span>
@@ -384,7 +388,7 @@ export const ShiftsView: React.FC = () => {
 
             <button
               onClick={handleNextWeek}
-              className="w-11 h-11 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-400 border border-yellow-500/25 flex items-center justify-center transition-all cursor-pointer touch-manipulation touch-active"
+              className="w-10 h-10 rounded-xl bg-white dark:bg-neutral-900 hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-400 border border-slate-200 dark:border-yellow-500/25 flex items-center justify-center transition-all cursor-pointer touch-manipulation touch-active shadow-2xs"
               title="Settimana successiva"
               aria-label="Settimana successiva"
             >
@@ -393,7 +397,7 @@ export const ShiftsView: React.FC = () => {
 
             <button
               onClick={handleCurrentWeek}
-              className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-neutral-900 hover:bg-neutral-800 text-yellow-300 text-xs font-bold border border-yellow-500/25 transition-all cursor-pointer touch-manipulation touch-active"
+              className="px-3.5 py-2 min-h-[40px] rounded-xl bg-white dark:bg-neutral-900 hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-300 text-xs font-bold border border-slate-200 dark:border-yellow-500/25 transition-all cursor-pointer touch-manipulation touch-active shadow-2xs"
             >
               Oggi
             </button>
@@ -402,14 +406,14 @@ export const ShiftsView: React.FC = () => {
           {/* Toggle Formato Tabella / Lista & Pill Copertura */}
           <div className="flex items-center gap-3 flex-wrap">
             {/* View Mode Switcher */}
-            <div className="flex items-center bg-neutral-950 p-1 rounded-xl border border-yellow-500/25">
+            <div className="flex items-center bg-slate-100 dark:bg-neutral-950 p-1 rounded-xl border border-slate-200 dark:border-yellow-500/25">
               <button
                 type="button"
                 onClick={() => setViewFormat('table')}
-                className={`px-3.5 py-2 min-h-[40px] text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer touch-manipulation touch-active ${
+                className={`px-3 py-1.5 min-h-[36px] text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer touch-manipulation touch-active ${
                   viewFormat === 'table'
-                    ? 'bg-yellow-400 text-black shadow-xs font-black'
-                    : 'text-neutral-400 hover:text-yellow-300'
+                    ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-black'
+                    : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-yellow-300'
                 }`}
               >
                 <TableIcon className="w-4 h-4" />
@@ -418,10 +422,10 @@ export const ShiftsView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setViewFormat('cards')}
-                className={`px-3.5 py-2 min-h-[40px] text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer touch-manipulation touch-active ${
+                className={`px-3 py-1.5 min-h-[36px] text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer touch-manipulation touch-active ${
                   viewFormat === 'cards'
-                    ? 'bg-yellow-400 text-black shadow-xs font-black'
-                    : 'text-neutral-400 hover:text-yellow-300'
+                    ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-black'
+                    : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-yellow-300'
                 }`}
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -432,12 +436,12 @@ export const ShiftsView: React.FC = () => {
             {/* Pillola Copertura */}
             <div className="flex items-center gap-2 text-xs">
               {unassignedShiftsCount === 0 ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-xs">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> 10/10 Turni Coperti
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 font-bold text-xs">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> 10/10 Turni Coperti
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-xs">
-                  <AlertTriangle className="w-3.5 h-3.5" /> {unassignedShiftsCount} Turni da Assegnare
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 font-bold text-xs">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> {unassignedShiftsCount} Turni da Assegnare
                 </span>
               )}
             </div>
