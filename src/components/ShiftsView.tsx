@@ -256,13 +256,14 @@ export const ShiftsView: React.FC = () => {
                 Schema Riepilogativo Settimanale dei Turni
               </h2>
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-500/30">
-                Lunedì &ndash; Venerdì
+                Lunedì &ndash; Sabato
               </span>
             </div>
             <p className="text-xs text-neutral-300 leading-relaxed mt-1">
               Visualizzazione tabellare chiara e schematica dei presidi settimanali con le fasce orarie stabilite:{' '}
               <strong className="text-yellow-400">1° Turno (17:00 &ndash; 20:00)</strong> e{' '}
-              <strong className="text-yellow-400">2° Turno (20:00 &ndash; 23:00)</strong>, con adattamento orario automatico in base alle prenotazioni serali.
+              <strong className="text-yellow-400">2° Turno (20:00 &ndash; 23:00)</strong> nei giorni feriali,{' '}
+              <strong className="text-yellow-400">Sabato (09:00 &ndash; 12:00 e 14:00 &ndash; 18:00)</strong>, con adattamento orario automatico in base alle prenotazioni serali.
             </p>
           </div>
 

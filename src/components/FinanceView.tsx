@@ -152,29 +152,29 @@ export const FinanceView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Month Navigation & Action Bar */}
-      <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#0e0e0e] p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-yellow-500/25 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
+          <div className="flex items-center bg-slate-100 dark:bg-neutral-900 rounded-xl p-1 border border-slate-200 dark:border-yellow-500/30">
             <button
               onClick={handlePrevMonth}
-              className="w-11 h-11 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-all touch-manipulation touch-active"
+              className="w-11 h-11 rounded-lg text-slate-600 dark:text-yellow-400 hover:text-slate-900 dark:hover:text-yellow-200 hover:bg-white dark:hover:bg-neutral-800 flex items-center justify-center transition-all touch-manipulation touch-active"
               aria-label="Mese precedente"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <span className="px-3 text-xs font-bold text-slate-700 select-none">Mese</span>
+            <span className="px-3 text-xs font-bold text-slate-700 dark:text-yellow-300 select-none">Mese</span>
             <button
               onClick={handleNextMonth}
-              className="w-11 h-11 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-all touch-manipulation touch-active"
+              className="w-11 h-11 rounded-lg text-slate-600 dark:text-yellow-400 hover:text-slate-900 dark:hover:text-yellow-200 hover:bg-white dark:hover:bg-neutral-800 flex items-center justify-center transition-all touch-manipulation touch-active"
               aria-label="Mese successivo"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-yellow-100 tracking-tight flex items-center gap-2">
             <span>Conto Mese:</span>
-            <span className="text-indigo-600 font-semibold">
+            <span className="text-blue-600 dark:text-yellow-400 font-extrabold">
               {MESI_ITALIANI[currentMonth]} {currentYear}
             </span>
           </h2>
@@ -183,10 +183,10 @@ export const FinanceView: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={handlePrint}
-            className="px-3.5 py-2.5 min-h-[44px] border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2 touch-manipulation touch-active"
+            className="px-3.5 py-2.5 min-h-[44px] border border-slate-200 dark:border-yellow-500/30 hover:bg-slate-50 dark:hover:bg-yellow-400/10 text-slate-700 dark:text-yellow-300 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 touch-manipulation touch-active cursor-pointer"
             title="Stampa report contabile del mese"
           >
-            <Printer className="w-4 h-4 text-slate-500" />
+            <Printer className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
             <span className="hidden sm:inline">Stampa / Esporta</span>
           </button>
 
@@ -195,7 +195,7 @@ export const FinanceView: React.FC = () => {
               setExpenseToEdit(null);
               setIsModalOpen(true);
             }}
-            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 shrink-0 touch-manipulation touch-active ml-auto sm:ml-0"
+            className="px-4 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 shrink-0 touch-manipulation touch-active ml-auto sm:ml-0 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Registra Spesa</span>

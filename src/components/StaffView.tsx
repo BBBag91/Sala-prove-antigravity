@@ -96,15 +96,15 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#0e0e0e] p-5 rounded-2xl border border-slate-200 dark:border-yellow-500/25 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-yellow-100 tracking-tight flex items-center gap-2">
             <span>Operatori & Insegnanti</span>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-neutral-900 text-slate-700 dark:text-yellow-300 border border-slate-200 dark:border-yellow-500/30">
               {staff.length} Registrati
             </span>
           </h2>
-          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+          <p className="text-xs text-slate-500 dark:text-neutral-400 mt-1 max-w-2xl">
             Registra operatori di sala e insegnanti. Imposta i turni del lavoro primario di ciascuno:
             la disponibilità per la sala prove è calcolata come <strong>24 ore del giorno MENO i turni del lavoro primario</strong>.
           </p>
@@ -114,7 +114,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
           {onNavigateToTurni && (
             <button
               onClick={onNavigateToTurni}
-              className="px-4 py-2.5 min-h-[44px] bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active cursor-pointer"
+              className="px-4 py-2.5 min-h-[44px] bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active cursor-pointer"
               title="Apri pannello completo pianificazione turni presidio sala"
             >
               <Clock className="w-4 h-4" />
@@ -136,10 +136,10 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
 
           <button
             onClick={() => handleOpenSchedulePrint(null)}
-            className="px-4 py-2.5 min-h-[44px] bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl border border-slate-300 shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active cursor-pointer"
+            className="px-4 py-2.5 min-h-[44px] bg-white dark:bg-neutral-900 hover:bg-slate-50 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-300 font-semibold text-xs rounded-xl border border-slate-300 dark:border-yellow-500/30 shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active cursor-pointer"
             title="Esporta o stampa il catalogo completo degli appuntamenti per tutti gli operatori"
           >
-            <Printer className="w-4 h-4 text-indigo-600" />
+            <Printer className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
             <span className="hidden sm:inline">Stampa / PDF Appuntamenti</span>
           </button>
 
@@ -148,7 +148,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
               setStaffToEdit(null);
               setIsModalOpen(true);
             }}
-            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 shrink-0 touch-manipulation touch-active cursor-pointer ml-auto sm:ml-0"
+            className="px-4 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 shrink-0 touch-manipulation touch-active cursor-pointer ml-auto sm:ml-0"
           >
             <Plus className="w-4 h-4" />
             <span>Nuovo Operatore</span>

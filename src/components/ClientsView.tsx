@@ -170,58 +170,58 @@ export const ClientsView: React.FC = () => {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-xs">
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
             Totale Clienti
           </p>
-          <p className="text-xl sm:text-2xl font-bold font-mono text-slate-900 mt-1">{clients.length}</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-yellow-100 mt-1">{clients.length}</p>
         </div>
 
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
-          <p className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">
+        <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-xs">
+          <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
             Tessere Attive
           </p>
-          <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-600 mt-1">{activeCount}</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{activeCount}</p>
         </div>
 
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
-          <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wider">
+        <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-xs">
+          <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
             Tessere Scadute
           </p>
-          <p className="text-xl sm:text-2xl font-bold font-mono text-amber-600 mt-1">{expiredCount}</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">{expiredCount}</p>
         </div>
 
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 shadow-xs">
-          <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider flex items-center justify-between">
+        <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-xs">
+          <p className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider flex items-center justify-between">
             <span>Quote Saldate</span>
-            <span className="text-[10px] font-bold text-emerald-700 font-mono">({quoteSaldateCount})</span>
+            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 font-mono">({quoteSaldateCount})</span>
           </p>
-          <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 mt-1">{formatCurrency(quoteSaldateTotal)}</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-300 mt-1">{formatCurrency(quoteSaldateTotal)}</p>
         </div>
 
         <div className={`p-3.5 sm:p-4 rounded-xl border shadow-xs ${
           quoteDaSaldareCount > 0
-            ? 'bg-amber-50/80 border-amber-300 text-amber-900'
-            : 'bg-white border-slate-200 text-slate-700'
+            ? 'bg-amber-50/80 dark:bg-amber-950/25 border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200'
+            : 'bg-white dark:bg-[#0e0e0e] border-slate-200 dark:border-yellow-500/25 text-slate-700 dark:text-yellow-100'
         }`}>
-          <p className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider flex items-center justify-between">
+          <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center justify-between">
             <span>Quote Da Saldare</span>
-            <span className="text-[10px] font-bold text-amber-700 font-mono">({quoteDaSaldareCount})</span>
+            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 font-mono">({quoteDaSaldareCount})</span>
           </p>
-          <p className="text-xl sm:text-2xl font-bold font-mono text-amber-700 mt-1">{formatCurrency(quoteDaSaldareTotal)}</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-amber-700 dark:text-amber-300 mt-1">{formatCurrency(quoteDaSaldareTotal)}</p>
         </div>
       </div>
 
       {/* Action Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="bg-white dark:bg-[#0e0e0e] p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-yellow-500/25 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400 dark:text-yellow-500/60" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Cerca per nome, codice fiscale, band, residenza..."
-            className="w-full pl-10 pr-4 py-2.5 min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 touch-manipulation"
+            className="w-full pl-10 pr-4 py-2.5 min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-yellow-500/30 bg-white dark:bg-neutral-950 text-slate-900 dark:text-yellow-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-yellow-400 touch-manipulation"
           />
         </div>
 
@@ -229,7 +229,7 @@ export const ClientsView: React.FC = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="px-3.5 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden touch-manipulation cursor-pointer"
+            className="px-3.5 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl border border-slate-200 dark:border-yellow-500/30 bg-slate-50 dark:bg-neutral-900 text-slate-700 dark:text-yellow-200 focus:outline-hidden touch-manipulation cursor-pointer"
           >
             <option value="all">Tutti gli stati tessera</option>
             <option value="attivo">Solo Attivi</option>
@@ -240,7 +240,7 @@ export const ClientsView: React.FC = () => {
           <select
             value={quotaFilter}
             onChange={(e) => setQuotaFilter(e.target.value as any)}
-            className="px-3.5 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden touch-manipulation cursor-pointer"
+            className="px-3.5 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl border border-slate-200 dark:border-yellow-500/30 bg-slate-50 dark:bg-neutral-900 text-slate-700 dark:text-yellow-200 focus:outline-hidden touch-manipulation cursor-pointer"
           >
             <option value="all">Tutte le quote</option>
             <option value="pagato">✅ Solo Saldate</option>
@@ -249,10 +249,10 @@ export const ClientsView: React.FC = () => {
 
           <button
             onClick={() => handleOpenPrint(null)}
-            className="px-3.5 py-2.5 min-h-[44px] bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
+            className="px-3.5 py-2.5 min-h-[44px] bg-white dark:bg-neutral-900 hover:bg-slate-50 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-300 border border-slate-200 dark:border-yellow-500/30 font-semibold text-xs rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
             title="Stampa Registro Soci o Schede Tessere PDF"
           >
-            <Printer className="w-4 h-4 text-indigo-600" />
+            <Printer className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
             <span className="hidden sm:inline">Stampa / PDF Tessere</span>
           </button>
 
@@ -271,7 +271,7 @@ export const ClientsView: React.FC = () => {
               setClientToEdit(null);
               setIsModalOpen(true);
             }}
-            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 shrink-0 touch-manipulation touch-active cursor-pointer ml-auto sm:ml-0"
+            className="px-4 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 shrink-0 touch-manipulation touch-active cursor-pointer ml-auto sm:ml-0"
           >
             <Plus className="w-4 h-4" />
             <span>Nuovo Tesserato</span>

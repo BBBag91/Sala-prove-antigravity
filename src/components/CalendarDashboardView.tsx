@@ -1194,8 +1194,6 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               </span>
             </button>
 
-
-
             {/* New Booking Button */}
             <button
               onClick={() => {
@@ -1616,10 +1614,10 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     {isClosed && (
                       <div className="mt-1.5 pt-1 border-t border-rose-200 dark:border-rose-900/60 flex flex-col items-center justify-center py-1 select-none">
                         <span className="text-[7.5px] sm:text-[8px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-300">
-                          Struttura Chiusa
+                          Sala Prove Chiusa
                         </span>
                         <span className="text-[6.5px] sm:text-[7px] text-rose-500/90 dark:text-rose-400/80 font-semibold truncate max-w-full">
-                          Prenotazioni bloccate
+                          Prove Bloccate &bull; Solo Lezioni
                         </span>
                       </div>
                     )}
@@ -1992,7 +1990,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                           {colHolidayInfo.name || 'Domenica'}
                         </div>
                         <div className="text-[7.5px] sm:text-[8px] text-rose-600/90 dark:text-rose-400/90 font-medium truncate mt-0.5">
-                          Prenotazioni bloccate
+                          Prove Bloccate &bull; Solo Lezioni
                         </div>
                       </div>
                     )}

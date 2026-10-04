@@ -108,21 +108,21 @@ export const AnagraficaView: React.FC<AnagraficaViewProps> = ({ onNavigateTab })
   return (
     <div className="space-y-6">
       {/* Top Header Card */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#0e0e0e] p-5 rounded-2xl border border-slate-200 dark:border-yellow-500/25 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-11 h-11 rounded-xl bg-blue-600 dark:bg-yellow-400 text-white dark:text-black flex items-center justify-center shrink-0 shadow-xs">
             <Building2 className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                Anagrafica Sala Prove & Struttura
+              <h2 className="text-xl font-bold text-slate-900 dark:text-yellow-100 tracking-tight">
+                Anagrafica Sala Prove &amp; Struttura
               </h2>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-yellow-400/20 text-blue-700 dark:text-yellow-300 border border-blue-200 dark:border-yellow-500/30">
                 Ufficiale
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-neutral-400 mt-1">
               Configura il nome personalizzato, la ragione sociale, la sede e i recapiti utilizzati in tutta l'applicazione, sul calendario e sui documenti di tesseramento.
             </p>
           </div>
@@ -132,22 +132,22 @@ export const AnagraficaView: React.FC<AnagraficaViewProps> = ({ onNavigateTab })
           <button
             type="button"
             onClick={handleReset}
-            className="px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-200 dark:border-yellow-500/30 bg-white dark:bg-neutral-900 hover:bg-slate-50 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Ripristina valori di default"
           >
-            <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+            <RotateCcw className="w-3.5 h-3.5 text-slate-400 dark:text-yellow-500/70" />
             <span className="hidden sm:inline">Ripristina Default</span>
           </button>
 
           <button
             type="button"
             onClick={handleSave}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all ${
+            className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer ${
               isSaved
                 ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                 : hasChanges
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700 animate-pulse'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black ring-2 ring-blue-400/50 dark:ring-yellow-400/50'
+                : 'bg-blue-600 hover:bg-blue-700 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black'
             }`}
           >
             {isSaved ? (
