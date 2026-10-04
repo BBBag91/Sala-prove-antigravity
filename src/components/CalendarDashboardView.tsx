@@ -36,7 +36,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Booking, DailyShiftComputed, DeleteRecurringMode, PaymentMethod, PaymentStatus, isLessonBooking } from '../types';
+import { Booking, BookingType, DailyShiftComputed, DeleteRecurringMode, PaymentMethod, PaymentStatus, isLessonBooking } from '../types';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 import {
   formatDateToISO,
@@ -158,6 +158,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedDateForBooking, setSelectedDateForBooking] = useState<string>('');
   const [selectedStartTimeForBooking, setSelectedStartTimeForBooking] = useState<string>('18:00');
+  const [selectedTypeForBooking, setSelectedTypeForBooking] = useState<BookingType | undefined>(undefined);
   const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
   const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
   const [autoAssignResult, setAutoAssignResult] = useState<AutoAssignResult | null>(null);
@@ -539,15 +540,6 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   const handleDayClick = (dateStr: string, e?: React.MouseEvent<HTMLDivElement>) => {
     if (dragJustEndedRef.current) return;
 
-    // Controllo bloccante per festività e domeniche (struttura chiusa)
-    const holidayInfo = getHolidayOrSundayInfo(dateStr);
-    if (holidayInfo.isHolidayOrSunday) {
-      alert(
-        `Impossibile prendere prenotazioni:\n\nLa data selezionata (${formatDateItalian(dateStr)}) è ${holidayInfo.name || 'un giorno festivo o domenica'}.\n\nLa struttura è chiusa nei giorni festivi e in tutte le domeniche.`
-      );
-      return;
-    }
-
     let startHourStr = '18:00';
     if (e) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -558,23 +550,18 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       const h = Math.floor(clampedMins / 60);
       const m = clampedMins % 60;
       startHourStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-
-      // Controllo bloccante presenza operatori (lavoro primario) per lo slot cliccato
-      const endMins = Math.min(24 * 60, clampedMins + 60);
-      const endHourStr = minutesToTime(endMins);
-      const coverage = checkOperatorsCoverageForTimeSlot(staff, dateStr, startHourStr, endHourStr);
-      if (!coverage.hasCoverage) {
-        const details = coverage.unavailableOperators
-          .map((u) => `• ${u.operator.nome} ${u.operator.cognome}: ${u.reason}`)
-          .join('\n');
-        alert(
-          `Impossibile prenotare in questo intervallo orario:\n\nNessuno dei ${coverage.totalOperatorsCount} operatori della struttura risulta disponibile il ${dateStr} alle ore ${startHourStr} - ${endHourStr} a causa dei turni di lavoro primario:\n\n${details}\n\nLa prenotazione di nuovi eventi è bloccata quando la struttura non può essere presidiata.`
-        );
-        return;
-      }
     }
+
+    // Se l'orario o la data cliccata non ha presidio operatore o è festivo, pre-imposta "lezione" per consentire la prenotazione
+    const endMins = Math.min(24 * 60, timeToMinutes(startHourStr) + 60);
+    const endHourStr = minutesToTime(endMins);
+    const coverage = checkOperatorsCoverageForTimeSlot(staff, dateStr, startHourStr, endHourStr);
+    const holidayInfo = getHolidayOrSundayInfo(dateStr);
+    const preferLesson = !coverage.hasCoverage || holidayInfo.isHolidayOrSunday;
+
     setSelectedDateForBooking(dateStr);
     setSelectedStartTimeForBooking(startHourStr);
+    setSelectedTypeForBooking(preferLesson ? 'lezione' : undefined);
     setBookingToEdit(null);
     setIsBookingModalOpen(true);
   };
@@ -779,16 +766,18 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         return `Sala "${booking.salaNome}" occupata da: ${c.clienteNome}`;
       });
 
-      // Controllo festività o domenica nella data target
+      const isBookingProve = booking.tipo !== 'lezione';
+
+      // Controllo festività o domenica nella data target (solo per sala prove)
       const holidayTarget = getHolidayOrSundayInfo(targetDate);
-      if (holidayTarget.isHolidayOrSunday) {
-        conflictDescriptions.unshift(`Struttura Chiusa: ${holidayTarget.name || 'Giorno Festivo o Domenica'}`);
+      if (isBookingProve && holidayTarget.isHolidayOrSunday) {
+        conflictDescriptions.unshift(`Struttura Chiusa: ${holidayTarget.name || 'Giorno Festivo o Domenica'} (solo lezioni consentite)`);
       }
 
-      // Controllo bloccante presenza operatori per la fascia oraria target (lavoro primario)
+      // Controllo bloccante presenza operatori per la fascia oraria target (solo per sala prove)
       const opCoverage = checkOperatorsCoverageForTimeSlot(staff, targetDate, targetOraInizio, targetOraFine);
-      if (!opCoverage.hasCoverage) {
-        conflictDescriptions.unshift('Nessun operatore disponibile per presidio sala (impegnati in lavoro primario)');
+      if (isBookingProve && !opCoverage.hasCoverage) {
+        conflictDescriptions.unshift('Nessun operatore per presidio sala prove (lavoro primario - solo lezioni consentite)');
       }
 
       return {
@@ -797,7 +786,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         targetEndMins: snappedEndMins,
         targetOraInizio,
         targetOraFine,
-        hasConflict: conflicts.length > 0 || !opCoverage.hasCoverage || holidayTarget.isHolidayOrSunday,
+        hasConflict: conflicts.length > 0 || (isBookingProve && (!opCoverage.hasCoverage || holidayTarget.isHolidayOrSunday)),
         conflictNames: conflictDescriptions,
       };
     },
@@ -2330,36 +2319,44 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                         {isT1ColBlocked && (
                           <div
                             style={{ top: `${s1TopPx}px`, height: `${s1HeightPx}px` }}
-                            className="absolute left-0 right-0 z-[5] bg-[repeating-linear-gradient(45deg,rgba(244,63,94,0.18),rgba(244,63,94,0.18)_10px,rgba(244,63,94,0.06)_10px,rgba(244,63,94,0.06)_20px)] border-2 border-rose-500/80 rounded flex flex-col items-center justify-center p-1 text-center pointer-events-auto backdrop-blur-[1px]"
-                            title={`🚨 1° Turno (${s1Col?.oraInizio}-${s1Col?.oraFine}): Nessun operatore presente (Lavoro primario). Prenotazioni bloccate.`}
+                            className="absolute left-0 right-0 z-[5] bg-[repeating-linear-gradient(45deg,rgba(244,63,94,0.18),rgba(244,63,94,0.18)_10px,rgba(244,63,94,0.06)_10px,rgba(244,63,94,0.06)_20px)] border-2 border-rose-500/80 rounded flex flex-col items-center justify-center p-1 text-center pointer-events-auto backdrop-blur-[1px] cursor-pointer hover:border-rose-600 transition-colors"
+                            title={`🚨 1° Turno (${s1Col?.oraInizio}-${s1Col?.oraFine}): Nessun operatore per lavoro primario. Sala prove bloccata, lezioni consentite. (Clicca per prenotare una lezione)`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              alert(`Fascia oraria 1° Turno (${s1Col?.oraInizio}-${s1Col?.oraFine}) bloccata:\nNessun operatore disponibile per lavoro primario.`);
+                              setSelectedDateForBooking(ds);
+                              setSelectedStartTimeForBooking(s1Col?.oraInizio || '09:00');
+                              setSelectedTypeForBooking('lezione');
+                              setBookingToEdit(null);
+                              setIsBookingModalOpen(true);
                             }}
                           >
                             <span className="bg-rose-600 text-white font-black text-[9px] px-2 py-0.5 rounded shadow-sm">
                               🚨 NESSUN PRESIDIO
                             </span>
-                            <span className="text-[7.5px] font-bold text-rose-800 dark:text-rose-200 mt-0.5 bg-white/90 dark:bg-black/90 px-1 rounded">
-                              Prenotazioni Bloccate ({s1Col?.oraInizio.slice(0, 5)}-{s1Col?.oraFine.slice(0, 5)})
+                            <span className="text-[7.5px] font-bold text-rose-800 dark:text-rose-200 mt-0.5 bg-white/90 dark:bg-black/90 px-1 rounded shadow-2xs">
+                              Prove Bloccate &bull; Solo Lezioni ({s1Col?.oraInizio.slice(0, 5)}–{s1Col?.oraFine.slice(0, 5)})
                             </span>
                           </div>
                         )}
                         {isT2ColBlocked && (
                           <div
                             style={{ top: `${s2TopPx}px`, height: `${s2HeightPx}px` }}
-                            className="absolute left-0 right-0 z-[5] bg-[repeating-linear-gradient(45deg,rgba(244,63,94,0.18),rgba(244,63,94,0.18)_10px,rgba(244,63,94,0.06)_10px,rgba(244,63,94,0.06)_20px)] border-2 border-rose-500/80 rounded flex flex-col items-center justify-center p-1 text-center pointer-events-auto backdrop-blur-[1px]"
-                            title={`🚨 2° Turno (${s2Col?.oraInizio}-${s2Col?.oraFine}): Nessun operatore presente (Lavoro primario). Prenotazioni bloccate.`}
+                            className="absolute left-0 right-0 z-[5] bg-[repeating-linear-gradient(45deg,rgba(244,63,94,0.18),rgba(244,63,94,0.18)_10px,rgba(244,63,94,0.06)_10px,rgba(244,63,94,0.06)_20px)] border-2 border-rose-500/80 rounded flex flex-col items-center justify-center p-1 text-center pointer-events-auto backdrop-blur-[1px] cursor-pointer hover:border-rose-600 transition-colors"
+                            title={`🚨 2° Turno (${s2Col?.oraInizio}-${s2Col?.oraFine}): Nessun operatore per lavoro primario. Sala prove bloccata, lezioni consentite. (Clicca per prenotare una lezione)`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              alert(`Fascia oraria 2° Turno (${s2Col?.oraInizio}-${s2Col?.oraFine}) bloccata:\nNessun operatore disponibile per lavoro primario.`);
+                              setSelectedDateForBooking(ds);
+                              setSelectedStartTimeForBooking(s2Col?.oraInizio || '14:00');
+                              setSelectedTypeForBooking('lezione');
+                              setBookingToEdit(null);
+                              setIsBookingModalOpen(true);
                             }}
                           >
                             <span className="bg-rose-600 text-white font-black text-[9px] px-2 py-0.5 rounded shadow-sm">
                               🚨 NESSUN PRESIDIO
                             </span>
-                            <span className="text-[7.5px] font-bold text-rose-800 dark:text-rose-200 mt-0.5 bg-white/90 dark:bg-black/90 px-1 rounded">
-                              Prenotazioni Bloccate ({s2Col?.oraInizio.slice(0, 5)}-{s2Col?.oraFine.slice(0, 5)})
+                            <span className="text-[7.5px] font-bold text-rose-800 dark:text-rose-200 mt-0.5 bg-white/90 dark:bg-black/90 px-1 rounded shadow-2xs">
+                              Prove Bloccate &bull; Solo Lezioni ({s2Col?.oraInizio.slice(0, 5)}–{s2Col?.oraFine.slice(0, 5)})
                             </span>
                           </div>
                         )}
@@ -2767,6 +2764,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             onClose={() => setIsBookingModalOpen(false)}
             initialDate={selectedDateForBooking}
             initialStartTime={selectedStartTimeForBooking}
+            initialType={selectedTypeForBooking}
             bookingToEdit={bookingToEdit}
           />
         </Suspense>

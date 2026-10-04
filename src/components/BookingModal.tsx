@@ -746,21 +746,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       return;
     }
 
-    // Controllo bloccante festività nazionali e domeniche (chiusura totale struttura)
-    if (holidayInfo.isHolidayOrSunday) {
+    // Controllo bloccante festività nazionali e domeniche (chiusura sala prove, lezioni ammesse)
+    if (holidayInfo.isHolidayOrSunday && tipo === 'prove') {
       alert(
-        `Impossibile inserire o modificare la prenotazione:\n\nLa data selezionata (${data}) corrisponde a un giorno di chiusura festiva (${holidayInfo.name}).\n\nLa struttura è chiusa nei giorni festivi e tutte le domeniche.`
+        `Impossibile prenotare la sala prove:\n\nLa data selezionata (${data}) corrisponde a un giorno di chiusura festiva (${holidayInfo.name}).\n\nLa prenotazione della sala prove per band è chiusa nei giorni festivi e tutte le domeniche.\n\nLe lezioni con insegnante sono invece consentite: seleziona il tipo "Lezione" per procedere.`
       );
       return;
     }
 
-    // Controllo bloccante copertura operatori (Nessun operatore disponibile causa lavoro primario)
-    if (!operatorCoverage.hasCoverage) {
+    // Controllo bloccante copertura operatori (Nessun operatore disponibile causa lavoro primario per sala prove)
+    if (!operatorCoverage.hasCoverage && tipo === 'prove') {
       const details = operatorCoverage.unavailableOperators
         .map((u) => `• ${u.operator.nome} ${u.operator.cognome}: ${u.reason}`)
         .join('\n');
       alert(
-        `Impossibile inserire o modificare la prenotazione:\n\nNessuno dei ${operatorCoverage.totalOperatorsCount} operatori della struttura risulta disponibile il ${data} nella fascia oraria ${oraInizio} - ${oraFine} a causa dei turni di lavoro primario:\n\n${details}\n\nLa prenotazione di nuovi eventi è bloccata quando la struttura non può essere presidiata da almeno un operatore.`
+        `Impossibile prenotare la sala prove in questo intervallo orario:\n\nNessuno dei ${operatorCoverage.totalOperatorsCount} operatori della struttura risulta disponibile il ${data} nella fascia oraria ${oraInizio} - ${oraFine} a causa dei turni di lavoro primario:\n\n${details}\n\nLa sala prove per band richiede il presidio di un operatore.\n\nLe lezioni con insegnante sono invece consentite: seleziona il tipo "Lezione" per procedere.`
       );
       return;
     }
@@ -898,87 +898,123 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               >
                 Annulla
               </button>
-              <button
-                type="submit"
-                disabled={!operatorCoverage.hasCoverage || holidayInfo.isHolidayOrSunday}
-                className={`px-5 py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center gap-2 ${
-                  !operatorCoverage.hasCoverage || holidayInfo.isHolidayOrSunday
-                    ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
-                }`}
-                title={
-                  holidayInfo.isHolidayOrSunday
-                    ? `Prenotazione bloccata: giorno festivo di chiusura (${holidayInfo.name})`
-                    : !operatorCoverage.hasCoverage
-                      ? 'Prenotazione bloccata: nessun operatore disponibile per lavoro primario'
-                      : ''
-                }
-              >
-                {!operatorCoverage.hasCoverage || holidayInfo.isHolidayOrSunday ? <AlertTriangle className="w-4 h-4 text-white" /> : <CheckCircle2 className="w-4 h-4" />}
-                <span>{bookingToEdit ? 'Salva Modifiche' : 'Conferma Prenotazione'}</span>
-              </button>
+              {(() => {
+                const isHolidayBlocked = holidayInfo.isHolidayOrSunday && tipo === 'prove';
+                const isCoverageBlocked = !operatorCoverage.hasCoverage && tipo === 'prove';
+                const isBookingBlocked = isHolidayBlocked || isCoverageBlocked;
+
+                return (
+                  <button
+                    type="submit"
+                    disabled={isBookingBlocked}
+                    className={`px-5 py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center gap-2 ${
+                      isBookingBlocked
+                        ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
+                    }`}
+                    title={
+                      isHolidayBlocked
+                        ? `Sala prove chiusa per festività (${holidayInfo.name}). Seleziona "Lezione" per procedere con una lezione.`
+                        : isCoverageBlocked
+                          ? 'Sala prove chiusa: nessun operatore presente per lavoro primario. Seleziona "Lezione" per procedere con una lezione.'
+                          : ''
+                    }
+                  >
+                    {isBookingBlocked ? <AlertTriangle className="w-4 h-4 text-white" /> : <CheckCircle2 className="w-4 h-4" />}
+                    <span>{bookingToEdit ? 'Salva Modifiche' : 'Conferma Prenotazione'}</span>
+                  </button>
+                );
+              })()}
             </div>
           </div>
 
           {/* Form Scrollable Body */}
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
-          {/* Alert Bloccante Festività Nazionali & Domeniche */}
+          {/* Alert Festività Nazionali & Domeniche */}
           {holidayInfo.isHolidayOrSunday && (
-            <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-500 dark:border-rose-600 rounded-xl flex items-start gap-3 shadow-sm animate-pulse">
-              <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
-                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-              </div>
-              <div className="text-xs text-rose-950 dark:text-rose-100 space-y-1.5 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-black text-sm text-rose-800 dark:text-rose-300">
-                    🚫 Struttura Chiusa: {holidayInfo.name}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-600 text-white tracking-wide shadow-2xs">
-                    Prenotazioni Bloccate
-                  </span>
+            tipo === 'prove' ? (
+              <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-500 dark:border-rose-600 rounded-xl flex items-start gap-3 shadow-sm">
+                <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                 </div>
-                <p className="text-rose-800 dark:text-rose-200/90 leading-relaxed font-medium">
-                  Il giorno <strong>{data}</strong> è contrassegnato in rosso sul calendario come giorno di chiusura festiva (<strong>{holidayInfo.name}</strong>). La struttura è chiusa nei giorni festivi e in tutte le domeniche. Non è consentito inserire o confermare prenotazioni in questa data.
-                </p>
+                <div className="text-xs text-rose-950 dark:text-rose-100 space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-black text-sm text-rose-800 dark:text-rose-300">
+                      🚫 Sala Prove Chiusa per Festività: {holidayInfo.name}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-600 text-white tracking-wide shadow-2xs">
+                      Solo Lezioni Consentite
+                    </span>
+                  </div>
+                  <p className="text-rose-800 dark:text-rose-200/90 leading-relaxed font-medium">
+                    Il giorno <strong>{data}</strong> è contrassegnato in rosso sul calendario come festività (<strong>{holidayInfo.name}</strong>). La prenotazione della sala prove per band è bloccata. <em>Se intendi inserire una lezione di musica con docente, seleziona il tipo <strong>Lezione</strong> qui sotto per procedere liberamente.</em>
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-700/60 rounded-xl flex items-start gap-3">
+                <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-purple-950 dark:text-purple-100 space-y-0.5">
+                  <div className="font-bold text-sm text-purple-900 dark:text-purple-300">
+                    🎓 Giorno Festivo ({holidayInfo.name}): Lezione Consentita
+                  </div>
+                  <p className="text-purple-800 dark:text-purple-200/90 leading-relaxed">
+                    La sala prove per band è chiusa, ma le lezioni di musica e canto con il docente sono pienamente ammesse e confermabili.
+                  </p>
+                </div>
+              </div>
+            )
           )}
 
-          {/* Alert Bloccante Presidio Operatori (Lavoro Primario) */}
+          {/* Alert Presidio Operatori (Lavoro Primario) */}
           {!holidayInfo.isHolidayOrSunday && !operatorCoverage.hasCoverage && (
-            <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-400 dark:border-rose-600 rounded-xl flex items-start gap-3 shadow-sm animate-pulse">
-              <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div className="text-xs text-rose-950 dark:text-rose-100 space-y-1.5 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-black text-sm text-rose-800 dark:text-rose-300">
-                    🚨 Nessun Operatore Presente (Lavoro Primario)
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-600 text-white tracking-wide shadow-2xs">
-                    Prenotazioni Bloccate
-                  </span>
+            tipo === 'prove' ? (
+              <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-400 dark:border-rose-600 rounded-xl flex items-start gap-3 shadow-sm">
+                <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertTriangle className="w-5 h-5 text-rose-600" />
                 </div>
-                <p className="text-rose-800 dark:text-rose-200/90 leading-relaxed font-medium">
-                  Nessuno dei {operatorCoverage.totalOperatorsCount} operatori della struttura è disponibile per presidio il <strong>{data}</strong> dalle <strong>{oraInizio}</strong> alle <strong>{oraFine}</strong> a causa dei turni di lavoro primario. Non è possibile inserire nuovi eventi in questo intervallo.
-                </p>
-                {operatorCoverage.unavailableOperators.length > 0 && (
-                  <div className="mt-1 pt-1.5 border-t border-rose-200 dark:border-rose-800/60">
-                    <span className="font-bold text-[11px] text-rose-900 dark:text-rose-200 block mb-0.5">
-                      Dettaglio indisponibilità lavoro primario:
+                <div className="text-xs text-rose-950 dark:text-rose-100 space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-black text-sm text-rose-800 dark:text-rose-300">
+                      🚨 Sala Prove Chiusa - Nessun Operatore Presente
                     </span>
-                    <ul className="space-y-0.5 text-rose-700 dark:text-rose-300 text-[11px]">
-                      {operatorCoverage.unavailableOperators.map((u, idx) => (
-                        <li key={idx} className="flex items-start gap-1">
-                          <span className="font-bold shrink-0">• {u.operator.nome} {u.operator.cognome}:</span>
-                          <span>{u.reason}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-600 text-white tracking-wide shadow-2xs">
+                      Solo Lezioni Consentite
+                    </span>
                   </div>
-                )}
+                  <p className="text-rose-800 dark:text-rose-200/90 leading-relaxed font-medium">
+                    Nessuno dei {operatorCoverage.totalOperatorsCount} operatori della struttura è disponibile per presidio il <strong>{data}</strong> dalle <strong>{oraInizio}</strong> alle <strong>{oraFine}</strong> a causa dei turni di lavoro primario. Non è possibile prenotare la sala prove per band. <em>Seleziona <strong>Lezione</strong> qui sotto se desideri inserire una lezione di musica con docente.</em>
+                  </p>
+                  {operatorCoverage.unavailableOperators.length > 0 && (
+                    <div className="mt-1 pt-1.5 border-t border-rose-200 dark:border-rose-800/60">
+                      <span className="font-bold text-[11px] text-rose-900 dark:text-rose-200 block mb-0.5">
+                        Dettaglio indisponibilità lavoro primario:
+                      </span>
+                      <ul className="space-y-0.5 text-rose-700 dark:text-rose-300 text-[11px]">
+                        {operatorCoverage.unavailableOperators.map((u, idx) => (
+                          <li key={idx} className="flex items-start gap-1">
+                            <span className="font-bold shrink-0">• {u.operator.nome} {u.operator.cognome}:</span>
+                            <span>{u.reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-700/60 rounded-xl flex items-start gap-3">
+                <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-purple-950 dark:text-purple-100 space-y-0.5">
+                  <div className="font-bold text-sm text-purple-900 dark:text-purple-300">
+                    🎓 Nessun Presidio Operatore: Lezione Consentita
+                  </div>
+                  <p className="text-purple-800 dark:text-purple-200/90 leading-relaxed">
+                    Gli operatori di sala sono assenti per lavoro primario, ma le lezioni di musica con il docente sono autonome e confermabili regolarmente.
+                  </p>
+                </div>
+              </div>
+            )
           )}
 
           {/* Tipo prenotazione: Prove vs Lezione */}
