@@ -647,7 +647,8 @@ html {
 
   /* ── 4.1. TUTTI GLI ELEMENTI E SCRITTE EVIDENZIATI IN BLU: BIANCHI AL 100% ── */
   html.light .text-white,
-  html.light [class*="text-white"],
+  html.light [class~="text-white"],
+  html.light [class*="text-white/"],
   html.light .bg-blue-600,
   html.light .bg-blue-700,
   html.light .bg-blue-500,

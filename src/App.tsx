@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import {
   LayoutDashboard,
-  Music2,
   Users,
   CreditCard,
   DoorOpen,
@@ -31,7 +30,6 @@ import { MorningNotificationWatcher } from './components/MorningNotificationWatc
 
 // Lazy loading views and modals for ultra-fast initial bundle size and instant loading
 const ShiftsView = lazy(() => import('./components/ShiftsView').then(m => ({ default: m.ShiftsView })));
-const BookingsView = lazy(() => import('./components/BookingsView').then(m => ({ default: m.BookingsView })));
 const StaffView = lazy(() => import('./components/StaffView').then(m => ({ default: m.StaffView })));
 const ClientsView = lazy(() => import('./components/ClientsView').then(m => ({ default: m.ClientsView })));
 const RoomsView = lazy(() => import('./components/RoomsView').then(m => ({ default: m.RoomsView })));
@@ -41,6 +39,7 @@ const UserManagementModal = lazy(() => import('./components/UserManagementModal'
 const MorningBriefingModal = lazy(() => import('./components/MorningBriefingModal').then(m => ({ default: m.MorningBriefingModal })));
 const WhatsAppSettingsModal = lazy(() => import('./components/WhatsAppSettingsModal').then(m => ({ default: m.WhatsAppSettingsModal })));
 const TeacherProfileReportModal = lazy(() => import('./components/TeacherProfileReportModal').then(m => ({ default: m.TeacherProfileReportModal })));
+const TeachersReportView = lazy(() => import('./components/TeachersReportView').then(m => ({ default: m.TeachersReportView })));
 
 const ViewLoadingFallback: React.FC = () => (
   <div className="flex items-center justify-center min-h-[350px] w-full">
@@ -51,7 +50,7 @@ const ViewLoadingFallback: React.FC = () => (
   </div>
 );
 
-type TabType = 'calendar' | 'turni' | 'bookings' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica';
+type TabType = 'calendar' | 'turni' | 'teachers' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica';
 
 interface NavSectionItem {
   id: TabType;
@@ -77,12 +76,15 @@ const AppContent: React.FC = () => {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { studioInfo, bookings, staff, clients, expenses } = useApp();
 
-  // Route Guard: Utente standard può accedere al Calendario e allo Schema Turni
+  // Route Guard: Utente standard può accedere al Calendario, allo Schema Turni e al Riepilogo Insegnanti
   useEffect(() => {
-    if (isUser && activeTab !== 'calendar' && activeTab !== 'turni') {
+    if (isUser && activeTab !== 'calendar' && activeTab !== 'turni' && activeTab !== 'teachers' && activeTab !== 'anagrafica') {
       setActiveTab('calendar');
     }
-  }, [isUser, activeTab]);
+    if (isAdmin && activeTab === 'teachers') {
+      setActiveTab('finance');
+    }
+  }, [isUser, isAdmin, activeTab]);
 
   // Close dropdown and mobile menu when clicking outside or pressing Escape
   useEffect(() => {
@@ -135,14 +137,6 @@ const AppContent: React.FC = () => {
       shortLabel: 'Anagrafica',
       description: 'Nome sala prove, intestazione ufficiale, sede e recapiti della struttura',
       icon: <Building2 className="w-4 h-4 text-yellow-400" />,
-    },
-    {
-      id: 'bookings',
-      label: 'Prenotazioni',
-      shortLabel: 'Prenotazioni',
-      description: 'Planning sale prove, calendario slot e stato conferme',
-      icon: <Music2 className="w-4 h-4 text-yellow-400" />,
-      badge: bookings.length,
     },
     {
       id: 'turni',
@@ -251,6 +245,26 @@ const AppContent: React.FC = () => {
                   <span className="hidden xl:inline">Schema Turni</span>
                   <span className="xl:hidden">Turni</span>
                 </button>
+
+                {/* Riepilogo Ore Insegnanti (Visibile solo nel profilo Utente standard, non in Amministratore) */}
+                {!isAdmin && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('teachers');
+                      setIsMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      activeTab === 'teachers'
+                        ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                        : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
+                    }`}
+                    title="Riepilogo ore lezioni svolte dagli insegnanti e quote sala"
+                  >
+                    <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden xl:inline">Ore Insegnanti</span>
+                    <span className="xl:hidden">Insegnanti</span>
+                  </button>
+                )}
 
                 {/* ADMIN ONLY: Conti del Mese & Bollette Tab */}
                 {isAdmin && (
@@ -482,20 +496,22 @@ const AppContent: React.FC = () => {
                       </button>
                     )}
 
-                    {/* Profilo Insegnante & Resoconto Monte Ore Prenotate */}
-                    <button
-                      onClick={() => {
-                        setIsTeacherReportModalOpen(true);
-                        setIsUserMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold text-neutral-200 hover:text-amber-300 hover:bg-neutral-900 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <GraduationCap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span>Profilo Insegnante &amp; Monte Ore</span>
-                      </div>
-                      <ChevronRight className="w-3 h-3 text-neutral-500" />
-                    </button>
+                    {/* Profilo Insegnante & Resoconto Monte Ore (solo Utente) */}
+                    {!isAdmin && (
+                      <button
+                        onClick={() => {
+                          setActiveTab('teachers');
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold text-neutral-200 hover:text-amber-300 hover:bg-neutral-900 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <GraduationCap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span>Riepilogo Ore Insegnanti</span>
+                        </div>
+                        <ChevronRight className="w-3 h-3 text-neutral-500" />
+                      </button>
+                    )}
 
                     {/* Riepilogo Mattutino (Ore 10:00) - Solo Admin */}
                     {isAdmin && (
@@ -703,20 +719,26 @@ const AppContent: React.FC = () => {
                 {activeTab === 'turni' && <Check className="w-4 h-4 stroke-[3]" />}
               </button>
 
-              {/* Profilo Insegnante & Resoconto Monte Ore */}
-              <button
-                onClick={() => {
-                  setIsTeacherReportModalOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all touch-manipulation touch-active"
-              >
-                <div className="flex items-center gap-3">
-                  <GraduationCap className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Profilo Insegnante &amp; Monte Ore</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-amber-400/70" />
-              </button>
+              {/* Profilo Insegnante & Resoconto Monte Ore (solo Utente) */}
+              {!isAdmin && (
+                <button
+                  onClick={() => {
+                    setActiveTab('teachers');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-manipulation touch-active ${
+                    activeTab === 'teachers'
+                      ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
+                      : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <GraduationCap className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Riepilogo Ore Insegnanti</span>
+                  </div>
+                  {activeTab === 'teachers' ? <Check className="w-4 h-4 stroke-[3]" /> : <ChevronRight className="w-4 h-4 text-amber-400/70" />}
+                </button>
+              )}
 
               {isAdmin && (
                 <>
@@ -850,12 +872,12 @@ const AppContent: React.FC = () => {
             <CalendarDashboardView onNavigateToTurni={() => setActiveTab('turni')} />
           )}
           {activeTab === 'turni' && <ShiftsView />}
+          {!isAdmin && activeTab === 'teachers' && <TeachersReportView />}
           {activeTab === 'anagrafica' && (
             <AnagraficaView onNavigateTab={(tab) => setActiveTab(tab)} />
           )}
           {isAdmin && (
             <>
-              {activeTab === 'bookings' && <BookingsView />}
               {activeTab === 'staff' && <StaffView onNavigateToTurni={() => setActiveTab('turni')} />}
               {activeTab === 'clients' && <ClientsView />}
               {activeTab === 'rooms' && (
@@ -865,7 +887,7 @@ const AppContent: React.FC = () => {
             </>
           )}
         </Suspense>
-        {!isAdmin && activeTab !== 'calendar' && activeTab !== 'turni' && activeTab !== 'anagrafica' && (
+        {!isAdmin && activeTab !== 'calendar' && activeTab !== 'turni' && activeTab !== 'teachers' && activeTab !== 'anagrafica' && (
           <div className="bg-neutral-950 border border-rose-500/30 rounded-2xl p-8 text-center space-y-3 my-8 print:hidden">
             <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
               <Shield className="w-6 h-6" />
@@ -889,7 +911,7 @@ const AppContent: React.FC = () => {
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-neutral-950/95 border-t border-slate-200 dark:border-yellow-500/30 backdrop-blur-md pb-safe shadow-[0_-8px_25px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_25px_rgba(0,0,0,0.85)] print:hidden"
         aria-label="Navigazione rapida mobile"
       >
-        <div className={`grid ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'} items-stretch h-14`}>
+        <div className="grid grid-cols-4 items-stretch h-14">
           {/* 1. Calendario */}
           <button
             onClick={() => {
@@ -928,32 +950,7 @@ const AppContent: React.FC = () => {
 
           {isAdmin ? (
             <>
-              {/* 3. Prenotazioni */}
-              <button
-                onClick={() => {
-                  setActiveTab('bookings');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
-                  activeTab === 'bookings' ? 'text-blue-600 dark:text-yellow-400 font-extrabold' : 'text-slate-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-yellow-300'
-                }`}
-                title="Gestione Prenotazioni"
-              >
-                {activeTab === 'bookings' && (
-                  <span className="absolute top-0 inset-x-4 h-0.5 bg-blue-600 dark:bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.8)] dark:shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
-                )}
-                <div className="relative">
-                  <Music2 className="w-5 h-5 mb-0.5" />
-                  {bookings.length > 0 && (
-                    <span className="absolute -top-1 -right-2.5 bg-blue-600 dark:bg-yellow-400 text-white dark:text-black text-[9px] font-black px-1 rounded-full leading-tight">
-                      {bookings.length}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] leading-tight">Prenota</span>
-              </button>
-
-              {/* 4. Conti & Spese */}
+              {/* 3. Conti & Spese */}
               <button
                 onClick={() => {
                   setActiveTab('finance');
@@ -978,11 +975,11 @@ const AppContent: React.FC = () => {
                 <span className="text-[10px] leading-tight">Conti</span>
               </button>
 
-              {/* 5. Altro (Menu Drawer) */}
+              {/* 4. Altro (Menu Drawer) */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
-                  isMobileMenuOpen || !['calendar', 'turni', 'bookings', 'finance'].includes(activeTab)
+                  isMobileMenuOpen || !['calendar', 'turni', 'finance'].includes(activeTab)
                     ? 'text-blue-600 dark:text-yellow-400 font-extrabold'
                     : 'text-slate-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-yellow-300'
                 }`}
@@ -993,23 +990,23 @@ const AppContent: React.FC = () => {
               </button>
             </>
           ) : (
-            /* Standard User: Tesseramento + Menu */
+            /* Standard User: Calendario + Turni + Insegnanti + Menu */
             <>
               <button
                 onClick={() => {
-                  setActiveTab('anagrafica');
+                  setActiveTab('teachers');
                   setIsMobileMenuOpen(false);
                 }}
                 className={`flex flex-col items-center justify-center relative touch-manipulation touch-active select-none min-h-[52px] ${
-                  activeTab === 'anagrafica' ? 'text-blue-600 dark:text-yellow-400 font-extrabold' : 'text-slate-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-yellow-300'
+                  activeTab === 'teachers' ? 'text-blue-600 dark:text-yellow-400 font-extrabold' : 'text-slate-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-yellow-300'
                 }`}
-                title="Tesseramento e Anagrafica"
+                title="Riepilogo Ore Insegnanti"
               >
-                {activeTab === 'anagrafica' && (
+                {activeTab === 'teachers' && (
                   <span className="absolute top-0 inset-x-4 h-0.5 bg-blue-600 dark:bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.8)] dark:shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
                 )}
-                <UserPlus className="w-5 h-5 mb-0.5" />
-                <span className="text-[10px] leading-tight">Tessera</span>
+                <GraduationCap className="w-5 h-5 mb-0.5" />
+                <span className="text-[10px] leading-tight">Insegnanti</span>
               </button>
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

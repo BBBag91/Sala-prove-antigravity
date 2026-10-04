@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig, DeleteRecurringMode } from '../types';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
+import { PastBookingConfirmModal } from './PastBookingConfirmModal';
 import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime } from '../utils/dateUtils';
 import { RecurrenceModal } from './RecurrenceModal';
 import { SmartTimePicker } from './SmartTimePicker';
@@ -66,6 +67,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [metodoPagamento, setMetodoPagamento] = useState<PaymentMethod>('pos');
   const [richiesteStrumentazione, setRichiesteStrumentazione] = useState('');
   const [note, setNote] = useState('');
+  const [isPastConfirmOpen, setIsPastConfirmOpen] = useState(false);
+
+  // Verifica se la data o l'orario della prenotazione è nel passato rispetto ad adesso
+  const isEventInPast = useMemo(() => {
+    const todayISO = formatDateToISO(new Date());
+    if (data < todayISO) return true;
+    if (data === todayISO) {
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const endMin = timeToMinutes(oraFine || oraInizio);
+      return endMin <= nowMinutes;
+    }
+    return false;
+  }, [data, oraInizio, oraFine]);
 
   // Pre-fill on open/edit
   useEffect(() => {
@@ -403,8 +418,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     (s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi')
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeActualSave = () => {
     const finalClienteNome = isManualClient
       ? manualClientName.trim()
       : selectedClient
@@ -418,17 +432,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       : (selectedClient?.id || '');
 
     if (!finalClienteNome || !selectedRoom) return;
-
-    // Controllo bloccante univocità sala: nessuna sovrapposizione oraria ammessa
-    if (overlappingBookingsByRoom.has(salaId)) {
-      const conflicts = overlappingBookingsByRoom.get(salaId) || [];
-      alert(
-        `Impossibile inserire la prenotazione:\n\nLa sala "${selectedRoom.nome}" risulta già occupata il ${data} nella fascia oraria ${oraInizio} - ${oraFine} da:\n${conflicts
-          .map((c) => `• ${c.clienteNome} (${c.oraInizio} - ${c.oraFine})`)
-          .join('\n')}\n\nDue eventi non possono coincidere o occupare la stessa sala nello stesso intervallo. Seleziona una sala libera tra quelle disponibili.`
-      );
-      return;
-    }
 
     const teacher = tipo === 'lezione' ? staff.find((s) => s.id === insegnanteId) : undefined;
     const finalOperatoreId = tipo === 'lezione' ? undefined : bookingToEdit?.operatoreAssegnatoId;
@@ -658,6 +661,44 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
 
     onClose();
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const finalClienteNome = isManualClient
+      ? manualClientName.trim()
+      : selectedClient
+        ? `${selectedClient.nome} ${selectedClient.cognome}${
+            selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''
+          }`
+        : '';
+
+    const finalClienteId = isManualClient
+      ? (bookingToEdit?.clienteId?.startsWith('manual-') ? bookingToEdit.clienteId : `manual-${Date.now()}`)
+      : (selectedClient?.id || '');
+
+    if (!finalClienteNome || !selectedRoom) return;
+
+    // Controllo bloccante univocità sala: nessuna sovrapposizione oraria ammessa
+    if (overlappingBookingsByRoom.has(salaId)) {
+      const conflicts = overlappingBookingsByRoom.get(salaId) || [];
+      alert(
+        `Impossibile inserire la prenotazione:\n\nLa sala "${selectedRoom.nome}" risulta già occupata il ${data} nella fascia oraria ${oraInizio} - ${oraFine} da:\n${conflicts
+          .map((c) => `• ${c.clienteNome} (${c.oraInizio} - ${c.oraFine})`)
+          .join('\n')}\n\nDue eventi non possono coincidere o occupare la stessa sala nello stesso intervallo. Seleziona una sala libera tra quelle disponibili.`
+      );
+      return;
+    }
+
+    // Controllo prenotazione nel passato:
+    // Se è un nuovo inserimento nel passato, oppure un evento esistente che viene spostato nel passato
+    const shouldCheckPast = !bookingToEdit || (bookingToEdit && (bookingToEdit.data !== data || bookingToEdit.oraInizio !== oraInizio));
+    if (shouldCheckPast && isEventInPast) {
+      setIsPastConfirmOpen(true);
+      return;
+    }
+
+    executeActualSave();
   };
 
   const handleDeleteCurrentBooking = () => {
@@ -1002,15 +1043,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
           {/* Data Prenotazione */}
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-              <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Data Prenotazione *
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Data Prenotazione *
+              </label>
+              {isEventInPast && (
+                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 px-2 py-0.5 rounded flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> Nel passato
+                </span>
+              )}
+            </div>
             <input
               type="date"
               required
               value={data}
               onChange={(e) => handleDateChange(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+              className={`w-full px-3.5 py-2.5 rounded-lg border text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden ${
+                isEventInPast
+                  ? 'border-amber-400 bg-amber-50/40 text-slate-800'
+                  : 'border-slate-300 bg-white text-slate-800'
+              }`}
             />
           </div>
 
@@ -1352,6 +1404,28 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         roomName={rooms.find(r => r.id === bookingToEdit?.salaId)?.nome}
         onClose={() => setIsRecurringDeleteOpen(false)}
         onConfirm={handleConfirmRecurringDelete}
+      />
+      {/* Schermata di controllo: conferma prenotazione nel passato */}
+      <PastBookingConfirmModal
+        isOpen={isPastConfirmOpen}
+        date={data}
+        startTime={oraInizio}
+        endTime={oraFine}
+        roomName={selectedRoom?.nome}
+        clientName={
+          isManualClient
+            ? manualClientName.trim()
+            : selectedClient
+              ? `${selectedClient.nome} ${selectedClient.cognome}${
+                  selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''
+                }`
+              : ''
+        }
+        onClose={() => setIsPastConfirmOpen(false)}
+        onConfirm={() => {
+          setIsPastConfirmOpen(false);
+          executeActualSave();
+        }}
       />
     </div>
   );
