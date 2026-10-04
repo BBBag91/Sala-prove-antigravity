@@ -16,6 +16,7 @@ import {
   Filter,
   CheckCircle2,
   SlidersHorizontal,
+  FileText,
   Printer,
   ZoomIn,
   ZoomOut,
@@ -49,7 +50,6 @@ import {
 } from '../utils/dateUtils';
 import { AutoAssignResult, getOperatorAccumulatedHours, checkOperatorsCoverageForTimeSlot } from '../utils/scheduler';
 import { computeDailyShifts, isWeekdayDate } from '../utils/shiftUtils';
-import { getAllEquipmentForBooking } from '../utils/equipmentUtils';
 
 // Modal and secondary view dynamic lazy imports for lightning-fast rendering
 const AutoAssignModal = lazy(() => import('./AutoAssignModal').then(m => ({ default: m.AutoAssignModal })));
@@ -2681,33 +2681,28 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               )}
             </div>
 
+            {/* Sezione Descrizione (mostrata solo se è presente una descrizione o nota nella prenotazione salvata) */}
             {(() => {
-              const activeClient = clients.find(c => c.id === activeBookingDetail.clienteId);
-              const activeResolved = getAllEquipmentForBooking(activeBookingDetail, activeClient);
+              const descParts = [
+                activeBookingDetail.richiesteStrumentazione?.trim(),
+                activeBookingDetail.note?.trim(),
+                activeBookingDetail.descrizione?.trim(),
+              ].filter(Boolean) as string[];
+
+              const uniqueParts = Array.from(new Set(descParts));
+              if (uniqueParts.length === 0) return null;
+
               return (
-                <div className="bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-yellow-500/20 rounded-xl p-3.5 space-y-3 shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-yellow-400 uppercase tracking-wider">
-                      <SlidersHorizontal className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
-                      <span>Strumentazione Richiesta</span>
-                    </div>
-                    {activeResolved.items.length > 0 && (
-                      <span className="text-[10px] font-bold bg-blue-50 dark:bg-yellow-400/20 text-blue-700 dark:text-yellow-300 border border-blue-200 dark:border-yellow-500/30 px-2 py-0.5 rounded-full">
-                        {activeResolved.items.length} {activeResolved.items.length === 1 ? 'voce' : 'voci'}
-                      </span>
-                    )}
+                <div className="bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-yellow-500/20 rounded-xl p-3.5 space-y-1.5 shadow-xs">
+                  <div className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-yellow-400 uppercase tracking-wider">
+                    <FileText className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
+                    <span>Descrizione</span>
                   </div>
-                  {activeResolved.items.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {activeResolved.items.map((item, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-white dark:bg-[#121212] border border-slate-200 dark:border-yellow-500/30 text-slate-800 dark:text-yellow-200 shadow-2xs">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-yellow-400 shrink-0" />{item}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 dark:text-neutral-400 italic">Nessuna strumentazione speciale (setup standard).</p>
-                  )}
+                  <div className="text-xs text-slate-700 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed space-y-1">
+                    {uniqueParts.map((part, idx) => (
+                      <p key={idx}>{part}</p>
+                    ))}
+                  </div>
                 </div>
               );
             })()}

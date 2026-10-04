@@ -155,15 +155,19 @@ export function formatMorningBriefingMessage({
           ? timeStrings[0]
           : timeStrings.slice(0, -1).join(', ') + ' e ' + timeStrings[timeStrings.length - 1];
 
-      const allNotes = Array.from(
-        new Set(group.bookings.map((b) => b.note?.trim()).filter(Boolean))
-      );
+      // Raccoglie la dotazione/strumentazione prima, seguita dalle note/descrizione
+      const allDescLines = group.bookings
+        .flatMap((b) => [
+          b.richiesteStrumentazione?.trim(),
+          b.note?.trim(),
+          b.descrizione?.trim(),
+        ])
+        .filter(Boolean)
+        .flatMap((text) => (text as string).split('\n'))
+        .map((l) => l.trim())
+        .filter(Boolean);
 
-      const allDotazioni = config?.includiDotazione
-        ? Array.from(
-            new Set(group.bookings.map((b) => b.richiesteStrumentazione?.trim()).filter(Boolean))
-          )
-        : [];
+      const uniqueDescLines = Array.from(new Set(allDescLines));
 
       displayItems.push({
         earliestStart: intervals[0].start,
@@ -172,11 +176,8 @@ export function formatMorningBriefingMessage({
           itemLines.push(
             `🕒 *${orarioFormatted}* | 🎓 Lezione "${group.docenteNome}" in "${group.roomNome}"`
           );
-          if (allDotazioni.length > 0) {
-            itemLines.push(`   • 📦 Dotazione: _${allDotazioni.join('; ')}_`);
-          }
-          if (allNotes.length > 0) {
-            itemLines.push(`   • 📝 Nota: _${allNotes.join('; ')}_`);
+          if (uniqueDescLines.length > 0) {
+            itemLines.push(`   • 📝 NOTA BENE: _${uniqueDescLines.join(' - ')}_`);
           }
           return itemLines;
         },
@@ -188,17 +189,26 @@ export function formatMorningBriefingMessage({
       const room = rooms.find((r) => r.id === b.salaId);
       const roomNome = room?.nome || b.salaNome || 'Sala';
 
+      const descLines = [
+        b.richiesteStrumentazione?.trim(),
+        b.note?.trim(),
+        b.descrizione?.trim(),
+      ]
+        .filter(Boolean)
+        .flatMap((text) => (text as string).split('\n'))
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+      const uniqueDescLines = Array.from(new Set(descLines));
+
       displayItems.push({
         earliestStart: b.oraInizio,
         renderLines: () => {
           const itemLines: string[] = [];
           itemLines.push(`🕒 *${b.oraInizio} - ${b.oraFine}* | 🚪 *${roomNome}*`);
           itemLines.push(`   • Band/Cliente: *${b.clienteNome}*`);
-          if (config?.includiDotazione && b.richiesteStrumentazione) {
-            itemLines.push(`   • 📦 Dotazione: _${b.richiesteStrumentazione}_`);
-          }
-          if (b.note && b.note.trim()) {
-            itemLines.push(`   • 📝 Nota: _${b.note.trim()}_`);
+          if (uniqueDescLines.length > 0) {
+            itemLines.push(`   • 📝 NOTA BENE: _${uniqueDescLines.join(' - ')}_`);
           }
           return itemLines;
         },

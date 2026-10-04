@@ -413,11 +413,18 @@ export const MorningBriefingModal: React.FC<MorningBriefingModalProps> = ({
                                   )}
                                 </div>
 
-                                {b.richiesteStrumentazione && (
-                                  <p className="text-[10px] text-neutral-400 truncate">
-                                    📦 {b.richiesteStrumentazione}
-                                  </p>
-                                )}
+                                {(() => {
+                                  const descText = [
+                                    b.richiesteStrumentazione?.trim(),
+                                    b.note?.trim(),
+                                    b.descrizione?.trim(),
+                                  ].filter(Boolean).join(' - ');
+                                  return descText ? (
+                                    <p className="text-[10px] text-neutral-400 truncate">
+                                      📝 NOTA BENE: {descText}
+                                    </p>
+                                  ) : null;
+                                })()}
                               </div>
                             </div>
 

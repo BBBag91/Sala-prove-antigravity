@@ -389,6 +389,8 @@ export interface Booking {
   richiesteStrumentazione?: string;
   /** Note operative interne */
   note?: string;
+  /** Descrizione opzionale dell'evento o note aggiuntive */
+  descrizione?: string;
 }
 
 /**
