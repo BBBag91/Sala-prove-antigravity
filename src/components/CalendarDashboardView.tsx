@@ -568,6 +568,9 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
   const handleOpenEditBooking = (booking: Booking, e: React.MouseEvent) => {
     e.stopPropagation();
+    setSelectedDateForBooking(booking.data);
+    setSelectedStartTimeForBooking(booking.oraInizio);
+    setSelectedTypeForBooking(booking.tipo);
     setBookingToEdit(booking);
     setIsBookingModalOpen(true);
     setActiveBookingDetail(null);
@@ -2753,8 +2756,12 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       {isBookingModalOpen && (
         <Suspense fallback={null}>
           <BookingModal
+            key={bookingToEdit ? `edit-${bookingToEdit.id}` : `new-${selectedDateForBooking}-${selectedStartTimeForBooking}`}
             isOpen={isBookingModalOpen}
-            onClose={() => setIsBookingModalOpen(false)}
+            onClose={() => {
+              setIsBookingModalOpen(false);
+              setBookingToEdit(null);
+            }}
             initialDate={selectedDateForBooking}
             initialStartTime={selectedStartTimeForBooking}
             initialType={selectedTypeForBooking}

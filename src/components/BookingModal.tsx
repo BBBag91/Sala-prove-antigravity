@@ -33,41 +33,71 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const { clients, rooms, staff, bookings, addBooking, updateBooking, updateMultipleBookings, deleteBooking } = useApp();
   const { isAdmin } = useAuth();
 
-  const [clienteId, setClienteId] = useState('');
-  const [isManualClient, setIsManualClient] = useState(true);
-  const [manualClientName, setManualClientName] = useState('');
+  const [clienteId, setClienteId] = useState(() => bookingToEdit?.clienteId || '');
+  const [isManualClient, setIsManualClient] = useState(() => {
+    if (bookingToEdit) {
+      return !clients.some((c) => c.id === bookingToEdit.clienteId) && Boolean(bookingToEdit.clienteNome);
+    }
+    return true;
+  });
+  const [manualClientName, setManualClientName] = useState(() => {
+    if (bookingToEdit) {
+      const isExistingClient = clients.some((c) => c.id === bookingToEdit.clienteId);
+      return !isExistingClient && bookingToEdit.clienteNome ? bookingToEdit.clienteNome : '';
+    }
+    return '';
+  });
   const [isRecurringDeleteOpen, setIsRecurringDeleteOpen] = useState(false);
-  const [salaId, setSalaId] = useState('');
-  const [tipo, setTipo] = useState<BookingType>('prove');
-  const [insegnanteId, setInsegnanteId] = useState('');
-  const [data, setData] = useState(initialDate || formatDateToISO(new Date()));
-  const [oraInizio, setOraInizio] = useState(initialStartTime || '18:00');
+  const [salaId, setSalaId] = useState(() => bookingToEdit?.salaId || initialRoomId || '');
+  const [tipo, setTipo] = useState<BookingType>(() => bookingToEdit?.tipo || initialType || 'prove');
+  const [insegnanteId, setInsegnanteId] = useState(() => bookingToEdit?.insegnanteId || '');
+  const [data, setData] = useState(() => bookingToEdit?.data || initialDate || formatDateToISO(new Date()));
+  const [oraInizio, setOraInizio] = useState(() => bookingToEdit?.oraInizio || initialStartTime || '18:00');
   const [oraFine, setOraFine] = useState(() => {
+    if (bookingToEdit?.oraFine) return bookingToEdit.oraFine;
     const start = initialStartTime || '18:00';
     const startM = timeToMinutes(start);
     const endM = Math.min(24 * 60, startM + (initialType === 'lezione' ? 60 : 120));
     return minutesToTime(endM);
   });
-  const [ripetizioneSettimanale, setRipetizioneSettimanale] = useState(false);
-  const [repeatOption, setRepeatOption] = useState<string>('per_sempre');
-  const [repeatWeeks, setRepeatWeeks] = useState(4);
-  const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
-  const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig>({
-    attiva: false,
-    frequenza: 'settimanale',
-    intervallo: 1,
-    giorniSettimana: [new Date().getDay()],
-    tipoFine: 'per_sempre',
-    conteggioOccorrenze: 4,
+  const [ripetizioneSettimanale, setRipetizioneSettimanale] = useState(() => Boolean(bookingToEdit?.ripetizioneSettimanale));
+  const [repeatOption, setRepeatOption] = useState<string>(() => {
+    if (bookingToEdit?.recurrenceConfig?.tipoFine === 'per_sempre') return 'per_sempre';
+    if (bookingToEdit?.recurrenceConfig?.conteggioOccorrenze) {
+      const occ = bookingToEdit.recurrenceConfig.conteggioOccorrenze;
+      return [2, 4, 8, 12, 24, 52].includes(occ) ? String(occ) : 'personalizzata';
+    }
+    if (bookingToEdit?.ripetizioneSettimanale) {
+      const weeks = bookingToEdit.settimaneRipetizione || 4;
+      return [2, 4, 8, 12, 24, 52].includes(weeks) ? String(weeks) : 'personalizzata';
+    }
+    return 'per_sempre';
   });
-  const [tariffaBase, setTariffaBase] = useState<string | number>(0);
-  const [sconto, setSconto] = useState<string | number>(0);
-  const [tariffaTotale, setTariffaTotale] = useState<string | number>(0);
-  const [customTariffa, setCustomTariffa] = useState(false);
-  const [statoPagamento, setStatoPagamento] = useState<PaymentStatus>('da_saldare');
-  const [metodoPagamento, setMetodoPagamento] = useState<PaymentMethod>('pos');
-  const [richiesteStrumentazione, setRichiesteStrumentazione] = useState('');
-  const [note, setNote] = useState('');
+  const [repeatWeeks, setRepeatWeeks] = useState(() => bookingToEdit?.settimaneRipetizione || 4);
+  const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
+  const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig>(() => {
+    if (bookingToEdit?.recurrenceConfig) return bookingToEdit.recurrenceConfig;
+    const dIndex = parseISODate(bookingToEdit?.data || initialDate || formatDateToISO(new Date())).getDay();
+    return {
+      attiva: Boolean(bookingToEdit?.ripetizioneSettimanale),
+      frequenza: 'settimanale',
+      intervallo: 1,
+      giorniSettimana: [dIndex],
+      tipoFine: 'per_sempre',
+      conteggioOccorrenze: bookingToEdit?.settimaneRipetizione || 4,
+    };
+  });
+  const [tariffaBase, setTariffaBase] = useState<string | number>(() => {
+    if (bookingToEdit) return (bookingToEdit.tariffaTotale || 0) + (bookingToEdit.sconto || 0);
+    return 0;
+  });
+  const [sconto, setSconto] = useState<string | number>(() => bookingToEdit?.sconto || 0);
+  const [tariffaTotale, setTariffaTotale] = useState<string | number>(() => bookingToEdit?.tariffaTotale || 0);
+  const [customTariffa, setCustomTariffa] = useState(() => Boolean(bookingToEdit));
+  const [statoPagamento, setStatoPagamento] = useState<PaymentStatus>(() => bookingToEdit?.statoPagamento || 'da_saldare');
+  const [metodoPagamento, setMetodoPagamento] = useState<PaymentMethod>(() => bookingToEdit?.metodoPagamento || 'pos');
+  const [richiesteStrumentazione, setRichiesteStrumentazione] = useState(() => bookingToEdit?.richiesteStrumentazione || '');
+  const [note, setNote] = useState(() => bookingToEdit?.note || '');
   const [isPastConfirmOpen, setIsPastConfirmOpen] = useState(false);
 
   // Verifica se la data o l'orario della prenotazione è nel passato rispetto ad adesso
@@ -301,15 +331,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setOraInizio(newStart);
     if (newStart) {
       const startMin = timeToMinutes(newStart);
-      if (tipo === 'lezione') {
-        // Nelle lezioni mantieni la durata automatica di 1 ora
-        setOraFine(minutesToTime(startMin + 60));
-      } else {
-        const endMin = timeToMinutes(oraFine);
-        if (endMin <= startMin) {
-          setOraFine(minutesToTime(startMin + 120));
-        }
-      }
+      const currentStartMin = timeToMinutes(oraInizio);
+      const currentEndMin = timeToMinutes(oraFine);
+      const currentDuration = currentEndMin > currentStartMin ? currentEndMin - currentStartMin : (tipo === 'lezione' ? 60 : 120);
+      const newEndMin = Math.min(24 * 60, startMin + currentDuration);
+      setOraFine(minutesToTime(newEndMin));
     }
   };
 
@@ -1095,7 +1121,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     onChange={(e) => setManualClientName(e.target.value)}
                     placeholder="Nome band o cliente (es. The Velvet Echoes, Mario Rossi...)"
                     className="w-full px-3.5 py-2.5 rounded-lg border border-yellow-500/40 bg-neutral-950 text-yellow-100 text-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none placeholder:text-neutral-500"
-                    autoFocus
                   />
                   <div className="flex items-center justify-between text-[11px] text-neutral-400">
                     <span className="text-yellow-400/80">✨ Inserimento manuale (predefinito)</span>

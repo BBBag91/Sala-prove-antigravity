@@ -23,18 +23,27 @@ interface WheelColumnProps {
 
 const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedItem, onSelect }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
+  const isUserInteractingRef = useRef(false);
   const scrollTimeoutRef = useRef<any>(null);
+  const isProgrammaticScrollRef = useRef(false);
+  const clearProgrammaticTimeoutRef = useRef<any>(null);
 
   // Sync scroll position when selectedItem changes from outside
   useEffect(() => {
-    if (isScrollingRef.current) return;
+    if (isUserInteractingRef.current) return;
     const index = items.indexOf(selectedItem);
     if (index !== -1 && containerRef.current) {
-      containerRef.current.scrollTo({
-        top: index * ITEM_HEIGHT,
-        behavior: 'smooth',
-      });
+      const targetScrollTop = index * ITEM_HEIGHT;
+      if (Math.abs(containerRef.current.scrollTop - targetScrollTop) > 2) {
+        isProgrammaticScrollRef.current = true;
+        if (clearProgrammaticTimeoutRef.current) {
+          clearTimeout(clearProgrammaticTimeoutRef.current);
+        }
+        containerRef.current.scrollTop = targetScrollTop;
+        clearProgrammaticTimeoutRef.current = setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 150);
+      }
     }
   }, [selectedItem, items]);
 
@@ -42,12 +51,18 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedItem, onSelect
   useEffect(() => {
     const index = items.indexOf(selectedItem);
     if (index !== -1 && containerRef.current) {
+      isProgrammaticScrollRef.current = true;
       containerRef.current.scrollTop = index * ITEM_HEIGHT;
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 100);
     }
   }, []);
 
   const handleScroll = () => {
-    isScrollingRef.current = true;
+    if (isProgrammaticScrollRef.current) return;
+    if (!isUserInteractingRef.current) return;
+
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
@@ -61,18 +76,27 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedItem, onSelect
       if (newItem && newItem !== selectedItem) {
         onSelect(newItem);
       }
-      isScrollingRef.current = false;
-    }, 100);
+      isUserInteractingRef.current = false;
+    }, 120);
   };
 
   const handleItemClick = (index: number) => {
     if (containerRef.current) {
+      isProgrammaticScrollRef.current = true;
       containerRef.current.scrollTo({
         top: index * ITEM_HEIGHT,
         behavior: 'smooth',
       });
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 300);
     }
     onSelect(items[index]);
+  };
+
+  const handleUserTouchStart = () => {
+    isUserInteractingRef.current = true;
+    isProgrammaticScrollRef.current = false;
   };
 
   return (
@@ -80,6 +104,10 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedItem, onSelect
       <div
         ref={containerRef}
         onScroll={handleScroll}
+        onTouchStart={handleUserTouchStart}
+        onTouchMove={handleUserTouchStart}
+        onPointerDown={handleUserTouchStart}
+        onWheel={handleUserTouchStart}
         className="w-full h-full overflow-y-auto overflow-x-hidden no-scrollbar cursor-grab active:cursor-grabbing"
         style={{
           scrollSnapType: 'y mandatory',
@@ -154,7 +182,7 @@ export const SmartTimePicker: React.FC<SmartTimePickerProps> = ({
   };
 
   // Quick preset shortcuts
-  const startPresets = ['17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
+  const startPresets = ['15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
 
   const applyDurationPreset = (hours: number) => {
     const startMin = timeToMinutes(startTime);

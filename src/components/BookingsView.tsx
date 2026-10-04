@@ -525,8 +525,12 @@ export const BookingsView: React.FC = () => {
       </div>
 
       <BookingModal
+        key={bookingToEdit ? `edit-${bookingToEdit.id}` : 'new-booking'}
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setBookingToEdit(null);
+        }}
         bookingToEdit={bookingToEdit}
       />
 
