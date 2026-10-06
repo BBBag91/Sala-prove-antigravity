@@ -89,10 +89,10 @@ export const INITIAL_ROOMS: Room[] = [
 export const INITIAL_STAFF: StaffMember[] = [
   {
     id: 'staff-1',
-    nome: 'Marco',
-    cognome: 'Bellini',
+    nome: 'Gabriele',
+    cognome: 'Piva',
     ruolo: 'entrambi', // Operatore & Insegnante
-    email: 'marco.bellini@salaprove.it',
+    email: 'gabriele.piva@salaprove.it',
     telefono: '+39 347 1234567',
     materieInsegnamento: 'Chitarra Elettrica, Acustica, Teoria Musicale',
     coloreBadge: '#f59e0b', // Ambra
@@ -297,7 +297,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     settimaneRipetizione: 4,
     gruppoRicorrenzaId: 'rec-echoes-fri',
     operatoreAssegnatoId: 'staff-1',
-    operatoreAssegnatoNome: 'Marco Bellini',
+    operatoreAssegnatoNome: 'Gabriele Piva',
     tariffaTotale: 36,
     statoPagamento: 'pagato',
     metodoPagamento: 'pos',
@@ -311,13 +311,13 @@ export const INITIAL_BOOKINGS: Booking[] = [
     salaId: 'room-1',
     salaNome: 'Sala Hendrix (Rock & Modern)',
     tipo: 'prove',
-    data: getRelativeDateStr(0), // Oggi continuativo per Marco Bellini! (20:00 - 22:30)
+    data: getRelativeDateStr(0), // Oggi continuativo per Gabriele Piva! (20:00 - 22:30)
     oraInizio: '20:00',
     oraFine: '22:30',
     durataOre: 2.5,
     ripetizioneSettimanale: false,
     operatoreAssegnatoId: 'staff-1',
-    operatoreAssegnatoNome: 'Marco Bellini', // Assegnato in continuità per Marco!
+    operatoreAssegnatoNome: 'Gabriele Piva', // Assegnato in continuità per Gabriele!
     tariffaTotale: 45,
     statoPagamento: 'da_saldare',
     richiesteStrumentazione: '2 D.I. Box attive per chitarre acustiche; 1 microfono per fisarmonica; 1 percussioni cajon; 3 microfoni canto; 2 D.I. Box e aste microfoniche supplementari.',
@@ -416,7 +416,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     durataOre: 2.5,
     ripetizioneSettimanale: false,
     operatoreAssegnatoId: 'staff-1',
-    operatoreAssegnatoNome: 'Marco Bellini',
+    operatoreAssegnatoNome: 'Gabriele Piva',
     tariffaTotale: 40,
     statoPagamento: 'pagato',
     metodoPagamento: 'contanti',
@@ -535,7 +535,7 @@ export const INITIAL_SHIFTS: WorkShift[] = [
     oraInizioBase: '17:00',
     oraFineBase: '20:00',
     operatoreId: 'staff-1',
-    operatoreNome: 'Marco Bellini',
+    operatoreNome: 'Gabriele Piva',
     note: 'Presidio accoglienza e controllo microfonazione.',
   },
   {
@@ -569,7 +569,7 @@ export const INITIAL_SHIFTS: WorkShift[] = [
     oraInizioBase: '20:00',
     oraFineBase: '23:00',
     operatoreId: 'staff-1',
-    operatoreNome: 'Marco Bellini',
+    operatoreNome: 'Gabriele Piva',
     note: 'Verifica mixer e assistenza tecnica serale.',
   },
   // Mercoledì
@@ -581,7 +581,7 @@ export const INITIAL_SHIFTS: WorkShift[] = [
     oraInizioBase: '17:00',
     oraFineBase: '20:00',
     operatoreId: 'staff-1',
-    operatoreNome: 'Marco Bellini',
+    operatoreNome: 'Gabriele Piva',
   },
   {
     id: `shift-${currentWeekdays[2]}-2`,
@@ -612,7 +612,7 @@ export const INITIAL_SHIFTS: WorkShift[] = [
     oraInizioBase: '20:00',
     oraFineBase: '23:00',
     operatoreId: 'staff-1',
-    operatoreNome: 'Marco Bellini',
+    operatoreNome: 'Gabriele Piva',
   },
   // Venerdì
   {
@@ -623,7 +623,7 @@ export const INITIAL_SHIFTS: WorkShift[] = [
     oraInizioBase: '17:00',
     oraFineBase: '20:00',
     operatoreId: 'staff-1',
-    operatoreNome: 'Marco Bellini',
+    operatoreNome: 'Gabriele Piva',
     note: 'Serata con prenotazioni multiple fino a tarda ora.',
   },
   {

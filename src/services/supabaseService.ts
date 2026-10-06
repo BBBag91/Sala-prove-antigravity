@@ -104,17 +104,30 @@ export const mapStaffFromDb = (s: any): StaffMember => {
     indisponibilitaDate = metaIndisponibilita;
   }
 
+  let nome = s.nome;
+  let cognome = s.cognome;
+  let email = s.email || '';
+  if (
+    s.id === 'staff-1' ||
+    (nome?.toLowerCase() === 'marco' && cognome?.toLowerCase() === 'bellini') ||
+    email.toLowerCase().includes('marco.bellini')
+  ) {
+    nome = 'Gabriele';
+    cognome = 'Piva';
+    email = 'gabriele.piva@salaprove.it';
+  }
+
   return {
     id: s.id,
-    nome: s.nome,
-    cognome: s.cognome,
+    nome,
+    cognome,
     ruolo: s.ruolo,
-    email: s.email || '',
+    email,
     telefono: s.telefono || '',
     materieInsegnamento: s.materie_insegnamento || '',
     turniLavoroPrimario,
     indisponibilitaDate,
-    coloreBadge: s.colore_badge || '#eab308',
+    coloreBadge: s.colore_badge || '#f59e0b',
     attivo: Boolean(s.attivo),
     tariffaOrariaRimborso: s.tariffa_oraria_rimborso ? Number(s.tariffa_oraria_rimborso) : undefined,
     note: s.note || '',
@@ -237,6 +250,15 @@ export const mapBookingFromDb = (b: any): Booking => {
     insegnanteNome: b.insegnante_nome,
   });
 
+  let operatoreAssegnatoNome = isLesson ? undefined : (b.operatore_assegnato_nome || undefined);
+  if (b.operatore_assegnato_id === 'staff-1' || operatoreAssegnatoNome === 'Marco Bellini') {
+    operatoreAssegnatoNome = 'Gabriele Piva';
+  }
+  let insegnanteNome = isLesson ? (b.insegnante_nome || undefined) : undefined;
+  if (b.insegnante_id === 'staff-1' || insegnanteNome === 'Marco Bellini') {
+    insegnanteNome = 'Gabriele Piva';
+  }
+
   return {
     id: b.id,
     clienteId: b.cliente_id,
@@ -244,8 +266,8 @@ export const mapBookingFromDb = (b: any): Booking => {
     salaId: b.sala_id,
     salaNome: b.sala_nome,
     tipo: isLesson ? 'lezione' : (b.tipo || 'prove'),
-    insegnanteId: b.insegnante_id || undefined,
-    insegnanteNome: b.insegnante_nome || undefined,
+    insegnanteId: isLesson ? (b.insegnante_id || undefined) : undefined,
+    insegnanteNome,
     data: b.data,
     oraInizio: b.ora_inizio,
     oraFine: b.ora_fine,
@@ -255,7 +277,7 @@ export const mapBookingFromDb = (b: any): Booking => {
     settimaneRipetizione: b.settimane_ripetizione ? Number(b.settimane_ripetizione) : undefined,
     recurrenceConfig: b.recurrence_config || undefined,
     operatoreAssegnatoId: isLesson ? undefined : (b.operatore_assegnato_id || undefined),
-    operatoreAssegnatoNome: isLesson ? undefined : (b.operatore_assegnato_nome || undefined),
+    operatoreAssegnatoNome,
     tariffaTotale: isLesson ? 0 : Number(b.tariffa_totale),
     sconto: isLesson ? 0 : (b.sconto ? Number(b.sconto) : 0),
     statoPagamento: isLesson ? 'pagato' : b.stato_pagamento,
@@ -340,6 +362,22 @@ export const mapStudioInfoToDb = (s: StudioInfo, includeWaConfigCol: boolean = t
   return result;
 };
 
+export const extractShiftsFromNote = (note?: string): WorkShift[] => {
+  if (!note || !note.includes('__SHIFTS__:')) return [];
+  try {
+    const match = note.match(/__SHIFTS__:([\s\S]*?)__END_SHIFTS__/);
+    if (match && match[1]) {
+      const parsed = JSON.parse(match[1]);
+      if (Array.isArray(parsed)) {
+        return parsed.map(mapShiftFromDb);
+      }
+    }
+  } catch (e) {
+    console.warn('[extractShiftsFromNote] Errore parsing shifts da note:', e);
+  }
+  return [];
+};
+
 export const mapStudioInfoFromDb = (s: any): StudioInfo => {
   let waConfig = s.whatsapp_config || undefined;
   let cleanNote = s.note || '';
@@ -353,7 +391,10 @@ export const mapStudioInfoFromDb = (s: any): StudioInfo => {
       console.warn('[mapStudioInfoFromDb] Errore parsing fallback whatsapp_config da note:', e);
     }
   }
-  cleanNote = cleanNote.replace(/__WA_CFG__:[\s\S]*?__END_WA_CFG__/g, '').trim();
+  cleanNote = cleanNote
+    .replace(/__WA_CFG__:[\s\S]*?__END_WA_CFG__/g, '')
+    .replace(/__SHIFTS__:[\s\S]*?__END_SHIFTS__/g, '')
+    .trim();
 
   return {
     nome: s.nome || 'Sala Prove Antigravity',
@@ -386,20 +427,26 @@ export const mapShiftToDb = (s: WorkShift) => ({
   updated_at: new Date().toISOString(),
 });
 
-export const mapShiftFromDb = (s: any): WorkShift => ({
-  id: s.id,
-  data: s.data,
-  turnoNumero: (Number(s.turno_numero) || 1) as 1 | 2,
-  nomeTurno: s.nome_turno || (s.turno_numero === 1 ? '1° Turno (Pomeridiano)' : '2° Turno (Serale)'),
-  oraInizioBase: s.ora_inizio_base || (s.turno_numero === 1 ? '17:00' : '20:00'),
-  oraFineBase: s.ora_fine_base || (s.turno_numero === 1 ? '20:00' : '23:00'),
-  oraInizioEffettiva: s.ora_inizio_effettiva || undefined,
-  oraFineEffettiva: s.ora_fine_effettiva || undefined,
-  operatoreId: s.operatore_id || undefined,
-  operatoreNome: s.operatore_nome || undefined,
-  note: s.note || '',
-  isCustomHours: Boolean(s.is_custom_hours),
-});
+export const mapShiftFromDb = (s: any): WorkShift => {
+  let operatoreNome = s.operatore_nome || undefined;
+  if (s.operatore_id === 'staff-1' || operatoreNome === 'Marco Bellini') {
+    operatoreNome = 'Gabriele Piva';
+  }
+  return {
+    id: s.id,
+    data: s.data,
+    turnoNumero: (Number(s.turno_numero) || 1) as 1 | 2,
+    nomeTurno: s.nome_turno || (s.turno_numero === 1 ? '1° Turno (Pomeridiano)' : '2° Turno (Serale)'),
+    oraInizioBase: s.ora_inizio_base || (s.turno_numero === 1 ? '17:00' : '20:00'),
+    oraFineBase: s.ora_fine_base || (s.turno_numero === 1 ? '20:00' : '23:00'),
+    oraInizioEffettiva: s.ora_inizio_effettiva || undefined,
+    oraFineEffettiva: s.ora_fine_effettiva || undefined,
+    operatoreId: s.operatore_id || undefined,
+    operatoreNome,
+    note: s.note || '',
+    isCustomHours: Boolean(s.is_custom_hours),
+  };
+};
 
 
 // =========================================================================
@@ -445,6 +492,11 @@ export const supabaseService = {
       supabase.from('shifts').select('*').order('data', { ascending: true }),
     ]);
 
+    let shifts = (shiftsRes.data || []).map(mapShiftFromDb);
+    if (shifts.length === 0 && studioRes.data?.note) {
+      shifts = extractShiftsFromNote(studioRes.data.note);
+    }
+
     return {
       rooms: (roomsRes.data || []).map(mapRoomFromDb),
       staff: (staffRes.data || []).map(mapStaffFromDb),
@@ -453,7 +505,7 @@ export const supabaseService = {
       expenses: (expensesRes.data || []).map(mapExpenseFromDb),
       incomes: (incomesRes.data || []).map(mapIncomeFromDb),
       studioInfo: studioRes.data ? mapStudioInfoFromDb(studioRes.data) : null,
-      shifts: (shiftsRes.data || []).map(mapShiftFromDb),
+      shifts,
     };
   },
 
@@ -596,9 +648,11 @@ export const supabaseService = {
     if (!supabase) return;
     try {
       const { error } = await supabase.from('shifts').upsert(mapShiftToDb(shift));
-      if (error) console.warn('[Supabase] upsertShift:', error.message);
+      if (error && (error.code === 'PGRST205' || error.message?.includes('shifts'))) {
+        await this.fallbackSaveShifts([shift]);
+      }
     } catch (e) {
-      console.warn('[Supabase] upsertShift error:', e);
+      await this.fallbackSaveShifts([shift]);
     }
   },
   async upsertMultipleShifts(shifts: WorkShift[]) {
@@ -606,9 +660,30 @@ export const supabaseService = {
     try {
       const rows = shifts.map(mapShiftToDb);
       const { error } = await supabase.from('shifts').upsert(rows);
-      if (error) console.warn('[Supabase] upsertMultipleShifts:', error.message);
+      if (error && (error.code === 'PGRST205' || error.message?.includes('shifts'))) {
+        await this.fallbackSaveShifts(shifts);
+      }
     } catch (e) {
-      console.warn('[Supabase] upsertMultipleShifts error:', e);
+      await this.fallbackSaveShifts(shifts);
+    }
+  },
+  async fallbackSaveShifts(newShifts: WorkShift[]) {
+    if (!supabase || newShifts.length === 0) return;
+    try {
+      const { data: studioData } = await supabase.from('studio_info').select('id, note').limit(1).maybeSingle();
+      if (!studioData) return;
+      const existingShifts = extractShiftsFromNote(studioData.note);
+      const newMap = new Map<string, WorkShift>();
+      existingShifts.forEach((s) => newMap.set(s.id, s));
+      newShifts.forEach((s) => newMap.set(s.id, s));
+      const merged = Array.from(newMap.values());
+
+      const cleanNote = (studioData.note || '').replace(/__SHIFTS__:[\s\S]*?__END_SHIFTS__/g, '').trim();
+      const encodedShifts = `__SHIFTS__:${JSON.stringify(merged)}__END_SHIFTS__`;
+      const updatedNote = cleanNote ? `${cleanNote}\n${encodedShifts}` : encodedShifts;
+      await supabase.from('studio_info').update({ note: updatedNote }).eq('id', studioData.id || 'main');
+    } catch (e) {
+      console.warn('[Supabase] Errore fallbackSaveShifts:', e);
     }
   },
   async deleteShift(id: string) {

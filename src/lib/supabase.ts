@@ -29,8 +29,14 @@ function getStoredKey(): string {
 const DEFAULT_SUPABASE_URL = 'https://qapmpppmejfcekqdzrgz.supabase.co';
 const DEFAULT_SUPABASE_KEY = 'sb_publishable_vbdUnCY1YehkXPcdNsLsOw_YHaHCz1K';
 
-const envUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || '';
-const envKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || '';
+const envUrl =
+  (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) ||
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) ||
+  '';
+const envKey =
+  (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_ANON_KEY) ||
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY) ||
+  '';
 
 let activeUrl = envUrl || getStoredUrl() || DEFAULT_SUPABASE_URL;
 let activeKey = envKey || getStoredKey() || DEFAULT_SUPABASE_KEY;

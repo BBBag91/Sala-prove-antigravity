@@ -13,6 +13,7 @@ import {
   Download,
   CheckCircle2,
   Clock,
+  MessageSquare,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
@@ -110,6 +111,68 @@ export const ClientsView: React.FC = () => {
       return iso;
     };
 
+    // Ordina i tesserati ESATTAMENTE in ordine di inserimento cronologico (dal più vecchio al più recente)
+    const sortedForExport = [...listToExport].sort((a, b) => {
+      const getTs = (client: Client) => {
+        if (client.id?.startsWith('cli-')) {
+          const num = Number(client.id.replace('cli-', ''));
+          if (!isNaN(num)) return num;
+        }
+        return 0;
+      };
+      const tsA = getTs(a);
+      const tsB = getTs(b);
+      if (tsA && tsB) return tsA - tsB;
+
+      if (a.dataTesseramento && b.dataTesseramento && a.dataTesseramento !== b.dataTesseramento) {
+        return a.dataTesseramento.localeCompare(b.dataTesseramento);
+      }
+      return clients.indexOf(a) - clients.indexOf(b);
+    });
+
+    const parseResidenzaParts = (c: Client) => {
+      let indirizzo = '';
+      let cap = '';
+      let comune = '';
+      let nazioneNascita = 'Italia';
+      let nazioneCittadinanza = 'Italia';
+      let discipline = c.descrizioneStrumentazione || 'Musica / Sala Prove';
+
+      if (c.note && c.note.includes('[META_RESIDENZA:')) {
+        try {
+          const match = c.note.match(/\[META_RESIDENZA:(\{.*?\})\]/);
+          if (match && match[1]) {
+            const parsed = JSON.parse(match[1]);
+            if (parsed.indirizzo) indirizzo = parsed.indirizzo;
+            if (parsed.cap) cap = parsed.cap;
+            if (parsed.comune) comune = parsed.comune;
+            if (parsed.nazioneNascita) nazioneNascita = parsed.nazioneNascita;
+            if (parsed.nazioneCittadinanza) nazioneCittadinanza = parsed.nazioneCittadinanza;
+            if (parsed.discipline) discipline = parsed.discipline;
+          }
+        } catch {}
+      }
+
+      if (!indirizzo && c.residenza) {
+        const parts = c.residenza.split(',');
+        if (parts.length >= 2) {
+          indirizzo = parts[0].trim();
+          const after = parts.slice(1).join(',').trim();
+          const capMatch = after.match(/\b\d{5}\b/);
+          if (capMatch) {
+            cap = capMatch[0];
+            comune = after.replace(capMatch[0], '').replace(/\(.*?\)/, '').trim();
+          } else {
+            comune = after;
+          }
+        } else {
+          indirizzo = c.residenza.trim();
+        }
+      }
+
+      return { indirizzo, cap, comune, nazioneNascita, nazioneCittadinanza, discipline };
+    };
+
     const headers = [
       'Classe tesseramento',
       'Tipo tesseramento',
@@ -130,25 +193,26 @@ export const ClientsView: React.FC = () => {
       'Indirizzo residenza',
     ];
 
-    const rows = listToExport.map((c) => {
+    const rows = sortedForExport.map((c) => {
+      const res = parseResidenzaParts(c);
       return [
         escapeCsv('Ordinario'),
         escapeCsv('Socio Ordinario'),
         escapeCsv(formatDateIT(c.dataTesseramento)),
         escapeCsv(formatDateIT(c.dataScadenzaTesseramento)),
-        escapeCsv(c.descrizioneStrumentazione || 'Musica / Sala Prove'),
+        escapeCsv(res.discipline || 'Musica / Sala Prove'),
         escapeCsv(c.numeroTessera || ''),
-        escapeCsv('Italia'),
+        escapeCsv(res.nazioneCittadinanza || 'Italia'),
         escapeCsv((c.codiceFiscale || '').toUpperCase().trim()),
         escapeCsv(c.cognome || ''),
         escapeCsv(c.nome || ''),
         escapeCsv(formatDateIT(c.dataNascita)),
         escapeCsv(c.sesso || 'M'),
-        escapeCsv('Italia'),
+        escapeCsv(res.nazioneNascita || 'Italia'),
         escapeCsv(c.luogoNascita || ''),
-        escapeCsv(''),
-        escapeCsv(''),
-        escapeCsv(c.residenza || ''),
+        escapeCsv(res.comune || ''),
+        escapeCsv(res.cap || ''),
+        escapeCsv(res.indirizzo || c.residenza || ''),
       ].join(';');
     });
 
@@ -259,11 +323,25 @@ export const ClientsView: React.FC = () => {
           <button
             onClick={handleExportExcel}
             className="px-3.5 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
-            title="Scarica file Excel (.csv) del registro tesserati (17 colonne)"
+            title="Scarica file Excel (.csv) del registro tesserati (17 colonne in ordine di inserimento)"
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Scarica Excel (17 col.)</span>
             <span className="sm:hidden">Excel</span>
+          </button>
+
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}/?modulo=tesseramento`;
+              const msg = encodeURIComponent(`Ciao! 🎶 Ecco il modulo online per il tesseramento alla nostra Associazione / Sala Prove:\n🔗 ${url}\n\nBastano 2 minuti: compilalo per registrarti automaticamente nei nostri sistemi.`);
+              window.open(`https://wa.me/?text=${msg}`, '_blank', 'noopener,noreferrer');
+            }}
+            className="px-3.5 py-2.5 min-h-[44px] bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600/50 font-semibold text-xs rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
+            title="Invia ai tuoi contatti WhatsApp il link del modulo di tesseramento"
+          >
+            <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="hidden sm:inline">Invia Modulo WhatsApp</span>
+            <span className="sm:hidden">WhatsApp</span>
           </button>
 
           <button

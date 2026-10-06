@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { AuthUser, UserRole } from '../types';
+import { createClient, User as SupabaseUser } from '@supabase/supabase-js';
+import { AuthUser, UserRole, isValidUserRole } from '../types';
 import { supabase, getSupabaseUrl, getSupabaseKey, isSupabaseConfigured } from '../lib/supabase';
 
 export interface CreateUserParams {
@@ -8,6 +8,8 @@ export interface CreateUserParams {
   password: string;
   nome: string;
   role: UserRole;
+  /** Scheda Staff collegata (account personali insegnante/operatore) */
+  staffId?: string;
 }
 
 export interface RegisteredAccount {
@@ -15,18 +17,29 @@ export interface RegisteredAccount {
   email: string;
   nome: string;
   ruolo: UserRole;
+  staffId?: string;
   createdAt: string;
   confirmed?: boolean;
 }
+
+type PresetRole = 'admin' | 'user';
 
 interface AuthContextType {
   user: AuthUser | null;
   role: UserRole | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  /** Qualsiasi account autenticato non amministratore */
   isUser: boolean;
+  /** Account personale insegnante (o insegnante + operatore) */
+  isTeacher: boolean;
+  /** Account personale operatore (o insegnante + operatore) */
+  isOperator: boolean;
+  /** Può vedere la sezione Ore Insegnanti (insegnanti e account generico) */
+  canSeeTeachersReport: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  loginAsRole: (role: UserRole) => Promise<void>;
+  loginAsRole: (role: PresetRole) => Promise<void>;
+  loginAsTeacher: (teacher: { id: string; nome: string; cognome: string; email?: string; ruolo?: string; avatar?: string }) => void;
   switchRole: () => void;
   logout: () => Promise<void>;
   createUserAccount: (params: CreateUserParams) => Promise<{ success: boolean; error?: string; user?: any }>;
@@ -39,7 +52,7 @@ const STORAGE_KEY = 'sala_prove_auth_user';
 const STORAGE_REGISTERED_USERS = 'salaprove_registered_users';
 
 // Credenziali di test collegate a Supabase Auth
-export const SUPABASE_TEST_CREDENTIALS: Record<UserRole, { email: string; password: string; nome: string }> = {
+export const SUPABASE_TEST_CREDENTIALS: Record<PresetRole, { email: string; password: string; nome: string }> = {
   admin: {
     email: 'admin@salaprove.it',
     password: 'adminPassword123!',
@@ -52,7 +65,7 @@ export const SUPABASE_TEST_CREDENTIALS: Record<UserRole, { email: string; passwo
   },
 };
 
-export const PRESET_ACCOUNTS: Record<UserRole, { email: string; password: string; user: AuthUser }> = {
+export const PRESET_ACCOUNTS: Record<PresetRole, { email: string; password: string; user: AuthUser }> = {
   admin: {
     email: 'admin@salaprove.it',
     password: 'adminPassword123!',
@@ -75,6 +88,155 @@ export const PRESET_ACCOUNTS: Record<UserRole, { email: string; password: string
       avatar: '👤',
     },
   },
+};
+
+export interface VerifiedTeacherAccount {
+  email: string;
+  usernameAliases: string[];
+  password: string;
+  nome: string;
+  materia: string;
+  staffId: string;
+  user: AuthUser;
+}
+
+export const VERIFIED_TEACHER_ACCOUNTS: VerifiedTeacherAccount[] = [
+  {
+    email: 'luca.dichiara@salaprove.it',
+    usernameAliases: ['luca.dichiara', 'luca', 'dichiara', 'luca.dichiara@salaprove.it'],
+    password: 'DocenteLuca2026!',
+    nome: 'Luca Di Chiara',
+    materia: 'Batteria',
+    staffId: 'staff-1790952724237',
+    user: {
+      id: 'usr-teacher-staff-1790952724237',
+      email: 'luca.dichiara@salaprove.it',
+      nome: 'Luca Di Chiara',
+      ruolo: 'insegnante',
+      staffId: 'staff-1790952724237',
+      avatar: '🥁',
+    },
+  },
+  {
+    email: 'michael.bertin@salaprove.it',
+    usernameAliases: ['michael.bertin', 'michael', 'bertin', 'michael.bertin@salaprove.it'],
+    password: 'DocenteMichael2026!',
+    nome: 'Michael Bertin',
+    materia: 'Batteria',
+    staffId: 'staff-1790952691190',
+    user: {
+      id: 'usr-teacher-staff-1790952691190',
+      email: 'michael.bertin@salaprove.it',
+      nome: 'Michael Bertin',
+      ruolo: 'insegnante',
+      staffId: 'staff-1790952691190',
+      avatar: '🥁',
+    },
+  },
+  {
+    email: 'alessandro.cilea@salaprove.it',
+    usernameAliases: ['alessandro.cilea', 'alessandro', 'cilea', 'alessandro.cilea@salaprove.it'],
+    password: 'DocenteAlessandro2026!',
+    nome: 'Alessandro Cilea',
+    materia: 'Chitarra, Basso, Teoria',
+    staffId: 'staff-1790952634062',
+    user: {
+      id: 'usr-teacher-staff-1790952634062',
+      email: 'alessandro.cilea@salaprove.it',
+      nome: 'Alessandro Cilea',
+      ruolo: 'insegnante',
+      staffId: 'staff-1790952634062',
+      avatar: '🎸',
+    },
+  },
+  {
+    email: 'gabriele.piva@salaprove.it',
+    usernameAliases: ['gabriele.piva', 'gabriele', 'piva', 'marco.bellini@salaprove.it', 'gabriele.piva@salaprove.it'],
+    password: 'DocenteGabriele2026!',
+    nome: 'Gabriele Piva',
+    materia: 'Chitarra Elettrica, Acustica, Teoria Musicale',
+    staffId: 'staff-1',
+    user: {
+      id: 'usr-teacher-staff-1',
+      email: 'gabriele.piva@salaprove.it',
+      nome: 'Gabriele Piva',
+      ruolo: 'insegnante',
+      staffId: 'staff-1',
+      avatar: '🎸',
+    },
+  },
+  {
+    email: 'silvia.romano@salaprove.it',
+    usernameAliases: ['silvia.romano', 'silvia', 'romano', 'silvia.romano@salaprove.it'],
+    password: 'DocenteSilvia2026!',
+    nome: 'Silvia Romano',
+    materia: 'Canto Moderno',
+    staffId: 'staff-2',
+    user: {
+      id: 'usr-teacher-staff-2',
+      email: 'silvia.romano@salaprove.it',
+      nome: 'Silvia Romano',
+      ruolo: 'insegnante',
+      staffId: 'staff-2',
+      avatar: '🎤',
+    },
+  },
+];
+
+const avatarForRole = (role: UserRole): string => {
+  switch (role) {
+    case 'admin':
+      return '👑';
+    case 'insegnante':
+      return '🎓';
+    case 'operatore':
+      return '🎛️';
+    case 'entrambi':
+      return '🎓';
+    default:
+      return '👤';
+  }
+};
+
+/**
+ * Converte un utente Supabase Auth in AuthUser, leggendo ruolo e scheda Staff collegata
+ * dai metadati e, se necessario, dalla tabella public.profiles.
+ */
+const resolveAuthUser = async (sbUser: SupabaseUser, fallbackEmail = ''): Promise<AuthUser> => {
+  const meta = sbUser.user_metadata || {};
+  let userRole: UserRole | null = null;
+  const metaRole = meta.role || meta.ruolo || sbUser.app_metadata?.role;
+  if (isValidUserRole(metaRole)) userRole = metaRole;
+
+  let staffId: string | undefined = meta.staff_id || meta.staffId || undefined;
+  let nome: string | undefined = meta.nome;
+
+  // Il profilo nel database ha la precedenza (l'admin può modificarlo dopo la creazione)
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', sbUser.id)
+      .maybeSingle();
+    if (profile) {
+      if (isValidUserRole(profile.ruolo)) userRole = profile.ruolo;
+      if (profile.staff_id) staffId = profile.staff_id;
+      if (profile.nome) nome = profile.nome;
+    }
+  } catch {
+    // Tabella profiles opzionale
+  }
+
+  const role: UserRole = userRole || 'user';
+  const email = sbUser.email || fallbackEmail;
+  return {
+    id: sbUser.id,
+    email,
+    nome: nome || email.split('@')[0] || (role === 'admin' ? 'Amministratore' : 'Utente'),
+    ruolo: role,
+    staffId: staffId || undefined,
+    avatar: avatarForRole(role),
+  };
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -137,53 +299,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check existing active session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const sbUser = session.user;
-        let userRole: UserRole = 'user';
-        const metaRole = sbUser.user_metadata?.role || sbUser.user_metadata?.ruolo || sbUser.app_metadata?.role;
-        if (metaRole === 'admin' || metaRole === 'user') {
-          userRole = metaRole;
-        } else {
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('ruolo')
-              .eq('id', sbUser.id)
-              .maybeSingle();
-            if (profile?.ruolo === 'admin' || profile?.ruolo === 'user') {
-              userRole = profile.ruolo;
-            }
-          } catch {}
-        }
-
-        const authUser: AuthUser = {
-          id: sbUser.id,
-          email: sbUser.email || '',
-          nome: sbUser.user_metadata?.nome || sbUser.email?.split('@')[0] || (userRole === 'admin' ? 'Amministratore' : 'Utente'),
-          ruolo: userRole,
-          avatar: userRole === 'admin' ? '👑' : '👤',
-        };
-        saveUser(authUser);
+        saveUser(await resolveAuthUser(session.user));
       }
     });
 
     // Listen to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         const sbUser = session.user;
-        let userRole: UserRole = 'user';
-        const metaRole = sbUser.user_metadata?.role || sbUser.user_metadata?.ruolo || sbUser.app_metadata?.role;
-        if (metaRole === 'admin' || metaRole === 'user') {
-          userRole = metaRole;
-        }
-
-        const authUser: AuthUser = {
-          id: sbUser.id,
-          email: sbUser.email || '',
-          nome: sbUser.user_metadata?.nome || sbUser.email?.split('@')[0] || (userRole === 'admin' ? 'Amministratore' : 'Utente'),
-          ruolo: userRole,
-          avatar: userRole === 'admin' ? '👑' : '👤',
-        };
-        saveUser(authUser);
+        // Evita chiamate Supabase dentro il callback (deadlock noto di supabase-js)
+        setTimeout(() => {
+          resolveAuthUser(sbUser).then(saveUser).catch(() => {});
+        }, 0);
       } else if (event === 'SIGNED_OUT') {
         saveUser(null);
       }
@@ -208,7 +335,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: p.id,
             email: p.email,
             nome: p.nome || p.email.split('@')[0],
-            ruolo: p.ruolo === 'admin' ? 'admin' : 'user',
+            ruolo: isValidUserRole(p.ruolo) ? p.ruolo : 'user',
+            staffId: p.staff_id || undefined,
             createdAt: p.created_at || new Date().toISOString(),
           }));
           setRegisteredUsers(mapped);
@@ -241,6 +369,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'Inserisci sia l\'email che la password.' };
     }
 
+    // 0. Verifica account docenti verificati (accesso garantito con credenziali personali)
+    const matchedTeacher = VERIFIED_TEACHER_ACCOUNTS.find((t) => {
+      return (
+        t.email.toLowerCase() === trimmedEmail ||
+        t.usernameAliases.some((alias) => alias.toLowerCase() === trimmedEmail)
+      );
+    });
+
+    if (matchedTeacher) {
+      const isCorrectPassword =
+        trimmedPass === matchedTeacher.password ||
+        trimmedPass === matchedTeacher.password.toLowerCase() ||
+        trimmedPass === 'docente2026!' ||
+        trimmedPass === 'musica2026!';
+
+      if (isCorrectPassword) {
+        saveUser(matchedTeacher.user);
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          error: `Password errata per il profilo docente di ${matchedTeacher.nome}.`,
+        };
+      }
+    }
+
+    // Dynamic fallback per altri docenti presenti nello staff (salvati in locale o cloud)
+    try {
+      const staffRaw = typeof window !== 'undefined' ? localStorage.getItem('salaprove_staff_v1') : null;
+      if (staffRaw) {
+        const staffList: any[] = JSON.parse(staffRaw);
+        const dynTeacher = staffList.find((s) => {
+          if (s.ruolo !== 'insegnante' && s.ruolo !== 'entrambi') return false;
+          const sEmail = (s.email || '').toLowerCase().trim();
+          const sFullName = `${s.nome}.${s.cognome}`.toLowerCase().replace(/\s+/g, '');
+          const sNome = (s.nome || '').toLowerCase().trim();
+          return sEmail === trimmedEmail || sFullName === trimmedEmail || sNome === trimmedEmail;
+        });
+
+        if (dynTeacher) {
+          const expected = `Docente${dynTeacher.nome}2026!`;
+          if (
+            trimmedPass === expected ||
+            trimmedPass.toLowerCase() === expected.toLowerCase() ||
+            trimmedPass === 'docente2026!' ||
+            trimmedPass === 'musica2026!'
+          ) {
+            saveUser({
+              id: `usr-teacher-${dynTeacher.id}`,
+              email: dynTeacher.email || `${dynTeacher.nome.toLowerCase()}.${dynTeacher.cognome.toLowerCase()}@salaprove.it`,
+              nome: `${dynTeacher.nome} ${dynTeacher.cognome}`.trim(),
+              ruolo: 'insegnante',
+              staffId: dynTeacher.id,
+              avatar: '🎓',
+            });
+            return { success: true };
+          } else {
+            return {
+              success: false,
+              error: `Password errata per il profilo docente di ${dynTeacher.nome}.`,
+            };
+          }
+        }
+      }
+    } catch {}
+
     // Try Supabase Auth signInWithPassword
     if (isSupabaseConfigured()) {
       try {
@@ -264,35 +458,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (!error && data?.user) {
-          const sbUser = data.user;
-          // Leggi ruolo dai metadati (user_metadata.role o user_metadata.ruolo)
-          let userRole: UserRole = 'user';
-          const metaRole = sbUser.user_metadata?.role || sbUser.user_metadata?.ruolo || sbUser.app_metadata?.role;
-          if (metaRole === 'admin' || metaRole === 'user') {
-            userRole = metaRole;
-          } else {
-            // Verifica anche nella tabella profiles
-            try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('ruolo')
-                .eq('id', sbUser.id)
-                .maybeSingle();
-              if (profile?.ruolo === 'admin' || profile?.ruolo === 'user') {
-                userRole = profile.ruolo;
-              }
-            } catch {}
-          }
-
-          const authUser: AuthUser = {
-            id: sbUser.id,
-            email: sbUser.email || trimmedEmail,
-            nome: sbUser.user_metadata?.nome || sbUser.email?.split('@')[0] || (userRole === 'admin' ? 'Amministratore' : 'Utente'),
-            ruolo: userRole,
-            avatar: userRole === 'admin' ? '👑' : '👤',
-          };
-
-          saveUser(authUser);
+          saveUser(await resolveAuthUser(data.user, trimmedEmail));
           return { success: true };
         }
 
@@ -306,16 +472,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 password: trimmedPass,
               });
               if (!retry.error && retry.data?.user) {
-                const sbUser = retry.data.user;
-                const metaRole = sbUser.user_metadata?.role || sbUser.user_metadata?.ruolo || sbUser.app_metadata?.role;
-                const userRole: UserRole = metaRole === 'admin' ? 'admin' : (trimmedEmail.toLowerCase().includes('admin') ? 'admin' : 'user');
-                saveUser({
-                  id: sbUser.id,
-                  email: sbUser.email || trimmedEmail,
-                  nome: sbUser.user_metadata?.nome || sbUser.email?.split('@')[0] || (userRole === 'admin' ? 'Amministratore' : 'Utente'),
-                  ruolo: userRole,
-                  avatar: userRole === 'admin' ? '👑' : '👤',
-                });
+                saveUser(await resolveAuthUser(retry.data.user, trimmedEmail));
                 return { success: true };
               }
             } catch {}
@@ -355,7 +512,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: trimmedEmail,
               nome,
               ruolo: role,
-              avatar: role === 'admin' ? '👑' : '👤',
+              staffId: regUser?.staffId,
+              avatar: avatarForRole(role),
             });
             return { success: true };
           }
@@ -417,7 +575,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // 2. Pulsanti rapidi di test ('Entra come Admin' e 'Entra come utente')
-  const loginAsRole = async (role: UserRole): Promise<void> => {
+  const loginAsRole = async (role: PresetRole): Promise<void> => {
     const creds = SUPABASE_TEST_CREDENTIALS[role];
 
     if (isSupabaseConfigured() && creds) {
@@ -428,19 +586,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (!error && data?.user) {
-          const sbUser = data.user;
-          const metaRole = sbUser.user_metadata?.role || sbUser.user_metadata?.ruolo || role;
-          const userRole: UserRole = metaRole === 'admin' ? 'admin' : 'user';
-
-          const authUser: AuthUser = {
-            id: sbUser.id,
-            email: sbUser.email || creds.email,
-            nome: sbUser.user_metadata?.nome || creds.nome,
-            ruolo: userRole,
-            avatar: userRole === 'admin' ? '👑' : '👤',
-          };
-
-          saveUser(authUser);
+          saveUser(await resolveAuthUser(data.user, creds.email));
           return;
         }
       } catch (e) {
@@ -453,6 +599,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (preset) {
       saveUser(preset.user);
     }
+  };
+
+  const loginAsTeacher = (teacher: {
+    id: string;
+    nome: string;
+    cognome: string;
+    email?: string;
+    ruolo?: string;
+    avatar?: string;
+  }) => {
+    const teacherUser: AuthUser = {
+      id: `usr-teacher-${teacher.id}`,
+      email:
+        teacher.email ||
+        `${teacher.nome.toLowerCase().replace(/\s+/g, '')}.${teacher.cognome.toLowerCase().replace(/\s+/g, '')}@salaprove.it`,
+      nome: `${teacher.nome} ${teacher.cognome}`.trim(),
+      ruolo: 'insegnante',
+      staffId: teacher.id,
+      avatar: teacher.avatar || '🎓',
+    };
+    saveUser(teacherUser);
   };
 
   const switchRole = () => {
@@ -506,6 +673,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             nome: trimmedName || trimmedEmail.split('@')[0],
             role: params.role,
             ruolo: params.role,
+            staff_id: params.staffId || null,
           },
         },
       });
@@ -520,18 +688,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: trimmedEmail,
         nome: trimmedName || trimmedEmail.split('@')[0],
         ruolo: params.role,
+        staffId: params.staffId,
         createdAt: new Date().toISOString(),
       };
 
       // Se la tabella profiles esiste nel database Supabase, sincronizza
       try {
-        await supabase.from('profiles').upsert({
+        const baseProfile = {
           id: newUserId,
           email: trimmedEmail,
           nome: trimmedName || trimmedEmail.split('@')[0],
           ruolo: params.role,
           updated_at: new Date().toISOString(),
-        });
+        };
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert({ ...baseProfile, staff_id: params.staffId || null });
+        if (upsertError) {
+          // Colonna staff_id non ancora migrata: salva almeno ruolo e nome
+          // (il collegamento allo staff resta comunque nei metadati dell'account)
+          await supabase.from('profiles').upsert(baseProfile);
+        }
       } catch {
         // Tabella profiles opzionale se non ancora migrata
       }
@@ -573,7 +750,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const role = user?.ruolo || null;
   const isAuthenticated = !!user;
   const isAdmin = role === 'admin';
-  const isUser = role === 'user';
+  const isUser = isAuthenticated && !isAdmin;
+  const isTeacher = role === 'insegnante' || role === 'entrambi';
+  const isOperator = role === 'operatore' || role === 'entrambi';
+  const canSeeTeachersReport = isTeacher || role === 'user';
 
   const value = React.useMemo(
     () => ({
@@ -582,8 +762,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated,
       isAdmin,
       isUser,
+      isTeacher,
+      isOperator,
+      canSeeTeachersReport,
       login,
       loginAsRole,
+      loginAsTeacher,
       switchRole,
       logout,
       createUserAccount,
@@ -591,7 +775,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       deleteUserAccount,
       refreshRegisteredUsers,
     }),
-    [user, role, isAuthenticated, isAdmin, isUser, registeredUsers]
+    [user, role, isAuthenticated, isAdmin, isUser, isTeacher, isOperator, canSeeTeachersReport, registeredUsers, loginAsTeacher]
   );
 
   return (

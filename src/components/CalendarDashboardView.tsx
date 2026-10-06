@@ -37,6 +37,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePreferences } from '../context/PreferencesContext';
 import { Booking, BookingType, DailyShiftComputed, DeleteRecurringMode, PaymentMethod, PaymentStatus, isLessonBooking } from '../types';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 import {
@@ -121,6 +122,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   const { rooms, staff, bookings, clients, runAutoAssignment, updateBooking, deleteBooking, refreshFromCloud, isAutoRefreshing, shifts } = useApp();
   const { isAdmin } = useAuth();
   const { isDark } = useTheme();
+  const { preferences, updatePreferences } = usePreferences();
 
   // Stato per modale eliminazione serie ricorrente
   const [recurringDeleteModalBooking, setRecurringDeleteModalBooking] = useState<Booking | null>(null);
@@ -141,18 +143,11 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
   // Active anchor date for calendar navigation
   const [currentDate, setCurrentDate] = useState<Date>(today);
-  // Default a 7 giorni ('week') su qualsiasi dispositivo (incluso smartphone)
-  const [viewMode, setViewMode] = useState<ViewMode>('week');
-
-  // Dynamic zoom: height of one hour in pixels
-  // 36px: Panoramica (entire 9:00 - 23:00 fits in ~500px, no scrolling needed!)
-  // 56px: Standard (balanced)
-  // 84px: Dettagliato (maximum legibility)
-  // Attiva normalmente come opzione di default: 36px (Panoramica)
-  const [cellHeight, setCellHeight] = useState<number>(36);
-
-  const [selectedRoomFilter, setSelectedRoomFilter] = useState<string>('all');
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState<'all' | 'prove' | 'lezione'>('all');
+  // Preferenze personali salvate per ciascun profilo (insegnanti e admin indipendenti)
+  const [viewMode, setViewMode] = useState<ViewMode>(() => preferences.calendarViewMode || 'week');
+  const [cellHeight, setCellHeight] = useState<number>(() => preferences.calendarCellHeight || 36);
+  const [selectedRoomFilter, setSelectedRoomFilter] = useState<string>(() => preferences.calendarRoomFilter || 'all');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<'all' | 'prove' | 'lezione'>(() => preferences.calendarTypeFilter || 'all');
   const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [isOperatorScheduleModalOpen, setIsOperatorScheduleModalOpen] = useState(false);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -169,12 +164,59 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   const [isShiftsPanelOpen, setIsShiftsPanelOpen] = useState(false);
   const [isDailyBriefingOpen, setIsDailyBriefingOpen] = useState(false);
   const [showShiftsInGrid, setShowShiftsInGrid] = useState<boolean>(() => {
+    if (preferences.showShiftsInGrid !== undefined) return preferences.showShiftsInGrid;
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('salaprove_show_shifts_grid_v1');
       if (saved !== null) return saved === 'true';
     }
     return true;
   });
+
+  // Sincronizza lo stato quando cambiano le preferenze (es. cambio profilo docente / admin)
+  useEffect(() => {
+    if (preferences.calendarViewMode && preferences.calendarViewMode !== viewMode) {
+      setViewMode(preferences.calendarViewMode);
+    }
+    if (preferences.calendarCellHeight && preferences.calendarCellHeight !== cellHeight) {
+      setCellHeight(preferences.calendarCellHeight);
+    }
+    if (preferences.calendarRoomFilter !== undefined && preferences.calendarRoomFilter !== selectedRoomFilter) {
+      setSelectedRoomFilter(preferences.calendarRoomFilter);
+    }
+    if (preferences.calendarTypeFilter !== undefined && preferences.calendarTypeFilter !== selectedTypeFilter) {
+      setSelectedTypeFilter(preferences.calendarTypeFilter);
+    }
+    if (preferences.showShiftsInGrid !== undefined && preferences.showShiftsInGrid !== showShiftsInGrid) {
+      setShowShiftsInGrid(preferences.showShiftsInGrid);
+    }
+  }, [preferences]);
+
+  const handleSetViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    updatePreferences({ calendarViewMode: mode });
+  };
+
+  const handleSetCellHeight = (h: number) => {
+    setCellHeight(h);
+    updatePreferences({ calendarCellHeight: h });
+  };
+
+  const handleSetRoomFilter = (r: string) => {
+    setSelectedRoomFilter(r);
+    updatePreferences({ calendarRoomFilter: r });
+  };
+
+  const handleSetTypeFilter = (t: 'all' | 'prove' | 'lezione') => {
+    setSelectedTypeFilter(t);
+    updatePreferences({ calendarTypeFilter: t });
+  };
+
+  const handleToggleShifts = () => {
+    const next = !showShiftsInGrid;
+    setShowShiftsInGrid(next);
+    localStorage.setItem('salaprove_show_shifts_grid_v1', String(next));
+    updatePreferences({ showShiftsInGrid: next });
+  };
 
   // Quick Date/Month Picker state
   const [isQuickDatePickerOpen, setIsQuickDatePickerOpen] = useState(false);
@@ -1097,7 +1139,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             {/* View Mode Toggle: 1G / 3G / 7G */}
             <div className="flex items-center bg-slate-100 dark:bg-[#141414] rounded-xl p-1 border border-slate-200 dark:border-yellow-500/30 shrink-0">
               <button
-                onClick={() => setViewMode('day')}
+                onClick={() => handleSetViewMode('day')}
                 className={`px-2.5 sm:px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs font-bold transition-all touch-manipulation touch-active ${
                   viewMode === 'day'
                     ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-black'
@@ -1109,7 +1151,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 <span className="hidden sm:inline">Giorno</span>
               </button>
               <button
-                onClick={() => setViewMode('3days')}
+                onClick={() => handleSetViewMode('3days')}
                 className={`px-2.5 sm:px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs font-bold transition-all touch-manipulation touch-active ${
                   viewMode === '3days'
                     ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-black'
@@ -1121,7 +1163,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 <span className="hidden sm:inline">3 Giorni</span>
               </button>
               <button
-                onClick={() => setViewMode('week')}
+                onClick={() => handleSetViewMode('week')}
                 className={`px-2.5 sm:px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs font-bold transition-all touch-manipulation touch-active ${
                   viewMode === 'week'
                     ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-black'
@@ -1148,9 +1190,9 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    if (cellHeight <= 40) setCellHeight(56);
-                    else if (cellHeight <= 68) setCellHeight(84);
-                    else setCellHeight(36);
+                    if (cellHeight <= 40) handleSetCellHeight(56);
+                    else if (cellHeight <= 68) handleSetCellHeight(84);
+                    else handleSetCellHeight(36);
                   }}
                   className="px-1.5 py-1 text-[10px] font-mono font-bold text-slate-700 dark:text-yellow-400 hover:bg-white dark:hover:bg-neutral-800 rounded transition-colors touch-manipulation"
                   title="Alterna livelli di zoom (Panoramica, Standard, Dettagliato)"
@@ -1170,7 +1212,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
               {/* 1-Click Panoramica Preset */}
               <button
-                onClick={() => setCellHeight(cellHeight <= 40 ? 56 : 36)}
+                onClick={() => handleSetCellHeight(cellHeight <= 40 ? 56 : 36)}
                 className={`px-2.5 py-1.5 min-h-[38px] rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 touch-manipulation touch-active ${
                   cellHeight <= 40
                     ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black border-blue-600 dark:border-yellow-400 shadow-sm'
@@ -1221,7 +1263,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <DoorOpen className="w-3 h-3 text-blue-600 dark:text-yellow-500/70 shrink-0" />
               <select
                 value={selectedRoomFilter}
-                onChange={e => setSelectedRoomFilter(e.target.value)}
+                onChange={e => handleSetRoomFilter(e.target.value)}
                 className="text-[11px] sm:text-xs font-semibold bg-transparent text-slate-800 dark:text-yellow-200 focus:outline-none cursor-pointer max-w-[110px] sm:max-w-[130px]"
               >
                 <option value="all">Tutte le Sale ({rooms.length})</option>
@@ -1233,7 +1275,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <Filter className="w-3 h-3 text-blue-600 dark:text-yellow-500/70 shrink-0" />
               <select
                 value={selectedTypeFilter}
-                onChange={e => setSelectedTypeFilter(e.target.value as 'all' | 'prove' | 'lezione')}
+                onChange={e => handleSetTypeFilter(e.target.value as 'all' | 'prove' | 'lezione')}
                 className="text-[11px] sm:text-xs font-semibold bg-transparent text-slate-800 dark:text-yellow-200 focus:outline-none cursor-pointer"
               >
                 <option value="all">Tutte le Attività</option>
@@ -1257,11 +1299,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
             {/* Toggle Visibilità Turni nella Griglia Oraria */}
             <button
-              onClick={() => {
-                const next = !showShiftsInGrid;
-                setShowShiftsInGrid(next);
-                localStorage.setItem('salaprove_show_shifts_grid_v1', String(next));
-              }}
+              onClick={handleToggleShifts}
               className={`flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 font-semibold text-[11px] sm:text-xs rounded-lg border transition-all whitespace-nowrap cursor-pointer ${
                 showShiftsInGrid
                   ? 'bg-blue-50 dark:bg-neutral-900 text-blue-700 dark:text-yellow-300 border-blue-300 dark:border-yellow-500/50 hover:bg-blue-100 dark:hover:bg-neutral-800'

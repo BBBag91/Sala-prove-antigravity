@@ -120,9 +120,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     safeLocalStorageGet(STORAGE_KEYS.ROOMS, INITIAL_ROOMS)
   );
 
-  const [staff, setStaff] = useState<StaffMember[]>(() =>
-    safeLocalStorageGet(STORAGE_KEYS.STAFF, INITIAL_STAFF)
-  );
+  const [staff, setStaff] = useState<StaffMember[]>(() => {
+    const raw = safeLocalStorageGet(STORAGE_KEYS.STAFF, INITIAL_STAFF);
+    return raw.map((s) => {
+      if (s.id === 'staff-1' || s.nome?.toLowerCase() === 'gabriele' || (s.email && s.email.includes('marco.bellini'))) {
+        return {
+          ...s,
+          nome: 'Gabriele',
+          cognome: 'Piva',
+          email: 'gabriele.piva@salaprove.it',
+        };
+      }
+      return s;
+    });
+  });
 
   const [clients, setClients] = useState<Client[]>(() =>
     safeLocalStorageGet(STORAGE_KEYS.CLIENTS, INITIAL_CLIENTS)
@@ -211,6 +222,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.INCOMES, incomes); }, [incomes]);
   useEffect(() => { safeLocalStorageSet(STORAGE_KEYS.SHIFTS, shifts); }, [shifts]);
 
+  // Ascolta aggiornamenti tesserati tra finestre/tab del browser (es. compilazione modulo online)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.CLIENTS && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setClients(parsed);
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   // Cloud Actions
   const syncLocalToCloud = async (): Promise<boolean> => {
     await supabaseService.syncAllLocalDataToSupabase({
@@ -234,10 +261,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (remote) {
         if (remote.rooms.length > 0) setRooms(remote.rooms);
         if (remote.staff.length > 0) {
+          const sanitizedStaff = remote.staff.map((s) => {
+            if (s.id === 'staff-1' || s.nome?.toLowerCase() === 'marco' || (s.email && s.email.includes('marco.bellini'))) {
+              return {
+                ...s,
+                nome: 'Gabriele',
+                cognome: 'Piva',
+                email: 'gabriele.piva@salaprove.it',
+              };
+            }
+            return s;
+          });
           setStaff((prevLocal) => {
-            const remoteIds = new Set(remote.staff.map((s) => s.id));
+            const remoteIds = new Set(sanitizedStaff.map((s) => s.id));
             const pendingLocal = prevLocal.filter((localMember) => !remoteIds.has(localMember.id));
-            return pendingLocal.length > 0 ? [...remote.staff, ...pendingLocal] : remote.staff;
+            return pendingLocal.length > 0 ? [...sanitizedStaff, ...pendingLocal] : sanitizedStaff;
           });
         }
         if (remote.bookings) {
@@ -254,6 +292,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
           setBookings(sanitized);
         }
+        if (remote.clients && remote.clients.length > 0) setClients(remote.clients);
         if (remote.expenses.length > 0) setExpenses(remote.expenses);
         if (remote.incomes.length > 0) setIncomes(remote.incomes);
         if (remote.studioInfo) {

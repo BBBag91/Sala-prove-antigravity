@@ -23,10 +23,12 @@ import {
 
 interface TeachersReportViewProps {
   initialTeacherId?: string;
+  lockedTeacherId?: string;
 }
 
 export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
   initialTeacherId,
+  lockedTeacherId,
 }) => {
   const { staff, bookings, rooms } = useApp();
 
@@ -71,10 +73,11 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
     return false;
   };
 
-  // 1. Esclusivamente collaboratori con ruolo 'insegnante' (esclusi 'operatore' e 'entrambi')
+  // Collaboratori docenti (insegnante o entrambi con materie)
   const teachersList = useMemo(() => {
     return staff
-      .filter((s) => s.attivo && s.ruolo === 'insegnante')
+      .filter((s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi'))
+      .filter((s) => (lockedTeacherId ? s.id === lockedTeacherId : true))
       .map((s) => ({
         id: s.id,
         nome: s.nome,
@@ -84,10 +87,11 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
         coloreBadge: s.coloreBadge || '#8b5cf6',
       }))
       .sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`));
-  }, [staff]);
+  }, [staff, lockedTeacherId]);
 
   // Insegnante selezionato
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(() => {
+    if (lockedTeacherId) return lockedTeacherId;
     if (initialTeacherId && teachersList.some((t) => t.id === initialTeacherId)) {
       return initialTeacherId;
     }
@@ -99,10 +103,14 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
   });
 
   useEffect(() => {
+    if (lockedTeacherId) {
+      setSelectedTeacherId(lockedTeacherId);
+      return;
+    }
     if (teachersList.length > 0 && (!selectedTeacherId || !teachersList.some((t) => t.id === selectedTeacherId))) {
       setSelectedTeacherId(teachersList[0].id);
     }
-  }, [teachersList, selectedTeacherId]);
+  }, [teachersList, selectedTeacherId, lockedTeacherId]);
 
   useEffect(() => {
     if (selectedTeacherId) {

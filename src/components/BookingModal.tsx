@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { X, Calendar, AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
+import { X, Calendar, AlertCircle, AlertTriangle, CheckCircle2, Check, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig, DeleteRecurringMode } from '../types';
@@ -31,7 +31,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   bookingToEdit,
 }) => {
   const { clients, rooms, staff, bookings, addBooking, updateBooking, updateMultipleBookings, deleteBooking } = useApp();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isTeacher, user } = useAuth();
+
+  // Scheda staff collegata al profilo utente se è un insegnante
+  const currentTeacherStaff = useMemo(() => {
+    if (!user) return null;
+    return (
+      staff.find((s) => user.staffId && s.id === user.staffId) ||
+      staff.find((s) => user.email && s.email && s.email.toLowerCase() === user.email.toLowerCase()) ||
+      staff.find((s) => `${s.nome} ${s.cognome}`.trim().toLowerCase() === user.nome.trim().toLowerCase()) ||
+      null
+    );
+  }, [user, staff]);
+
+  // Se l'utente è un insegnante autenticato e non admin, assegna automaticamente se stesso
+  const isAutoTeacher = Boolean(isTeacher && !isAdmin && currentTeacherStaff);
 
   const [clienteId, setClienteId] = useState(() => bookingToEdit?.clienteId || '');
   const [isManualClient, setIsManualClient] = useState(() => {
@@ -49,8 +63,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   });
   const [isRecurringDeleteOpen, setIsRecurringDeleteOpen] = useState(false);
   const [salaId, setSalaId] = useState(() => bookingToEdit?.salaId || initialRoomId || '');
-  const [tipo, setTipo] = useState<BookingType>(() => bookingToEdit?.tipo || initialType || 'prove');
-  const [insegnanteId, setInsegnanteId] = useState(() => bookingToEdit?.insegnanteId || '');
+  const [tipo, setTipo] = useState<BookingType>(() => {
+    if (bookingToEdit?.tipo) return bookingToEdit.tipo;
+    if (initialType) return initialType;
+    if (isAutoTeacher) return 'lezione';
+    return 'prove';
+  });
+  const [insegnanteId, setInsegnanteId] = useState(() => {
+    if (bookingToEdit?.insegnanteId) return bookingToEdit.insegnanteId;
+    if (isAutoTeacher && currentTeacherStaff) return currentTeacherStaff.id;
+    return '';
+  });
   const [data, setData] = useState(() => bookingToEdit?.data || initialDate || formatDateToISO(new Date()));
   const [oraInizio, setOraInizio] = useState(() => bookingToEdit?.oraInizio || initialStartTime || '18:00');
   const [oraFine, setOraFine] = useState(() => {
@@ -180,13 +203,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     } else {
       const defaultDate = initialDate || formatDateToISO(new Date());
       const dIndex = parseISODate(defaultDate).getDay();
-      const defaultTipo = initialType || 'prove';
+      const defaultTipo = initialType || (isAutoTeacher ? 'lezione' : 'prove');
       setIsManualClient(true);
       setManualClientName('');
       setClienteId('');
       setSalaId(initialRoomId || '');
       setTipo(defaultTipo);
-      setInsegnanteId('');
+      setInsegnanteId(isAutoTeacher && currentTeacherStaff ? currentTeacherStaff.id : '');
       const start = initialStartTime || '18:00';
       const startM = timeToMinutes(start);
       const durationM = defaultTipo === 'lezione' ? 60 : 120;
@@ -214,7 +237,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setRichiesteStrumentazione('');
       setNote('');
     }
-  }, [bookingToEdit, initialDate, initialStartTime, initialRoomId, initialType, isOpen, clients, rooms]);
+  }, [bookingToEdit, initialDate, initialStartTime, initialRoomId, initialType, isOpen, clients, rooms, isAutoTeacher, currentTeacherStaff]);
+
+  // Se l'utente è un profilo insegnante e seleziona 'lezione', mantiene sempre il proprio ID docente
+  useEffect(() => {
+    if (tipo === 'lezione' && isAutoTeacher && currentTeacherStaff) {
+      if (insegnanteId !== currentTeacherStaff.id) {
+        setInsegnanteId(currentTeacherStaff.id);
+      }
+    }
+  }, [tipo, isAutoTeacher, currentTeacherStaff, insegnanteId]);
 
   const handleToggleRipetizione = (checked: boolean) => {
     setRipetizioneSettimanale(checked);
@@ -1254,77 +1286,136 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           {/* Insegnante (se lezione) */}
           {tipo === 'lezione' && (
             <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 rounded-lg">
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
-                  Docente / Insegnante incaricato *
-                </label>
-                {data && oraInizio && oraFine && (
-                  <span
-                    className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                      availableTeachers.length > 0
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                        : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-                    }`}
-                  >
-                    {availableTeachers.length} su {teacherCandidates.length} {availableTeachers.length === 1 ? 'disponibile' : 'disponibili'}
-                  </span>
-                )}
-              </div>
-              <select
-                value={insegnanteId}
-                onChange={(e) => setInsegnanteId(e.target.value)}
-                className={`w-full px-3.5 py-2.5 rounded-lg border text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all ${
-                  insegnanteId && overlappingBookingsByTeacher.has(insegnanteId)
-                    ? 'border-red-500 bg-red-50 text-red-900 ring-2 ring-red-400'
-                    : 'border-indigo-300 bg-white text-slate-800'
-                }`}
-              >
-                <option value="">-- Seleziona insegnante ({availableTeachers.length} disponibili) --</option>
-                {/* Insegnanti Disponibili */}
-                {availableTeachers.map((t) => (
-                  <option key={t.id} value={t.id} className="font-bold text-slate-900">
-                    ✓ {t.nome} {t.cognome} {t.materieInsegnamento ? `(${t.materieInsegnamento})` : ''}
-                  </option>
-                ))}
-                {/* Insegnanti già impegnati in altra lezione: disabilitati e non selezionabili */}
-                {occupiedTeachers.length > 0 && (
-                  <optgroup label="── Insegnanti già impegnati in altra lezione (Non selezionabili) ──">
-                    {occupiedTeachers.map(({ teacher: t, conflicts }) => (
-                      <option
-                        key={t.id}
-                        value={t.id}
-                        disabled
-                        className="text-slate-400 bg-slate-100 italic"
-                      >
-                        🚫 {t.nome} {t.cognome} - OCCUPATO/A ({conflicts.map((c) => `${c.clienteNome} in ${c.salaNome || 'Sala'} ${c.oraInizio}-${c.oraFine}`).join(', ')})
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
-
-              {/* Avviso in tempo reale se l'insegnante scelto ha un conflitto */}
-              {insegnanteId && overlappingBookingsByTeacher.has(insegnanteId) && (
-                <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-300 text-red-800 text-xs flex items-start gap-2 animate-in fade-in duration-150">
-                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block font-bold">Insegnante già occupato/a in questa fascia oraria!</strong>
-                    <span>
-                      {(overlappingBookingsByTeacher.get(insegnanteId) || []).map((c) => `• ${c.clienteNome} in ${c.salaNome || 'Sala'} (${c.oraInizio} - ${c.oraFine})`).join(' ')}
-                    </span>
-                    <span className="block mt-1 font-semibold text-red-900">
-                      Seleziona un altro insegnante disponibile tra quelli liberi.
+              {isAutoTeacher && currentTeacherStaff ? (
+                /* Profilo Insegnante Personale: Assegnazione automatica diretta senza menù a tendina */
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
+                      Docente Incaricato (Assegnato Automaticamente)
+                    </label>
+                    <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1 shadow-2xs">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                      Tuo Profilo Docente
                     </span>
                   </div>
-                </div>
-              )}
 
-              {/* Notifica se tutti gli insegnanti sono occupati */}
-              {availableTeachers.length === 0 && teacherCandidates.length > 0 && (
-                <div className="mt-2 p-2.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>Tutti gli insegnanti risultano già impegnati tra le {oraInizio} e le {oraFine}. Cambia orario o data.</span>
+                  <div className="flex items-center gap-3 p-3 bg-white dark:bg-neutral-900 rounded-xl border border-indigo-200 dark:border-indigo-800/60 shadow-xs">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-xs"
+                      style={{ backgroundColor: currentTeacherStaff.coloreBadge || '#8b5cf6' }}
+                    >
+                      {currentTeacherStaff.nome[0]}{currentTeacherStaff.cognome[0]}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 dark:text-white text-sm block truncate">
+                          {currentTeacherStaff.nome} {currentTeacherStaff.cognome}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                          Docente
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-500 dark:text-neutral-400 block truncate mt-0.5">
+                        {currentTeacherStaff.materieInsegnamento || 'Lezione Didattica'} {currentTeacherStaff.telefono ? `• ${currentTeacherStaff.telefono}` : ''}
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Collegato
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Avviso in tempo reale se il docente è già occupato altrove */}
+                  {overlappingBookingsByTeacher.has(currentTeacherStaff.id) && (
+                    <div className="p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-300 text-xs flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="block font-bold">Attenzione: hai già un'altra lezione in questa fascia oraria!</strong>
+                        <span>
+                          {(overlappingBookingsByTeacher.get(currentTeacherStaff.id) || []).map((c) => `• ${c.clienteNome} in ${c.salaNome || 'Sala'} (${c.oraInizio} - ${c.oraFine})`).join(' ')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              ) : (
+                /* Profilo Amministratore (o account generale): Menù a tendina completo con scelta libera di tutti i docenti */
+                <>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
+                      Docente / Insegnante incaricato *
+                    </label>
+                    {data && oraInizio && oraFine && (
+                      <span
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                          availableTeachers.length > 0
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                            : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                        }`}
+                      >
+                        {availableTeachers.length} su {teacherCandidates.length} {availableTeachers.length === 1 ? 'disponibile' : 'disponibili'}
+                      </span>
+                    )}
+                  </div>
+                  <select
+                    value={insegnanteId}
+                    onChange={(e) => setInsegnanteId(e.target.value)}
+                    className={`w-full px-3.5 py-2.5 rounded-lg border text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all ${
+                      insegnanteId && overlappingBookingsByTeacher.has(insegnanteId)
+                        ? 'border-red-500 bg-red-50 text-red-900 ring-2 ring-red-400'
+                        : 'border-indigo-300 bg-white text-slate-800'
+                    }`}
+                  >
+                    <option value="">-- Seleziona insegnante ({availableTeachers.length} disponibili) --</option>
+                    {/* Insegnanti Disponibili */}
+                    {availableTeachers.map((t) => (
+                      <option key={t.id} value={t.id} className="font-bold text-slate-900">
+                        ✓ {t.nome} {t.cognome} {t.materieInsegnamento ? `(${t.materieInsegnamento})` : ''}
+                      </option>
+                    ))}
+                    {/* Insegnanti già impegnati in altra lezione: disabilitati e non selezionabili */}
+                    {occupiedTeachers.length > 0 && (
+                      <optgroup label="── Insegnanti già impegnati in altra lezione (Non selezionabili) ──">
+                        {occupiedTeachers.map(({ teacher: t, conflicts }) => (
+                          <option
+                            key={t.id}
+                            value={t.id}
+                            disabled
+                            className="text-slate-400 bg-slate-100 italic"
+                          >
+                            🚫 {t.nome} {t.cognome} - OCCUPATO/A ({conflicts.map((c) => `${c.clienteNome} in ${c.salaNome || 'Sala'} ${c.oraInizio}-${c.oraFine}`).join(', ')})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+
+                  {/* Avviso in tempo reale se l'insegnante scelto ha un conflitto */}
+                  {insegnanteId && overlappingBookingsByTeacher.has(insegnanteId) && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-300 text-red-800 text-xs flex items-start gap-2 animate-in fade-in duration-150">
+                      <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="block font-bold">Insegnante già occupato/a in questa fascia oraria!</strong>
+                        <span>
+                          {(overlappingBookingsByTeacher.get(insegnanteId) || []).map((c) => `• ${c.clienteNome} in ${c.salaNome || 'Sala'} (${c.oraInizio} - ${c.oraFine})`).join(' ')}
+                        </span>
+                        <span className="block mt-1 font-semibold text-red-900">
+                          Seleziona un altro insegnante disponibile tra quelli liberi.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notifica se tutti gli insegnanti sono occupati */}
+                  {availableTeachers.length === 0 && teacherCandidates.length > 0 && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>Tutti gli insegnanti risultano già impegnati tra le {oraInizio} e le {oraFine}. Cambia orario o data.</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

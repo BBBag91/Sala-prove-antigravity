@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   GraduationCap,
   Clock,
@@ -6,12 +6,19 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
-  Music2,
   Calendar,
   Sparkles,
+  CalendarCheck2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { formatCurrency, formatDateItalian, calculateDurationHours } from '../utils/dateUtils';
+import {
+  formatCurrency,
+  formatDateItalian,
+  calculateDurationHours,
+  formatDateToISO,
+  timeToMinutes,
+} from '../utils/dateUtils';
+import { Booking } from '../types';
 
 interface TeacherLessonsFinanceSectionProps {
   currentMonthName: string;
@@ -31,10 +38,18 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
   const { staff, bookings } = useApp();
   const storageKey = `salaprove_quote_insegnanti_v1_${monthStr}`;
 
-  // Teachers exclusively (only role 'insegnante', excluding 'entrambi' and 'operatore')
+  // Riferimento al giorno odierno e all'orario attuale
+  const today = useMemo(() => new Date(), []);
+  const todayISO = formatDateToISO(today); // es. '2026-10-06'
+  const nowMinutes = today.getHours() * 60 + today.getMinutes();
+
+  // Modalità filtro: default true = Mostra solo le ore svolte con riferimento a oggi
+  const [onlyCompleted, setOnlyCompleted] = useState<boolean>(true);
+
+  // Insegnanti esclusivi (ruolo 'insegnante', esclusi 'entrambi' e 'operatore')
   const teachersExclusively = staff.filter((s) => s.ruolo === 'insegnante');
 
-  // Settlement status map: teacherId -> 'da_saldare' | 'saldato'
+  // Mappa stato saldo: teacherId -> 'da_saldare' | 'saldato'
   const [statusMap, setStatusMap] = useState<Record<string, SettlementStatus>>(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -43,10 +58,10 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
     return {};
   });
 
-  // Track which teacher's lesson list is expanded
+  // Traccia quale insegnante ha il dettaglio lezioni aperto
   const [expandedTeacherId, setExpandedTeacherId] = useState<string | null>(null);
 
-  // Reload status map when month changes
+  // Ricarica stato al cambio mese
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -58,25 +73,50 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
     setStatusMap({});
   }, [storageKey]);
 
-  // Persist status map on changes
+  // Salva stato modificato
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(statusMap));
     } catch {}
   }, [statusMap, storageKey]);
 
-  // Monthly lesson bookings
-  const monthlyLessons = bookings.filter(
-    (b) => b.data.startsWith(monthStr) && b.tipo === 'lezione'
-  );
+  // Verifica se una singola lezione è già stata svolta rispetto al giorno odierno e all'ora
+  const isLessonCompleted = (b: Booking): boolean => {
+    if (b.data < todayISO) return true;
+    if (b.data === todayISO) {
+      const endMin = timeToMinutes(b.oraFine || b.oraInizio);
+      return nowMinutes >= endMin;
+    }
+    return false;
+  };
 
-  // Compute stats per teacher
+  // Tutte le prenotazioni didattiche registrate nel mese selezionato
+  const monthlyLessons = useMemo(() => {
+    return bookings.filter(
+      (b) => b.data.startsWith(monthStr) && b.tipo === 'lezione'
+    );
+  }, [bookings, monthStr]);
+
+  // Lezioni effettivamente svolte nel mese fino al giorno odierno
+  const monthlyCompletedLessons = useMemo(() => {
+    return monthlyLessons.filter((b) => isLessonCompleted(b));
+  }, [monthlyLessons, todayISO, nowMinutes]);
+
+  // Calcolo statistiche per ciascun insegnante
   const teacherStats = teachersExclusively.map((t) => {
-    const lessons = monthlyLessons.filter(
-      (b) => b.insegnanteId === t.id || b.insegnanteNome === `${t.nome} ${t.cognome}`
+    const tFullName = `${t.nome} ${t.cognome}`.trim().toLowerCase();
+    const allTeacherLessons = monthlyLessons.filter(
+      (b) =>
+        (b.insegnanteId && b.insegnanteId === t.id) ||
+        (b.insegnanteNome && b.insegnanteNome.trim().toLowerCase() === tFullName)
     );
 
-    // Sort lessons chronologically
+    const completedTeacherLessons = allTeacherLessons.filter((b) => isLessonCompleted(b));
+
+    // Lezioni conteggiate in base alla modalità attiva
+    const lessons = onlyCompleted ? [...completedTeacherLessons] : [...allTeacherLessons];
+
+    // Ordinamento cronologico
     lessons.sort((a, b) => {
       const dateCmp = a.data.localeCompare(b.data);
       if (dateCmp !== 0) return dateCmp;
@@ -88,21 +128,33 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
       return sum + (isNaN(h) ? 0 : h);
     }, 0);
 
-    // Cost to pay to the sala: total hours * 5 euros
+    const totalOrePrenotate = allTeacherLessons.reduce((sum, b) => {
+      const h = b.durataOre || calculateDurationHours(b.oraInizio, b.oraFine);
+      return sum + (isNaN(h) ? 0 : h);
+    }, 0);
+
+    // Costo sala dovuto: totale ore conteggiate × 5€
     const costoDovuto = Math.round(totalOre * 5 * 100) / 100;
+    const costoPrenotatoTotale = Math.round(totalOrePrenotate * 5 * 100) / 100;
     const stato: SettlementStatus = statusMap[t.id] || 'da_saldare';
 
     return {
       teacher: t,
       lessons,
+      allTeacherLessons,
+      completedCount: completedTeacherLessons.length,
+      totalBookedCount: allTeacherLessons.length,
       totalOre,
+      totalOrePrenotate,
       costoDovuto,
+      costoPrenotatoTotale,
       stato,
     };
   });
 
-  // Overall totals
+  // Totali complessivi per la sala
   const overallOre = teacherStats.reduce((sum, s) => sum + s.totalOre, 0);
+  const overallOrePrenotate = teacherStats.reduce((sum, s) => sum + s.totalOrePrenotate, 0);
   const overallDovuto = teacherStats.reduce((sum, s) => sum + s.costoDovuto, 0);
   const overallSaldato = teacherStats
     .filter((s) => s.stato === 'saldato')
@@ -111,7 +163,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
     .filter((s) => s.stato === 'da_saldare')
     .reduce((sum, s) => sum + s.costoDovuto, 0);
 
-  // Notify parent of total changes
+  // Notifica la vista padre (FinanceView) del cambio totali
   useEffect(() => {
     if (onTotalsChange) {
       onTotalsChange({
@@ -121,7 +173,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
         totalDaSaldare: overallDaSaldare,
       });
     }
-  }, [overallOre, overallDovuto, overallSaldato, overallDaSaldare]);
+  }, [overallOre, overallDovuto, overallSaldato, overallDaSaldare, onTotalsChange]);
 
   const handleToggleStatus = (teacherId: string) => {
     setStatusMap((prev) => {
@@ -138,7 +190,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-5 p-5 sm:p-7">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-200 flex items-center justify-center shrink-0 shadow-xs">
             <GraduationCap className="w-5 h-5 stroke-[2.2]" />
@@ -153,14 +205,66 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Conteggio ore lezioni svolte esclusivamente da insegnanti per {currentMonthName} {currentYear} • Quota sala = Ore Totali × 5€
+              Conteggio ore lezioni {onlyCompleted ? 'svolte fino ad oggi' : 'prenotate nel mese'} per {currentMonthName} {currentYear} • Quota sala = Ore {onlyCompleted ? 'Svolte' : 'Totali'} × 5€
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+        {/* Toggle Filtro Svolte vs Prenotate */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 self-start lg:self-auto shrink-0">
+          <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setOnlyCompleted(true)}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                onlyCompleted
+                  ? 'bg-purple-600 text-white shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+              title="Visualizza solo le lezioni già effettivamente svolte con riferimento al giorno odierno"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Ore Svolte (fino ad oggi)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setOnlyCompleted(false)}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                !onlyCompleted
+                  ? 'bg-purple-600 text-white shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+              title="Visualizza tutte le lezioni prenotate nel mese, incluse date future"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Tutte le Prenotate (mese)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Riferimento Giornaliero Odierno */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-purple-50/50 border border-purple-100 text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[11px] shadow-2xs">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            Riferimento a oggi: {formatDateItalian(todayISO, true)}
+          </span>
+          <span className="text-slate-600">
+            {onlyCompleted ? (
+              <span>
+                Visualizzazione attiva: <strong>Solo ore lezioni svolte</strong> (escluse le prenotazioni future al giorno odierno).
+              </span>
+            ) : (
+              <span className="text-amber-800 font-medium">
+                Visualizzazione attiva: <strong>Tutte le ore prenotate</strong> (inclusa stima fino a fine mese).
+              </span>
+            )}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
           <Clock className="w-3.5 h-3.5 text-purple-600" />
-          <span>Filtro attivo: <strong>Solo Insegnanti</strong> (esclusi insegnanti/operatori)</span>
+          <span>Filtro: <strong>Solo Insegnanti</strong></span>
         </div>
       </div>
 
@@ -179,14 +283,19 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
         </div>
 
         <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-1">
-          <span className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider">
-            Ore Lezioni Svolte
+          <span className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider flex items-center justify-between">
+            <span>{onlyCompleted ? 'Ore Lezioni Svolte' : 'Ore Lezioni Prenotate'}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-800 font-bold">
+              {onlyCompleted ? 'fino a oggi' : 'mese intero'}
+            </span>
           </span>
           <p className="text-2xl font-bold font-mono text-purple-900">
             {overallOre.toFixed(1)} h
           </p>
           <span className="text-[10px] text-purple-600 block">
-            {monthlyLessons.length} lezioni registrate nel mese
+            {onlyCompleted
+              ? `${monthlyCompletedLessons.length} lezioni svolte (su ${monthlyLessons.length} prenotate nel mese)`
+              : `${monthlyLessons.length} lezioni registrate nel mese`}
           </span>
         </div>
 
@@ -212,12 +321,12 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
             {formatCurrency(overallDaSaldare)}
           </p>
           <span className="text-[10px] text-amber-600 block">
-            In attesa di versamento alla sala
+            {onlyCompleted ? 'Calcolato sulle ore effettivamente svolte' : 'In attesa di versamento alla sala'}
           </span>
         </div>
       </div>
 
-      {/* Teachers Breakdown Table / Cards */}
+      {/* Teachers Breakdown Table */}
       {teachersExclusively.length === 0 ? (
         <div className="p-6 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-center space-y-2">
           <p className="text-sm font-semibold text-slate-700">
@@ -236,15 +345,19 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase tracking-wider font-semibold">
                     <th className="py-3 px-4">Docente / Insegnante</th>
                     <th className="py-3 px-4">Materia Insegnata</th>
-                    <th className="py-3 px-4 text-center">N° Lezioni</th>
-                    <th className="py-3 px-4 text-right">Totale Ore</th>
+                    <th className="py-3 px-4 text-center">
+                      {onlyCompleted ? 'Lezioni Svolte' : 'N° Lezioni'}
+                    </th>
+                    <th className="py-3 px-4 text-right">
+                      {onlyCompleted ? 'Ore Svolte' : 'Totale Ore'}
+                    </th>
                     <th className="py-3 px-4 text-right">Quota Sala (5€/h)</th>
                     <th className="py-3 px-4 text-center">Stato Saldo</th>
                     <th className="py-3 px-4 text-right">Dettaglio</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {teacherStats.map(({ teacher, lessons, totalOre, costoDovuto, stato }) => {
+                  {teacherStats.map(({ teacher, lessons, completedCount, totalBookedCount, totalOre, totalOrePrenotate, costoDovuto, stato }) => {
                     const isExpanded = expandedTeacherId === teacher.id;
                     const isPaid = stato === 'saldato';
 
@@ -282,14 +395,26 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
                             )}
                           </td>
 
-                          <td className="py-3.5 px-4 text-center font-mono font-semibold text-slate-700">
-                            {lessons.length}
+                          <td className="py-3.5 px-4 text-center">
+                            <span className="font-mono font-bold text-slate-800 text-sm">
+                              {lessons.length}
+                            </span>
+                            {onlyCompleted && totalBookedCount > lessons.length && (
+                              <span className="block text-[10px] text-slate-400 font-medium">
+                                su {totalBookedCount} prenotate
+                              </span>
+                            )}
                           </td>
 
                           <td className="py-3.5 px-4 text-right">
                             <span className="font-mono font-bold text-slate-900 text-sm">
                               {totalOre.toFixed(1)} h
                             </span>
+                            {onlyCompleted && totalOrePrenotate > totalOre && (
+                              <span className="block text-[10px] text-slate-400 font-medium">
+                                su {totalOrePrenotate.toFixed(1)} h prenotate
+                              </span>
+                            )}
                           </td>
 
                           <td className="py-3.5 px-4 text-right">
@@ -338,7 +463,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
                                   ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
                                   : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
                               }`}
-                              title="Visualizza elenco lezioni svolte nel mese"
+                              title="Visualizza elenco lezioni nel mese"
                             >
                               <span>{isExpanded ? 'Chiudi' : 'Lezioni'}</span>
                               {isExpanded ? (
@@ -350,20 +475,25 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
                           </td>
                         </tr>
 
-                        {/* Collapsible lesson details */}
+                        {/* Dettaglio lezioni collassabile */}
                         {isExpanded && (
                           <tr className="bg-purple-50/20 border-b border-purple-100">
                             <td colSpan={7} className="p-4 sm:p-5">
                               <div className="bg-white rounded-xl border border-purple-200/80 p-4 space-y-3 shadow-2xs">
-                                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
                                   <div className="flex items-center gap-2">
-                                    <Calendar className="w-4 h-4 text-purple-600" />
+                                    <CalendarCheck2 className="w-4 h-4 text-purple-600" />
                                     <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                                       Dettaglio Lezioni di {teacher.nome} {teacher.cognome} ({currentMonthName} {currentYear})
                                     </span>
                                   </div>
                                   <span className="text-xs font-bold font-mono text-purple-700">
-                                    Totale: {lessons.length} lezioni • {totalOre.toFixed(1)} ore • {formatCurrency(costoDovuto)}
+                                    Totale: {lessons.length} lezioni {onlyCompleted ? 'svolte' : ''} • {totalOre.toFixed(1)} ore • {formatCurrency(costoDovuto)}
+                                    {onlyCompleted && totalBookedCount > completedCount && (
+                                      <span className="text-slate-400 font-normal ml-1">
+                                        ({totalBookedCount - completedCount} future)
+                                      </span>
+                                    )}
                                   </span>
                                 </div>
 
@@ -371,27 +501,51 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
                                   {lessons.map((lesson) => {
                                     const h = lesson.durataOre || calculateDurationHours(lesson.oraInizio, lesson.oraFine);
                                     const quota = h * 5;
+                                    const isDone = isLessonCompleted(lesson);
+                                    const isToday = lesson.data === todayISO;
 
                                     return (
                                       <div
                                         key={lesson.id}
-                                        className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-1"
+                                        className={`p-2.5 rounded-lg border text-xs space-y-1 transition-all ${
+                                          isDone
+                                            ? 'bg-slate-50 border-slate-200'
+                                            : 'bg-amber-50/50 border-amber-200/80'
+                                        }`}
                                       >
                                         <div className="flex items-center justify-between font-semibold text-slate-800">
-                                          <span>{formatDateItalian(lesson.data, false)}</span>
+                                          <div className="flex items-center gap-1.5">
+                                            <span>{formatDateItalian(lesson.data, false)}</span>
+                                            {isToday && (
+                                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-blue-100 text-blue-700 border border-blue-200">
+                                                Oggi
+                                              </span>
+                                            )}
+                                          </div>
                                           <span className="font-mono text-purple-700 font-bold">
                                             {formatCurrency(quota)}
                                           </span>
                                         </div>
+
                                         <div className="text-[11px] text-slate-600 flex items-center justify-between">
                                           <span>Orario: {lesson.oraInizio} - {lesson.oraFine}</span>
                                           <span className="font-mono font-medium">({h} h)</span>
                                         </div>
+
                                         <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200/60">
                                           <span>Sala: {lesson.salaNome}</span>
-                                          <span className="truncate max-w-[120px] font-medium text-slate-700">
-                                            {lesson.clienteNome}
-                                          </span>
+                                          <div className="flex items-center gap-1">
+                                            <span className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+                                              isDone
+                                                ? 'bg-emerald-100 text-emerald-800'
+                                                : 'bg-amber-100 text-amber-800'
+                                            }`}>
+                                              {isDone ? '✓ Svolta' : '⏳ Programmata'}
+                                            </span>
+                                            <span className="truncate max-w-[100px] font-medium text-slate-700">
+                                              {lesson.clienteNome}
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
                                     );

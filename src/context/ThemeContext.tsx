@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
+import { usePreferences } from './PreferencesContext';
 
 export type ThemeMode = 'dark' | 'light';
 
@@ -12,29 +13,17 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = 'sala-prove-theme';
-
+/**
+ * Il tema è una preferenza personale dell'account autenticato (vedi PreferencesContext):
+ * cambiarlo su un account non modifica il tema degli altri account.
+ * Dark mode per impostazione predefinita.
+ */
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Come richiesto: versione dark di base, con persistenza in localStorage
-  const [theme, setThemeState] = useState<ThemeMode>(() => {
-    try {
-      const saved = localStorage.getItem(THEME_STORAGE_KEY);
-      if (saved === 'light' || saved === 'dark') {
-        return saved;
-      }
-    } catch {
-      // Ignora errori di storage
-    }
-    return 'dark'; // Dark mode per impostazione predefinita
-  });
+  const { preferences, updatePreferences } = usePreferences();
+  const theme: ThemeMode = preferences.theme === 'light' ? 'light' : 'dark';
 
   const setTheme = (newTheme: ThemeMode) => {
-    setThemeState(newTheme);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, newTheme);
-    } catch {
-      // Ignora
-    }
+    updatePreferences({ theme: newTheme });
   };
 
   const toggleTheme = () => {
@@ -66,7 +55,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       toggleTheme,
       setTheme,
     }),
-    [theme]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [theme, updatePreferences]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

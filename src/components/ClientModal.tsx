@@ -201,9 +201,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-          {/* Scansione Modulo Cartaceo con Fotocamera & IA */}
+          {/* Modulo Tesseramento Online via WhatsApp & Scansione Cartacea */}
           <React.Suspense fallback={<div className="h-16 rounded-xl bg-indigo-50/50 animate-pulse border border-indigo-100 flex items-center justify-center text-xs text-indigo-500">Caricamento scanner modulo...</div>}>
-            <DocumentCameraScanner onDataExtracted={handleDataExtracted} />
+            <DocumentCameraScanner
+              onDataExtracted={handleDataExtracted}
+              clientPhone={telefono}
+              clientName={nome ? `${nome} ${cognome}`.trim() : undefined}
+            />
           </React.Suspense>
 
           {/* Dati Anagrafici Base */}

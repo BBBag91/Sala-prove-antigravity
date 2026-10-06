@@ -6,12 +6,19 @@ import {
   EyeOff,
   RefreshCw,
   Lock,
+  GraduationCap,
+  Shield,
+  User,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useApp } from '../context/AppContext';
 import { ThemeToggle } from './ThemeToggle';
 
 export const LoginView: React.FC = () => {
-  const { login } = useAuth();
+  const { login, loginAsRole, loginAsTeacher } = useAuth();
+  const { staff } = useApp();
+  const teachers = staff.filter((s) => s.ruolo === 'insegnante' || s.ruolo === 'entrambi');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -84,17 +91,17 @@ export const LoginView: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                Indirizzo Email
+                Email o Nome Utente Docente
               </label>
               <div className="relative">
                 <input
-                  type="email"
+                  type="text"
                   required
                   autoFocus
                   value={email}
                   disabled={isLoading}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="nome@salaprove.it"
+                  placeholder="es. luca.dichiara@salaprove.it o luca.dichiara"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-800 bg-[#0a0a0a] text-yellow-100 text-sm focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none disabled:opacity-50 transition-colors"
                 />
               </div>
@@ -117,7 +124,7 @@ export const LoginView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-yellow-400 transition-colors p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-yellow-400 transition-colors p-1 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -144,40 +151,64 @@ export const LoginView: React.FC = () => {
           </form>
         </div>
 
-        {/* ── Credenziali di Accesso / Quick-fill (Solo Utente/Operatore) ── */}
-        <div className="bg-neutral-950/90 border border-yellow-500/20 rounded-2xl p-4 sm:p-5 backdrop-blur shadow-xl space-y-3">
-          <div className="flex items-center justify-between text-xs text-neutral-400 font-medium pb-2 border-b border-neutral-800">
-            <span className="flex items-center gap-1.5 text-yellow-400 font-bold">
-              <KeyRound className="w-3.5 h-3.5" /> Credenziali Demo Operatore
-            </span>
-            <span className="text-[10px] text-neutral-500">Clicca per compilare subito</span>
-          </div>
+        {/* ── Selezione Rapida Account Docente (Compila Email) ── */}
+        {teachers.length > 0 && (
+          <div className="bg-neutral-950/90 border border-yellow-500/20 rounded-2xl p-4 sm:p-5 backdrop-blur shadow-xl space-y-3">
+            <div className="flex items-center justify-between text-xs text-neutral-400 font-medium pb-2 border-b border-neutral-800">
+              <span className="flex items-center gap-1.5 text-purple-400 font-bold">
+                <GraduationCap className="w-3.5 h-3.5" /> Profili Insegnanti Verificati
+              </span>
+              <span className="text-[10px] text-neutral-500">Seleziona per inserire l'email</span>
+            </div>
 
-          <div>
-            {/* Operatore Box */}
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('utente@salaprove.it');
-                setPassword('utentePassword123!');
-              }}
-              className="w-full p-3 rounded-xl bg-neutral-900/90 hover:bg-neutral-850 border border-emerald-500/30 hover:border-emerald-400 text-left transition-all group cursor-pointer"
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-bold text-xs text-emerald-400 flex items-center gap-1">
-                  👤 Operatore Studio
-                </span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold">
-                  USER
-                </span>
-              </div>
-              <p className="text-[11px] text-neutral-300 font-mono truncate">utente@salaprove.it</p>
-              <div className="flex items-center justify-between mt-1 text-[10px] text-neutral-400 font-mono">
-                <span>Pass: <strong className="text-emerald-400/90">utentePassword123!</strong></span>
-              </div>
-            </button>
+            <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+              {teachers.map((teacher) => {
+                const teacherEmail =
+                  teacher.id === 'staff-1' || teacher.nome.toLowerCase().includes('gabriele')
+                    ? 'gabriele.piva@salaprove.it'
+                    : teacher.email && !teacher.email.includes('marco.bellini')
+                    ? teacher.email
+                    : `${teacher.nome.toLowerCase().replace(/\s+/g, '')}.${teacher.cognome.toLowerCase().replace(/\s+/g, '')}@salaprove.it`;
+                const isSelected = email.toLowerCase() === teacherEmail.toLowerCase();
+                return (
+                  <button
+                    key={teacher.id}
+                    type="button"
+                    onClick={() => {
+                      setEmail(teacherEmail);
+                      setError(null);
+                    }}
+                    className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer group ${
+                      isSelected
+                        ? 'bg-purple-900/30 border-purple-500 text-white shadow-2xs'
+                        : 'bg-neutral-900/80 hover:bg-purple-950/30 border-purple-500/25 hover:border-purple-400 text-neutral-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white text-[11px] shrink-0 shadow-2xs"
+                        style={{ backgroundColor: teacher.coloreBadge || '#8b5cf6' }}
+                      >
+                        {teacher.nome[0]}{teacher.cognome[0]}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-bold text-xs text-white group-hover:text-purple-300 block truncate">
+                          {teacher.nome} {teacher.cognome}
+                        </span>
+                        <span className="text-[10px] text-neutral-400 block truncate font-mono">
+                          {teacherEmail}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/30 shrink-0 ml-1">
+                      {isSelected ? 'Selezionato ✓' : 'Compila ➔'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Footer info */}
         <p className="text-center text-[11px] text-neutral-500">

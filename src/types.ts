@@ -1,9 +1,25 @@
 /**
  * Ruoli di autorizzazione utente per il controllo accessi (RBAC).
  * - 'admin': Accesso completo (anagrafica, personale, finanza, configurazioni, eliminazioni).
- * - 'user': Operatore o utente standard (accesso consultazione calendario, turni e proprio profilo).
+ * - 'user': Account generico condiviso (calendario, turni, riepilogo insegnanti, anagrafica).
+ * - 'insegnante': Account personale collegato a una scheda Staff docente (calendario + proprio monte ore).
+ * - 'operatore': Account personale collegato a una scheda Staff operatore (calendario, turni, anagrafica).
+ * - 'entrambi': Account personale di chi è sia insegnante sia operatore.
  */
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'user' | 'insegnante' | 'operatore' | 'entrambi';
+
+export const USER_ROLES: UserRole[] = ['admin', 'user', 'insegnante', 'operatore', 'entrambi'];
+
+export const isValidUserRole = (value: unknown): value is UserRole =>
+  typeof value === 'string' && (USER_ROLES as string[]).includes(value);
+
+export const USER_ROLE_LABELS: Record<UserRole, string> = {
+  admin: 'Amministratore',
+  user: 'Utente Generico',
+  insegnante: 'Insegnante',
+  operatore: 'Operatore',
+  entrambi: 'Insegnante + Operatore',
+};
 
 /**
  * Rappresenta la sessione dell'utente autenticato nell'applicazione.
@@ -15,10 +31,25 @@ export interface AuthUser {
   email: string;
   /** Nome e cognome visualizzati */
   nome: string;
-  /** Ruolo assegnato (admin o user) */
+  /** Ruolo assegnato */
   ruolo: UserRole;
+  /** ID della scheda Staff collegata (solo per account personali insegnante/operatore) */
+  staffId?: string;
   /** Emoji o icona associata al profilo (es. 👑 o 👤) */
   avatar?: string;
+}
+
+/**
+ * Preferenze personali di ogni account (salvate su Supabase in profiles.preferences).
+ * Ogni account ha le sue: modificarle non cambia nulla sugli altri account.
+ */
+export interface UserPreferences {
+  theme?: 'dark' | 'light';
+  calendarViewMode?: 'day' | '3days' | 'week';
+  calendarCellHeight?: number;
+  showShiftsInGrid?: boolean;
+  calendarRoomFilter?: string;
+  calendarTypeFilter?: 'all' | 'prove' | 'lezione';
 }
 
 /**

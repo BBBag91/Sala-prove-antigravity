@@ -15,6 +15,13 @@ import {
   Loader2,
   FileText,
   Download,
+  MessageSquare,
+  Send,
+  Share2,
+  Link2,
+  Globe,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   ExtractedMemberData,
@@ -29,11 +36,15 @@ import {
 
 interface DocumentCameraScannerProps {
   onDataExtracted: (data: ExtractedMemberData) => void;
+  clientPhone?: string;
+  clientName?: string;
   className?: string;
 }
 
 export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
   onDataExtracted,
+  clientPhone,
+  clientName,
   className = '',
 }) => {
   const [mode, setMode] = useState<'idle' | 'camera' | 'preview' | 'analyzing' | 'success'>('idle');
@@ -41,6 +52,59 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
   const [extractedData, setExtractedData] = useState<ExtractedMemberData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasCopiedExcel, setHasCopiedExcel] = useState(false);
+
+  // Modulo Online via WhatsApp & Link Diretto
+  const defaultFormUrl = typeof window !== 'undefined' ? `${window.location.origin}/?modulo=tesseramento` : '';
+  const [formUrl, setFormUrl] = useState(() => {
+    try {
+      return localStorage.getItem('salaprove_tesseramento_form_url') || defaultFormUrl;
+    } catch {
+      return defaultFormUrl;
+    }
+  });
+  const [hasCopiedFormLink, setHasCopiedFormLink] = useState(false);
+  const [isEditingFormUrl, setIsEditingFormUrl] = useState(false);
+  const [customUrlInput, setCustomUrlInput] = useState('');
+  const [showCameraSection, setShowCameraSection] = useState(false);
+
+  const handleSendWhatsAppInvite = () => {
+    const greeting = clientName ? `Ciao ${clientName}! 🎶` : 'Ciao! 🎶';
+    const message = `${greeting}
+Ecco il modulo online per il tesseramento alla nostra Associazione / Sala Prove:
+🔗 ${formUrl}
+
+Bastano 2 minuti: compila comodamente dal telefono i dati anagrafici richiesti (le stesse domande del modulo d'iscrizione). La tua richiesta verrà salvata direttamente nei nostri sistemi.
+
+A presto!`;
+
+    const encodedMsg = encodeURIComponent(message);
+    const cleanPhone = (clientPhone || '').replace(/\D/g, '');
+    let waUrl = `https://wa.me/?text=${encodedMsg}`;
+    if (cleanPhone) {
+      const fullPhone = cleanPhone.startsWith('39') ? cleanPhone : `39${cleanPhone}`;
+      waUrl = `https://wa.me/${fullPhone}?text=${encodedMsg}`;
+    }
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopyFormLink = async () => {
+    try {
+      await navigator.clipboard.writeText(formUrl);
+      setHasCopiedFormLink(true);
+      setTimeout(() => setHasCopiedFormLink(false), 2500);
+    } catch (e) {
+      console.warn('Clipboard write error:', e);
+    }
+  };
+
+  const handleSaveFormUrl = (newUrl: string) => {
+    const trimmed = newUrl.trim() || defaultFormUrl;
+    setFormUrl(trimmed);
+    try {
+      localStorage.setItem('salaprove_tesseramento_form_url', trimmed);
+    } catch {}
+    setIsEditingFormUrl(false);
+  };
 
   // Gestione fotocamera
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -298,70 +362,189 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* Scheda Principale Banner Scansione */}
+      {/* Scheda Principale Modulo Online WhatsApp & Scansione */}
       {mode === 'idle' && (
-        <div className="relative overflow-hidden rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50/90 via-blue-50/60 to-purple-50/70 p-3.5 sm:p-4 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
-                <Sparkles className="w-5 h-5 animate-pulse" />
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-indigo-50/70 p-4 sm:p-5 shadow-sm space-y-3.5">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 shrink-0">
+                <MessageSquare className="w-5 h-5 fill-current" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-bold text-slate-900 tracking-tight">
-                    Compila da Modulo Cartaceo con IA
+              <div className="space-y-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+                    Invia Modulo Tesseramento su WhatsApp
                   </h4>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
-                    HTR Penna
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    Auto-Inserimento
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                    Stato: Da Saldare
                   </span>
                 </div>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  Scatta una foto al foglio cartaceo compilato a mano: l'IA compilerà automaticamente anagrafica, codice fiscale e dati!
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Invia ai tuoi contatti WhatsApp il link diretto al modulo con tutte le domande del file Excel.
+                  Quando compilato, il nuovo socio viene registrato <strong>automaticamente</strong> con stato <strong>"da saldare"</strong> e nell'ordine di inserimento cronologico per il registro Excel dell'ente.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            {/* Azioni Rapide WhatsApp e Link */}
+            <div className="flex flex-wrap items-center gap-2 shrink-0 self-start md:self-center">
               <button
                 type="button"
-                onClick={() => startCamera()}
-                className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Apri fotocamera per scattare una foto al modulo cartaceo"
+                onClick={handleSendWhatsAppInvite}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-700/25 flex items-center gap-2 transition-all cursor-pointer"
+                title={clientPhone ? `Invia link modulo via WhatsApp al numero ${clientPhone}` : 'Apri WhatsApp per inviare il link del modulo ai tuoi contatti'}
               >
-                <Camera className="w-4 h-4" />
-                <span>Scatta Foto</span>
+                <Send className="w-4 h-4" />
+                <span>Invia su WhatsApp</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:border-indigo-400 hover:bg-slate-50 active:scale-95 text-slate-700 font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Carica foto dalla galleria o dal computer"
+                onClick={handleCopyFormLink}
+                className="px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/50 active:scale-95 text-slate-700 font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Copia negli appunti il link diretto al modulo di tesseramento"
               >
-                <Upload className="w-4 h-4 text-slate-500" />
-                <span className="hidden xs:inline">Carica</span> Foto
+                {hasCopiedFormLink ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />
+                    <span className="text-emerald-700 font-bold">Link Copiato!</span>
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="w-4 h-4 text-slate-500" />
+                    <span>Copia Link</span>
+                  </>
+                )}
               </button>
 
+              <a
+                href={formUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-all"
+                title="Apri e compila direttamente il modulo in una nuova finestra"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                <span className="hidden sm:inline">Apri</span> Modulo
+              </a>
+            </div>
+          </div>
+
+          {/* Dettaglio Link / Possibilità di personalizzare con Modulo Google esterno */}
+          <div className="pt-2.5 border-t border-emerald-100/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-slate-500 min-w-0">
+              <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="text-[11px] font-medium text-slate-500 shrink-0">Link attuale:</span>
+              <span className="text-[11px] font-mono text-slate-700 truncate bg-white/70 px-2 py-0.5 rounded border border-slate-200/60 max-w-[280px] sm:max-w-[360px]">
+                {formUrl}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
               <button
                 type="button"
                 onClick={() => {
-                  setApiKeyInput(getGeminiApiKey());
-                  setIsApiKeyModalOpen(true);
+                  setCustomUrlInput(formUrl);
+                  setIsEditingFormUrl(!isEditingFormUrl);
                 }}
-                className={`p-2 rounded-lg border transition-colors cursor-pointer ${
-                  hasConfiguredKey
-                    ? 'border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-white'
-                    : 'border-amber-300 bg-amber-50 text-amber-700 animate-bounce'
-                }`}
-                title="Impostazioni Chiave API Gemini"
+                className="text-[11px] text-emerald-700 hover:text-emerald-900 font-medium underline cursor-pointer"
               >
-                <Key className="w-4 h-4" />
+                {isEditingFormUrl ? 'Chiudi personalizzazione' : 'Usa Modulo Google personalizzato'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowCameraSection(!showCameraSection)}
+                className="text-[11px] text-indigo-700 hover:text-indigo-900 font-medium flex items-center gap-1 cursor-pointer"
+              >
+                <Camera className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{showCameraSection ? 'Nascondi scanner foto' : 'Oppure scatta foto a modulo cartaceo'}</span>
+                {showCameraSection ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
             </div>
           </div>
 
+          {/* Editor Modulo Google Personalizzato */}
+          {isEditingFormUrl && (
+            <div className="p-3 rounded-xl bg-white/90 border border-emerald-200 space-y-2">
+              <div className="flex items-center justify-between text-xs text-slate-700 font-semibold">
+                <span>Personalizza URL Modulo (Modulo Integrato o Google Forms)</span>
+                <button
+                  type="button"
+                  onClick={() => handleSaveFormUrl(defaultFormUrl)}
+                  className="text-[11px] text-emerald-600 hover:underline cursor-pointer"
+                >
+                  Ripristina modulo web integrato
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="url"
+                  value={customUrlInput}
+                  onChange={(e) => setCustomUrlInput(e.target.value)}
+                  placeholder="https://docs.google.com/forms/d/e/.../viewform"
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSaveFormUrl(customUrlInput)}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs cursor-pointer"
+                >
+                  Salva Link
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Se lasci il modulo integrato di default, la compilazione viene inserita <strong>in tempo reale</strong> nei tesserati con stato "da saldare" ed esportata nel file Excel dell'ente a 17 colonne.
+              </p>
+            </div>
+          )}
+
+          {/* Sezione Espandibile: Scatta Foto con Fotocamera / IA */}
+          {showCameraSection && (
+            <div className="pt-3 border-t border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-indigo-50/40 p-3 rounded-xl border">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+                <span className="text-xs font-semibold text-slate-800">Scansione Modulo Cartaceo con IA (OCR Google Gemini)</span>
+              </div>
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => startCamera()}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Scatta Foto</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <Upload className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Carica Foto</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setApiKeyInput(getGeminiApiKey());
+                    setIsApiKeyModalOpen(true);
+                  }}
+                  className={`p-1.5 rounded-lg border cursor-pointer ${
+                    hasConfiguredKey ? 'border-slate-300 text-slate-500 hover:bg-white' : 'border-amber-300 bg-amber-50 text-amber-700 animate-pulse'
+                  }`}
+                  title="Chiave Google Gemini"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {errorMessage && (
-            <div className="mt-3 p-2.5 rounded-lg bg-rose-50 border border-rose-200 flex items-center gap-2 text-xs text-rose-700">
+            <div className="mt-2 p-2.5 rounded-lg bg-rose-50 border border-rose-200 flex items-center gap-2 text-xs text-rose-700">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{errorMessage}</span>
             </div>
