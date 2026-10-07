@@ -87,11 +87,11 @@ export const FinanceView: React.FC = () => {
     (c) => c.quotaPagata === false || c.statoQuota === 'da_saldare'
   );
   const membershipIncomePaid = paidMonthlyMemberships.reduce(
-    (sum, c) => sum + (c.quotaTesseramento || 15),
+    (sum, c) => sum + (c.quotaTesseramento || 10),
     0
   );
   const membershipIncomePending = pendingMonthlyMemberships.reduce(
-    (sum, c) => sum + (c.quotaTesseramento || 15),
+    (sum, c) => sum + (c.quotaTesseramento || 10),
     0
   );
 
@@ -100,7 +100,7 @@ export const FinanceView: React.FC = () => {
     (c) => c.quotaPagata !== false && c.statoQuota !== 'da_saldare'
   );
   const totalAllMembershipIncomePaid = allPaidMemberships.reduce(
-    (sum, c) => sum + (c.quotaTesseramento || 15),
+    (sum, c) => sum + (c.quotaTesseramento || 10),
     0
   );
 

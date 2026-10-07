@@ -142,7 +142,7 @@ export const PublicMembershipFormView: React.FC = () => {
         numeroTessera,
         dataTesseramento: todayISO,
         dataScadenzaTesseramento: scadenzaISO,
-        quotaTesseramento: 15,
+        quotaTesseramento: 10,
         // Quota da saldare come richiesto dall'utente per registrazione online
         statoQuota: 'da_saldare',
         quotaPagata: false,
@@ -247,11 +247,11 @@ export const PublicMembershipFormView: React.FC = () => {
                 <Clock className="w-4 h-4 text-amber-700" /> Stato Tesseramento:
               </span>
               <span className="text-xs font-black px-3 py-1 rounded-full bg-amber-200 text-amber-950 border border-amber-400">
-                DA SALDARE (€{submittedClient.quotaTesseramento})
+                DA SALDARE (€{submittedClient.quotaTesseramento || 10})
               </span>
             </div>
             <p className="text-xs sm:text-sm text-amber-900 leading-relaxed" style={{ color: '#78350f' }}>
-              La quota associativa annuale di <strong>€{submittedClient.quotaTesseramento},00</strong> potrà essere saldata al tuo primo arrivo in sala prove per il ritiro della tessera socio.
+              La quota associativa annuale di <strong>€{submittedClient.quotaTesseramento || 10},00</strong> potrà essere saldata al tuo primo arrivo in sala prove per il ritiro della tessera socio.
             </p>
           </div>
 
@@ -607,7 +607,7 @@ export const PublicMembershipFormView: React.FC = () => {
                   className="mt-1 w-5 h-5 rounded border-2 border-slate-400 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
                 />
                 <label htmlFor="accettaRegolamento" className="text-sm text-slate-800 cursor-pointer leading-relaxed font-medium" style={{ color: '#1e293b' }}>
-                  Dichiaro di aver preso visione dello <strong>Statuto e del Regolamento interno dell'Associazione</strong> e chiedo di essere ammesso in qualità di <strong>Socio Ordinario</strong>. Prendo atto che la quota associativa annuale di <strong>€15,00</strong> sarà registrata con stato <strong>"da saldare"</strong> e versata al primo accesso in sede.
+                  Dichiaro di aver preso visione dello <strong>Statuto e del Regolamento interno dell'Associazione</strong> e chiedo di essere ammesso in qualità di <strong>Socio Ordinario</strong>. Prendo atto che la quota associativa annuale di <strong>€10,00</strong> sarà registrata con stato <strong>"da saldare"</strong> e versata al primo accesso in sede.
                 </label>
               </div>
             </div>

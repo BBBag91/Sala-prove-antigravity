@@ -92,12 +92,12 @@ export const ClientsView: React.FC = () => {
   const quoteSaldateCount = clients.filter((c) => (c.quotaPagata !== false && c.statoQuota !== 'da_saldare')).length;
   const quoteSaldateTotal = clients
     .filter((c) => (c.quotaPagata !== false && c.statoQuota !== 'da_saldare'))
-    .reduce((sum, c) => sum + (c.quotaTesseramento || 15), 0);
+    .reduce((sum, c) => sum + (c.quotaTesseramento || 10), 0);
 
   const quoteDaSaldareCount = clients.filter((c) => (c.quotaPagata === false || c.statoQuota === 'da_saldare')).length;
   const quoteDaSaldareTotal = clients
     .filter((c) => (c.quotaPagata === false || c.statoQuota === 'da_saldare'))
-    .reduce((sum, c) => sum + (c.quotaTesseramento || 15), 0);
+    .reduce((sum, c) => sum + (c.quotaTesseramento || 10), 0);
 
   const handleToggleQuotaPayment = (client: Client) => {
     const isCurrentlyPaid = client.quotaPagata !== undefined ? client.quotaPagata : (client.statoQuota !== 'da_saldare');
@@ -535,12 +535,12 @@ export const ClientsView: React.FC = () => {
                     {client.quotaPagata === false || client.statoQuota === 'da_saldare' ? (
                       <>
                         <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        <span>Da saldare ({formatCurrency(client.quotaTesseramento || 15)})</span>
+                        <span>Da saldare ({formatCurrency(client.quotaTesseramento || 10)})</span>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>Saldato ({formatCurrency(client.quotaTesseramento || 15)})</span>
+                        <span>Saldato ({formatCurrency(client.quotaTesseramento || 10)})</span>
                       </>
                     )}
                   </button>

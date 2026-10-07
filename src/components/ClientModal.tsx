@@ -32,7 +32,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [numeroTessera, setNumeroTessera] = useState('');
   const [dataTesseramento, setDataTesseramento] = useState(formatDateToISO(new Date()));
   const [dataScadenzaTesseramento, setDataScadenzaTesseramento] = useState('');
-  const [quotaTesseramento, setQuotaTesseramento] = useState<string | number>(15);
+  const [quotaTesseramento, setQuotaTesseramento] = useState<string | number>(10);
   const [statoQuota, setStatoQuota] = useState<'pagato' | 'da_saldare'>('pagato');
   const [descrizioneStrumentazione, setDescrizioneStrumentazione] = useState('');
   const [gruppoBand, setGruppoBand] = useState('');
@@ -85,7 +85,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       const nextYear = new Date(today);
       nextYear.setFullYear(today.getFullYear() + 1);
       setDataScadenzaTesseramento(formatDateToISO(nextYear));
-      setQuotaTesseramento(15);
+      setQuotaTesseramento(10);
       setStatoQuota('pagato');
       setDescrizioneStrumentazione('');
       setGruppoBand('');
