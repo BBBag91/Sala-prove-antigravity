@@ -10,7 +10,7 @@ interface RoomsViewProps {
 }
 
 export const RoomsView: React.FC<RoomsViewProps> = ({ onNavigateToAnagrafica }) => {
-  const { rooms, bookings, deleteRoom, studioInfo } = useApp();
+  const { rooms, deleteRoom, studioInfo } = useApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roomToEdit, setRoomToEdit] = useState<Room | null>(null);
@@ -70,9 +70,6 @@ export const RoomsView: React.FC<RoomsViewProps> = ({ onNavigateToAnagrafica }) 
       {/* Rooms Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {rooms.map((room) => {
-          const roomBookings = bookings.filter((b) => b.salaId === room.id);
-          const totalHours = roomBookings.reduce((sum, b) => sum + (b.durataOre || 0), 0);
-
           return (
             <div
               key={room.id}
@@ -186,12 +183,8 @@ export const RoomsView: React.FC<RoomsViewProps> = ({ onNavigateToAnagrafica }) 
                 </div>
               </div>
 
-              {/* Bottom statistics & quick edit button */}
-              <div className="space-y-2 pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Prenotazioni registrate:</span>
-                  <strong className="text-slate-800">{roomBookings.length} ({totalHours}h)</strong>
-                </div>
+              {/* Quick edit button */}
+              <div className="pt-3 border-t border-slate-100">
                 <button
                   onClick={() => {
                     setRoomToEdit(room);
