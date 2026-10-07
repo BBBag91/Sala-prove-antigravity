@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Client } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { mapClientToDb } from '../services/supabaseService';
+import { supabaseService } from '../services/supabaseService';
 
 export const PublicMembershipFormView: React.FC = () => {
   // Form State
@@ -64,28 +64,64 @@ export const PublicMembershipFormView: React.FC = () => {
     try {
       const todayISO = new Date().toISOString().split('T')[0];
       const todayDate = new Date();
+      const currentYear = todayDate.getFullYear();
       const nextYear = new Date(todayDate);
-      nextYear.setFullYear(todayDate.getFullYear() + 1);
+      nextYear.setFullYear(currentYear + 1);
       const scadenzaISO = nextYear.toISOString().split('T')[0];
 
-      // Formatta la residenza completa
-      const fullResidenza = `${indirizzoResidenza.trim()}, ${capResidenza.trim()} ${comuneResidenza.trim()}`.trim();
+      // Formatta la residenza completa (es. "VIA COLLE D'ALBA DI PONENTE 852, 04016 SABAUDIA")
+      const fullResidenza = `${indirizzoResidenza.trim().toUpperCase()}, ${capResidenza.trim()} ${comuneResidenza.trim().toUpperCase()}`.trim();
 
-      // Leggi clienti esistenti per calcolare il numero progressivo tessera
-      let currentClients: Client[] = [];
-      try {
-        const stored = localStorage.getItem('salaprove_clients_v1');
-        if (stored) currentClients = JSON.parse(stored);
-      } catch {}
+      // Calcola il numero progressivo tessera interrogando Supabase per evitare duplicati
+      let nextProg = 1;
+      if (isSupabaseConfigured() && supabase) {
+        try {
+          const { data: dbClients, error: fetchErr } = await supabase
+            .from('clients')
+            .select('numero_tessera, created_at');
+          if (!fetchErr && dbClients && dbClients.length > 0) {
+            let maxProg = 0;
+            for (const c of dbClients) {
+              const match = c.numero_tessera?.match(new RegExp(`TS-${currentYear}-(\\d+)`));
+              if (match) {
+                const num = parseInt(match[1], 10);
+                if (!isNaN(num) && num > maxProg) maxProg = num;
+              }
+            }
+            nextProg = Math.max(maxProg + 1, dbClients.length + 1);
+          }
+        } catch (dbErr) {
+          console.warn('[PublicForm] Impossibile recuperare progressivo da Supabase, fallback a localStorage:', dbErr);
+        }
+      }
 
-      const nextProg = currentClients.length + 1;
-      const numeroTessera = `TS-${todayDate.getFullYear()}-${String(nextProg).padStart(3, '0')}`;
+      if (nextProg === 1) {
+        try {
+          const stored = localStorage.getItem('salaprove_clients_v1');
+          if (stored) {
+            const currentClients = JSON.parse(stored);
+            if (Array.isArray(currentClients) && currentClients.length > 0) {
+              let maxProgLocal = 0;
+              for (const c of currentClients) {
+                const match = c.numeroTessera?.match(new RegExp(`TS-${currentYear}-(\\d+)`));
+                if (match) {
+                  const num = parseInt(match[1], 10);
+                  if (!isNaN(num) && num > maxProgLocal) maxProgLocal = num;
+                }
+              }
+              nextProg = Math.max(maxProgLocal + 1, currentClients.length + 1);
+            }
+          }
+        } catch {}
+      }
+
+      const numeroTessera = `TS-${currentYear}-${String(nextProg).padStart(3, '0')}`;
 
       // Salva parti di residenza nelle note per l'export a 17 colonne dell'ente
       const residenzaMetadata = JSON.stringify({
-        indirizzo: indirizzoResidenza.trim(),
+        indirizzo: indirizzoResidenza.trim().toUpperCase(),
         cap: capResidenza.trim(),
-        comune: comuneResidenza.trim(),
+        comune: comuneResidenza.trim().toUpperCase(),
         nazioneNascita: nazioneNascita.trim(),
         nazioneCittadinanza: nazioneCittadinanza.trim(),
         discipline: discipline.trim(),
@@ -93,47 +129,48 @@ export const PublicMembershipFormView: React.FC = () => {
 
       const newClient: Client = {
         id: `cli-${Date.now()}`,
-        nome: nome.trim(),
-        cognome: cognome.trim(),
+        nome: nome.trim().toUpperCase(),
+        cognome: cognome.trim().toUpperCase(),
         codiceFiscale: cleanCf,
         sesso,
         dataNascita,
-        luogoNascita: luogoNascita.trim(),
+        luogoNascita: luogoNascita.trim().toUpperCase(),
         residenza: fullResidenza,
         telefono: telefono.trim(),
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         statoTesseramento: 'attivo',
         numeroTessera,
         dataTesseramento: todayISO,
         dataScadenzaTesseramento: scadenzaISO,
         quotaTesseramento: 15,
-        // ESPLICITAMENTE DA SALDARE come richiesto dall'utente
+        // Quota da saldare come richiesto dall'utente per registrazione online
         statoQuota: 'da_saldare',
         quotaPagata: false,
         descrizioneStrumentazione: discipline.trim(),
         gruppoBand: gruppoBand.trim() || undefined,
-        note: `Iscrizione inviata online via WhatsApp il ${new Date().toLocaleDateString('it-IT')} ore ${new Date().toLocaleTimeString('it-IT')}. [QUOTA_PAGAMENTO:da_saldare] [META_RESIDENZA:${residenzaMetadata}]`,
+        note: `Iscrizione inviata online via modulo il ${new Date().toLocaleDateString('it-IT')} ore ${new Date().toLocaleTimeString('it-IT')}. [QUOTA_PAGAMENTO:da_saldare] [META_RESIDENZA:${residenzaMetadata}]`,
       };
 
-      // 1. Salva in localStorage locale
-      const updatedClients = [...currentClients, newClient];
+      // 1. Salva direttamente su Supabase Cloud (con gestione fallback e schema cache)
+      if (isSupabaseConfigured()) {
+        const res = await supabaseService.upsertClient(newClient);
+        if (res?.error) {
+          console.error('[PublicForm] Errore salvataggio Supabase client:', res.error);
+          throw new Error(`Errore durante il salvataggio sul database: ${res.error.message || 'Errore database'}`);
+        }
+      }
+
+      // 2. Salva in localStorage locale
       try {
+        const stored = localStorage.getItem('salaprove_clients_v1');
+        const currentClients: Client[] = stored ? JSON.parse(stored) : [];
+        const exists = currentClients.some((c) => c.id === newClient.id || c.codiceFiscale === newClient.codiceFiscale);
+        const updatedClients = exists
+          ? currentClients.map((c) => (c.codiceFiscale === newClient.codiceFiscale ? newClient : c))
+          : [...currentClients, newClient];
         localStorage.setItem('salaprove_clients_v1', JSON.stringify(updatedClients));
       } catch (err) {
         console.warn('Errore salvataggio localStorage client:', err);
-      }
-
-      // 2. Salva direttamente su Supabase Cloud (se configurato)
-      if (isSupabaseConfigured()) {
-        try {
-          const dbRow = mapClientToDb(newClient);
-          const { error } = await supabase.from('clients').upsert(dbRow);
-          if (error) {
-            console.warn('Avviso inserimento Supabase (fallback locale attivo):', error);
-          }
-        } catch (dbErr) {
-          console.warn('Errore di rete Supabase:', dbErr);
-        }
       }
 
       setSubmittedClient(newClient);

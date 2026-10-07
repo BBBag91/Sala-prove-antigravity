@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Plus,
   Search,
@@ -22,6 +22,39 @@ import { formatDateItalian, formatDateToISO, formatCurrency } from '../utils/dat
 const ClientModal = React.lazy(() => import('./ClientModal').then(m => ({ default: m.ClientModal })));
 const MembershipCardPrintModal = React.lazy(() => import('./MembershipCardPrintModal').then(m => ({ default: m.MembershipCardPrintModal })));
 
+// Ordina i tesserati ESATTAMENTE in ordine di inserimento cronologico (dal primo tesserato al più recente)
+export const sortClientsChronologically = (list: Client[]): Client[] => {
+  return [...list].sort((a, b) => {
+    // 1. Data di tesseramento (es. 2026-10-03 prima di 2026-10-07)
+    if (a.dataTesseramento && b.dataTesseramento && a.dataTesseramento !== b.dataTesseramento) {
+      return a.dataTesseramento.localeCompare(b.dataTesseramento);
+    }
+    // 2. Numero progressivo tessera (es. TS-2026-001 -> 1, TS-2026-002 -> 2)
+    const getProg = (num?: string) => {
+      if (!num) return 0;
+      const m = num.match(/-(\d+)$/);
+      return m ? parseInt(m[1], 10) : 0;
+    };
+    const pA = getProg(a.numeroTessera);
+    const pB = getProg(b.numeroTessera);
+    if (pA && pB && pA !== pB) return pA - pB;
+
+    // 3. Timestamp ID progressivo (es. cli-1791035964119)
+    const getTs = (client: Client) => {
+      if (client.id?.startsWith('cli-')) {
+        const num = Number(client.id.replace('cli-', ''));
+        if (!isNaN(num)) return num;
+      }
+      return 0;
+    };
+    const tsA = getTs(a);
+    const tsB = getTs(b);
+    if (tsA && tsB && tsA !== tsB) return tsA - tsB;
+
+    return 0;
+  });
+};
+
 export const ClientsView: React.FC = () => {
   const { clients, deleteClient, updateClient } = useApp();
 
@@ -40,14 +73,17 @@ export const ClientsView: React.FC = () => {
     setIsPrintModalOpen(true);
   };
 
-  const filteredClients = clients.filter((c) => {
-    const fullText = `${c.nome} ${c.cognome} ${c.codiceFiscale} ${c.gruppoBand || ''} ${c.residenza}`.toLowerCase();
-    const matchSearch = fullText.includes(searchTerm.toLowerCase());
-    const matchStatus = statusFilter === 'all' || c.statoTesseramento === statusFilter;
-    const isPaid = c.quotaPagata !== undefined ? c.quotaPagata : (c.statoQuota !== 'da_saldare');
-    const matchQuota = quotaFilter === 'all' || (quotaFilter === 'pagato' ? isPaid : !isPaid);
-    return matchSearch && matchStatus && matchQuota;
-  });
+  const filteredClients = useMemo(() => {
+    const list = clients.filter((c) => {
+      const fullText = `${c.nome} ${c.cognome} ${c.codiceFiscale} ${c.gruppoBand || ''} ${c.residenza}`.toLowerCase();
+      const matchSearch = fullText.includes(searchTerm.toLowerCase());
+      const matchStatus = statusFilter === 'all' || c.statoTesseramento === statusFilter;
+      const isPaid = c.quotaPagata !== undefined ? c.quotaPagata : (c.statoQuota !== 'da_saldare');
+      const matchQuota = quotaFilter === 'all' || (quotaFilter === 'pagato' ? isPaid : !isPaid);
+      return matchSearch && matchStatus && matchQuota;
+    });
+    return sortClientsChronologically(list);
+  }, [clients, searchTerm, statusFilter, quotaFilter]);
 
   const activeCount = clients.filter((c) => c.statoTesseramento === 'attivo').length;
   const expiredCount = clients.filter((c) => c.statoTesseramento === 'scaduto').length;
@@ -112,23 +148,7 @@ export const ClientsView: React.FC = () => {
     };
 
     // Ordina i tesserati ESATTAMENTE in ordine di inserimento cronologico (dal più vecchio al più recente)
-    const sortedForExport = [...listToExport].sort((a, b) => {
-      const getTs = (client: Client) => {
-        if (client.id?.startsWith('cli-')) {
-          const num = Number(client.id.replace('cli-', ''));
-          if (!isNaN(num)) return num;
-        }
-        return 0;
-      };
-      const tsA = getTs(a);
-      const tsB = getTs(b);
-      if (tsA && tsB) return tsA - tsB;
-
-      if (a.dataTesseramento && b.dataTesseramento && a.dataTesseramento !== b.dataTesseramento) {
-        return a.dataTesseramento.localeCompare(b.dataTesseramento);
-      }
-      return clients.indexOf(a) - clients.indexOf(b);
-    });
+    const sortedForExport = sortClientsChronologically(listToExport);
 
     const parseResidenzaParts = (c: Client) => {
       let indirizzo = '';

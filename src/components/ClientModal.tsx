@@ -69,8 +69,17 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       setTelefono('+39 ');
       setEmail('');
       setStatoTesseramento('attivo');
-      const nextProgressive = String(clients.length + 1).padStart(3, '0');
-      setNumeroTessera(`TS-${new Date().getFullYear()}-${nextProgressive}`);
+      let maxProg = 0;
+      const curYear = new Date().getFullYear();
+      for (const cl of clients) {
+        const m = cl.numeroTessera?.match(new RegExp(`TS-${curYear}-(\\d+)`));
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > maxProg) maxProg = num;
+        }
+      }
+      const nextProgressive = String(Math.max(maxProg + 1, clients.length + 1)).padStart(3, '0');
+      setNumeroTessera(`TS-${curYear}-${nextProgressive}`);
       const today = new Date();
       setDataTesseramento(formatDateToISO(today));
       const nextYear = new Date(today);

@@ -373,6 +373,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             refreshFromCloud();
           }
         )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'clients' },
+          (payload) => {
+            console.log('[Supabase Realtime] Modifica tesserati rilevata da altro client:', payload);
+            refreshFromCloud();
+          }
+        )
         .subscribe();
 
       return () => {

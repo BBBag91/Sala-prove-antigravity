@@ -495,7 +495,7 @@ export const supabaseService = {
     ] = await Promise.all([
       supabase.from('rooms').select('*').order('nome'),
       supabase.from('staff').select('*').order('cognome'),
-      supabase.from('clients').select('*').order('cognome'),
+      supabase.from('clients').select('*').order('created_at', { ascending: true }),
       supabase.from('bookings').select('*').order('data', { ascending: true }),
       supabase.from('expenses').select('*').order('data', { ascending: false }),
       supabase.from('incomes').select('*').order('data', { ascending: false }),
