@@ -479,6 +479,40 @@ export const supabaseService = {
     }
   },
 
+  // Caricamento completo con paginazione e deduplicazione automatica
+  async fetchAllBookings(): Promise<Booking[]> {
+    if (!supabase) return [];
+    let all: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('data', { ascending: true })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      if (error || !data || data.length === 0) break;
+      all = all.concat(data);
+      if (data.length < pageSize) break;
+      page++;
+    }
+    const mapped = all.map(mapBookingFromDb);
+    // Deduplicazione a monte: 1 solo evento per slot (stessa data, sala, orario e cliente)
+    const seen = new Map<string, Booking>();
+    for (const b of mapped) {
+      const sig = `${b.data}###${b.salaId}###${b.oraInizio}###${b.oraFine}###${(b.clienteNome || '').trim().toLowerCase()}`;
+      if (!seen.has(sig)) {
+        seen.set(sig, b);
+      } else {
+        const existing = seen.get(sig)!;
+        if (existing.statoPagamento !== 'pagato' && b.statoPagamento === 'pagato') {
+          seen.set(sig, b);
+        }
+      }
+    }
+    return Array.from(seen.values());
+  },
+
   // Caricamento complessivo iniziale
   async fetchAll() {
     if (!supabase) return null;
@@ -487,7 +521,7 @@ export const supabaseService = {
       roomsRes,
       staffRes,
       clientsRes,
-      bookingsRes,
+      bookingsList,
       expensesRes,
       incomesRes,
       studioRes,
@@ -496,7 +530,7 @@ export const supabaseService = {
       supabase.from('rooms').select('*').order('nome'),
       supabase.from('staff').select('*').order('cognome'),
       supabase.from('clients').select('*').order('created_at', { ascending: true }),
-      supabase.from('bookings').select('*').order('data', { ascending: true }),
+      this.fetchAllBookings(),
       supabase.from('expenses').select('*').order('data', { ascending: false }),
       supabase.from('incomes').select('*').order('data', { ascending: false }),
       supabase.from('studio_info').select('*').limit(1).maybeSingle(),
@@ -515,7 +549,7 @@ export const supabaseService = {
       rooms: (roomsRes.data || []).map(mapRoomFromDb),
       staff: (staffRes.data || []).map(mapStaffFromDb),
       clients: (clientsRes.data || []).map(mapClientFromDb),
-      bookings: (bookingsRes.data || []).map(mapBookingFromDb),
+      bookings: bookingsList,
       expenses: (expensesRes.data || []).map(mapExpenseFromDb),
       incomes: (incomesRes.data || []).map(mapIncomeFromDb),
       studioInfo: studioRes.data ? mapStudioInfoFromDb(studioRes.data) : null,

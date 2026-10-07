@@ -111,6 +111,23 @@ function safeLocalStorageSet(key: string, value: unknown): void {
   }
 }
 
+// Deduplicazione robusta a monte: garantisce un solo evento per data, sala, orario e cliente
+export function deduplicateBookings(bookingsList: Booking[]): Booking[] {
+  const seen = new Map<string, Booking>();
+  for (const b of bookingsList) {
+    const sig = `${b.data}###${b.salaId}###${b.oraInizio}###${b.oraFine}###${(b.clienteNome || '').trim().toLowerCase()}`;
+    if (!seen.has(sig)) {
+      seen.set(sig, b);
+    } else {
+      const existing = seen.get(sig)!;
+      if (existing.statoPagamento !== 'pagato' && b.statoPagamento === 'pagato') {
+        seen.set(sig, b);
+      }
+    }
+  }
+  return Array.from(seen.values());
+}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [studioInfo, setStudioInfo] = useState<StudioInfo>(() =>
     safeLocalStorageGet(STORAGE_KEYS.STUDIO, DEFAULT_STUDIO_INFO)
@@ -141,7 +158,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
     const parsed = safeLocalStorageGet<Booking[]>(STORAGE_KEYS.BOOKINGS, INITIAL_BOOKINGS);
-    return parsed.map((b) => {
+    const sanitized = parsed.map((b) => {
       if (b.id === 'book-1' && !b.richiesteStrumentazione?.includes('Batteria 5 pezzi')) {
         return {
           ...b,
@@ -151,6 +168,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return b;
     });
+    return deduplicateBookings(sanitized);
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() =>
@@ -290,7 +308,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
             return b;
           });
-          setBookings(sanitized);
+          setBookings(deduplicateBookings(sanitized));
         }
         if (remote.clients && remote.clients.length > 0) setClients(remote.clients);
         if (remote.expenses.length > 0) setExpenses(remote.expenses);
@@ -669,7 +687,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Booking CRUD with recurrence support
+  // Booking CRUD with recurrence support & anti-duplication
   const addBooking = (
     bookingData: Omit<Booking, 'id' | 'durataOre'> & {
       repeatWeeks?: number;
@@ -679,63 +697,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const duration = calculateDurationHours(bookingData.oraInizio, bookingData.oraFine);
 
     let datesToBook: string[] = [bookingData.data];
-    let isRecurring = false;
-    let recurrenceId: string | undefined = undefined;
+    let isRecurring = Boolean(bookingData.ripetizioneSettimanale || (bookingData.recurrenceConfig && bookingData.recurrenceConfig.attiva));
+    let recurrenceId: string | undefined = bookingData.gruppoRicorrenzaId;
 
-    if (bookingData.recurrenceConfig && bookingData.recurrenceConfig.attiva) {
-      datesToBook = generateRecurrenceDates(bookingData.data, bookingData.recurrenceConfig);
-      isRecurring = datesToBook.length > 1;
-      if (isRecurring) {
-        recurrenceId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      }
-    } else if (bookingData.ripetizioneSettimanale) {
-      const repeatWeeks = bookingData.repeatWeeks || 4;
-      datesToBook = [];
-      const baseDate = parseISODate(bookingData.data);
-      for (let i = 0; i < repeatWeeks; i++) {
-        const occurrenceDate = new Date(baseDate);
-        occurrenceDate.setDate(baseDate.getDate() + i * 7);
-        datesToBook.push(formatDateToISO(occurrenceDate));
-      }
-      isRecurring = datesToBook.length > 1;
-      if (isRecurring) {
-        recurrenceId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    // Espandi le occorrenze future SOLO se l'evento non appartiene già a una serie ricorrente esistente
+    if (!bookingData.gruppoRicorrenzaId) {
+      if (bookingData.recurrenceConfig && bookingData.recurrenceConfig.attiva) {
+        datesToBook = generateRecurrenceDates(bookingData.data, bookingData.recurrenceConfig);
+        isRecurring = datesToBook.length > 1;
+        if (isRecurring) {
+          recurrenceId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        }
+      } else if (bookingData.ripetizioneSettimanale) {
+        const repeatWeeks = bookingData.repeatWeeks || 4;
+        datesToBook = [];
+        const baseDate = parseISODate(bookingData.data);
+        for (let i = 0; i < repeatWeeks; i++) {
+          const occurrenceDate = new Date(baseDate);
+          occurrenceDate.setDate(baseDate.getDate() + i * 7);
+          datesToBook.push(formatDateToISO(occurrenceDate));
+        }
+        isRecurring = datesToBook.length > 1;
+        if (isRecurring) {
+          recurrenceId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        }
       }
     }
 
-    const isLesson = isLessonBooking(bookingData);
+    setBookings((prev) => {
+      // Protezione anti-duplicati a monte: scarta date in cui esiste già identica prenotazione per lo stesso slot/cliente
+      const existingSignatures = new Set(
+        prev.map((b) => `${b.data}###${b.salaId}###${b.oraInizio}###${b.oraFine}###${(b.clienteNome || '').trim().toLowerCase()}`)
+      );
 
-    const newBookings: Booking[] = datesToBook.map((dateStr, idx) => ({
-      id: `book-${Date.now()}-${idx}`,
-      clienteId: bookingData.clienteId,
-      clienteNome: bookingData.clienteNome,
-      salaId: bookingData.salaId,
-      salaNome: bookingData.salaNome,
-      tipo: isLesson ? 'lezione' : (bookingData.tipo || 'prove'),
-      insegnanteId: isLesson ? bookingData.insegnanteId : undefined,
-      insegnanteNome: isLesson ? bookingData.insegnanteNome : undefined,
-      data: dateStr,
-      oraInizio: bookingData.oraInizio,
-      oraFine: bookingData.oraFine,
-      durataOre: duration,
-      ripetizioneSettimanale: isRecurring,
-      gruppoRicorrenzaId: recurrenceId,
-      settimaneRipetizione: datesToBook.length,
-      recurrenceConfig: bookingData.recurrenceConfig,
-      operatoreAssegnatoId: isLesson ? undefined : bookingData.operatoreAssegnatoId,
-      operatoreAssegnatoNome: isLesson ? undefined : bookingData.operatoreAssegnatoNome,
-      tariffaTotale: isLesson ? 0 : bookingData.tariffaTotale,
-      sconto: isLesson ? 0 : (bookingData.sconto || 0),
-      statoPagamento: isLesson ? 'pagato' : (idx === 0 ? bookingData.statoPagamento : 'da_saldare'),
-      metodoPagamento: isLesson ? undefined : (idx === 0 ? bookingData.metodoPagamento : undefined),
-      richiesteStrumentazione: bookingData.richiesteStrumentazione,
-      note: bookingData.note,
-    }));
+      const uniqueDates = datesToBook.filter((d) => {
+        const sig = `${d}###${bookingData.salaId}###${bookingData.oraInizio}###${bookingData.oraFine}###${(bookingData.clienteNome || '').trim().toLowerCase()}`;
+        return !existingSignatures.has(sig);
+      });
 
-    setBookings((prev) => [...prev, ...newBookings]);
-    if (configured) {
-      supabaseService.upsertMultipleBookings(newBookings).catch(console.error);
-    }
+      if (uniqueDates.length === 0) {
+        return prev;
+      }
+
+      const isLesson = isLessonBooking(bookingData);
+      const newBookings: Booking[] = uniqueDates.map((dateStr, idx) => ({
+        id: `book-${Date.now()}-${idx}`,
+        clienteId: bookingData.clienteId,
+        clienteNome: bookingData.clienteNome,
+        salaId: bookingData.salaId,
+        salaNome: bookingData.salaNome,
+        tipo: isLesson ? 'lezione' : (bookingData.tipo || 'prove'),
+        insegnanteId: isLesson ? bookingData.insegnanteId : undefined,
+        insegnanteNome: isLesson ? bookingData.insegnanteNome : undefined,
+        data: dateStr,
+        oraInizio: bookingData.oraInizio,
+        oraFine: bookingData.oraFine,
+        durataOre: duration,
+        ripetizioneSettimanale: isRecurring,
+        gruppoRicorrenzaId: recurrenceId,
+        settimaneRipetizione: datesToBook.length,
+        recurrenceConfig: bookingData.recurrenceConfig,
+        operatoreAssegnatoId: isLesson ? undefined : bookingData.operatoreAssegnatoId,
+        operatoreAssegnatoNome: isLesson ? undefined : bookingData.operatoreAssegnatoNome,
+        tariffaTotale: isLesson ? 0 : bookingData.tariffaTotale,
+        sconto: isLesson ? 0 : (bookingData.sconto || 0),
+        statoPagamento: isLesson ? 'pagato' : (idx === 0 ? bookingData.statoPagamento : 'da_saldare'),
+        metodoPagamento: isLesson ? undefined : (idx === 0 ? bookingData.metodoPagamento : undefined),
+        richiesteStrumentazione: bookingData.richiesteStrumentazione,
+        note: bookingData.note,
+      }));
+
+      if (configured && newBookings.length > 0) {
+        supabaseService.upsertMultipleBookings(newBookings).catch(console.error);
+      }
+
+      return deduplicateBookings([...prev, ...newBookings]);
+    });
   };
 
   const updateBooking = (updated: Booking) => {

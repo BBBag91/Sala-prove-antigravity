@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig, DeleteRecurringMode } from '../types';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 import { PastBookingConfirmModal } from './PastBookingConfirmModal';
-import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime, getHolidayOrSundayInfo } from '../utils/dateUtils';
+import { calculateDurationHours, formatDateToISO, getRecurrenceSummary, parseISODate, timeToMinutes, minutesToTime, getHolidayOrSundayInfo, generateRecurrenceDates } from '../utils/dateUtils';
 import { RecurrenceModal } from './RecurrenceModal';
 import { SmartTimePicker } from './SmartTimePicker';
 import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
@@ -48,6 +48,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Se l'utente è un insegnante autenticato e non admin, assegna automaticamente se stesso
   const isAutoTeacher = Boolean(isTeacher && !isAdmin && currentTeacherStaff);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [clienteId, setClienteId] = useState(() => bookingToEdit?.clienteId || '');
   const [isManualClient, setIsManualClient] = useState(() => {
     if (bookingToEdit) {
@@ -609,12 +610,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           note,
         });
 
-        // Genera le occorrenze future a partire dalla settimana successiva
-        const baseDate = parseISODate(data);
-        for (let i = 1; i < weeks; i++) {
-          const nextDate = new Date(baseDate);
-          nextDate.setDate(baseDate.getDate() + i * 7);
-          const nextDateStr = formatDateToISO(nextDate);
+        // Genera le occorrenze future a partire dalla data successiva usando generateRecurrenceDates
+        const allDates = activeConfig
+          ? generateRecurrenceDates(data, activeConfig)
+          : Array.from({ length: weeks }, (_, i) => {
+              const d = new Date(parseISODate(data));
+              d.setDate(d.getDate() + i * 7);
+              return formatDateToISO(d);
+            });
+        const futureDates = allDates.filter((dStr) => dStr !== data);
+
+        for (const nextDateStr of futureDates) {
           addBooking({
             clienteId: finalClienteId,
             clienteNome: clientDisplayName,
@@ -628,8 +634,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             oraFine,
             ripetizioneSettimanale: true,
             gruppoRicorrenzaId: newRecId,
-            settimaneRipetizione: weeks,
-            recurrenceConfig: activeConfig,
+            settimaneRipetizione: allDates.length,
+            // CRITICO: recurrenceConfig deve essere undefined nelle singole occorrenze future per evitare espansioni ricorsive esponenziali
+            recurrenceConfig: undefined,
             operatoreAssegnatoId: finalOperatoreId,
             operatoreAssegnatoNome: finalOperatoreNome,
             tariffaTotale: finalTariffaTotale,
@@ -784,6 +791,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     const finalClienteNome = isManualClient
       ? manualClientName.trim()
       : selectedClient
@@ -856,6 +864,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       return;
     }
 
+    setIsSubmitting(true);
     executeActualSave();
   };
 
@@ -965,7 +974,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 return (
                   <button
                     type="submit"
-                    disabled={isBookingBlocked}
+                    disabled={isBookingBlocked || isSubmitting}
                     className={`px-5 py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center gap-2 ${
                       isBookingBlocked
                         ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'

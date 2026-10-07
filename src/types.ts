@@ -45,7 +45,7 @@ export interface AuthUser {
  */
 export interface UserPreferences {
   theme?: 'dark' | 'light';
-  calendarViewMode?: 'day' | '3days' | 'week';
+  calendarViewMode?: 'day' | '3days' | 'week' | 'month';
   calendarCellHeight?: number;
   showShiftsInGrid?: boolean;
   calendarRoomFilter?: string;

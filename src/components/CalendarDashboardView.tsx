@@ -39,6 +39,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { Booking, BookingType, DailyShiftComputed, DeleteRecurringMode, PaymentMethod, PaymentStatus, isLessonBooking } from '../types';
+import { MonthCalendarView } from './MonthCalendarView';
+import { MonthCalendarDropdown } from './MonthCalendarDropdown';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 import {
   formatDateToISO,
@@ -109,7 +111,7 @@ const COLOR_PALETTE = [
   { bg: '#475569', border: '#334155', text: '#ffffff' }, // Grigio ardesia
 ];
 
-type ViewMode = 'day' | '3days' | 'week';
+type ViewMode = 'day' | '3days' | 'week' | 'month';
 
 interface CalendarDashboardViewProps {
   onNavigateToTurni?: () => void;
@@ -228,6 +230,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   // Quick Date/Month Picker state
   const [isQuickDatePickerOpen, setIsQuickDatePickerOpen] = useState(false);
   const [quickPickerYear, setQuickPickerYear] = useState<number>(() => today.getFullYear());
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
 
   // Drag-to-move booking on grid state
   const gridScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -295,7 +298,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   const displayDayStrs = displayDays.map(formatDateToISO);
 
   // Labels
-  const dominantMonth = viewMode === 'day' ? currentDate : displayDays[Math.min(displayDays.length - 1, 1)];
+  const dominantMonth = (viewMode === 'day' || viewMode === 'month') ? currentDate : displayDays[Math.min(displayDays.length - 1, 1)];
   const monthLabel = MESI_ITALIANI[dominantMonth.getMonth()];
   const yearLabel = dominantMonth.getFullYear();
   const weekNum = isoWeek(weekStart);
@@ -307,6 +310,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       setCurrentDate(d => addDays(d, -1));
     } else if (viewMode === '3days') {
       setCurrentDate(d => addDays(d, -3));
+    } else if (viewMode === 'month') {
+      setCurrentDate(d => addMonths(d, -1));
     } else {
       setCurrentDate(d => addDays(d, -7));
     }
@@ -318,6 +323,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       setCurrentDate(d => addDays(d, 1));
     } else if (viewMode === '3days') {
       setCurrentDate(d => addDays(d, 3));
+    } else if (viewMode === 'month') {
+      setCurrentDate(d => addMonths(d, 1));
     } else {
       setCurrentDate(d => addDays(d, 7));
     }
@@ -1117,33 +1124,63 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               </button>
             </div>
 
-            {/* Clickable Title that opens Quick Date/Month Picker */}
-            <button
-              type="button"
-              onClick={() => {
-                setQuickPickerYear(dominantMonth.getFullYear());
-                setIsQuickDatePickerOpen(true);
-              }}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-900 border border-transparent hover:border-slate-300 dark:hover:border-yellow-500/30 transition-all text-left cursor-pointer group"
-              title="Clicca per aprire il selettore rapido di Mesi, Anni e Settimane"
-            >
-              <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-yellow-400 group-hover:scale-110 transition-transform shrink-0" />
-              <h2 className="text-xs sm:text-base font-bold text-slate-900 dark:text-yellow-100 group-hover:text-blue-600 dark:group-hover:text-yellow-300 tracking-tight truncate flex items-center gap-1.5">
-                <span>{titleText}</span>
-                <ChevronDown className="w-3 h-3 text-slate-400 dark:text-yellow-400/70 group-hover:text-blue-600 dark:group-hover:text-yellow-300 transition-transform" />
-              </h2>
-              {viewMode === 'week' && (
-                <span className="hidden sm:inline text-[10px] sm:text-[11px] font-mono text-blue-700 dark:text-yellow-400/80 bg-blue-50 dark:bg-neutral-900 border border-blue-200 dark:border-yellow-500/30 px-1.5 py-0.5 rounded shrink-0">
-                  S{weekNum}
-                </span>
-              )}
-            </button>
+            {/* Clickable Title that opens Month Calendar Dropdown or Quick Picker */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsMonthDropdownOpen(prev => !prev)}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-900 border border-transparent hover:border-slate-300 dark:hover:border-yellow-500/30 transition-all text-left cursor-pointer group"
+                title="Clicca per aprire la visualizzazione rapida del mese (l m m g v s d)"
+              >
+                <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-yellow-400 group-hover:scale-110 transition-transform shrink-0" />
+                <h2 className="text-xs sm:text-base font-bold text-slate-900 dark:text-yellow-100 group-hover:text-blue-600 dark:group-hover:text-yellow-300 tracking-tight truncate flex items-center gap-1.5">
+                  <span>{titleText}</span>
+                  {isMonthDropdownOpen ? (
+                    <ChevronUp className="w-3 h-3 text-blue-600 dark:text-yellow-400 stroke-[3]" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3 text-slate-400 dark:text-yellow-400/70 group-hover:text-blue-600 dark:group-hover:text-yellow-300 transition-transform" />
+                  )}
+                </h2>
+                {viewMode === 'week' && (
+                  <span className="hidden sm:inline text-[10px] sm:text-[11px] font-mono text-blue-700 dark:text-yellow-400/80 bg-blue-50 dark:bg-neutral-900 border border-blue-200 dark:border-yellow-500/30 px-1.5 py-0.5 rounded shrink-0">
+                    S{weekNum}
+                  </span>
+                )}
+              </button>
+
+              {/* Dropdown rapido del mese stile screenshot (l m m g v s d con pallini stato) */}
+              <MonthCalendarDropdown
+                isOpen={isMonthDropdownOpen}
+                onClose={() => setIsMonthDropdownOpen(false)}
+                currentDate={currentDate}
+                onSelectDate={(newDate) => {
+                  setCurrentDate(newDate);
+                  setSelectedDateForBooking(formatDateToISO(newDate));
+                }}
+                onOpenNewBooking={(dateStr) => {
+                  setSelectedDateForBooking(dateStr);
+                  setSelectedStartTimeForBooking('18:00');
+                  setSelectedTypeForBooking(undefined);
+                  setBookingToEdit(null);
+                  setIsBookingModalOpen(true);
+                }}
+                onSwitchToMonthView={() => {
+                  handleSetViewMode('month');
+                }}
+                onSwitchToDayView={(targetDate) => {
+                  setCurrentDate(targetDate);
+                  handleSetViewMode('day');
+                }}
+                bookings={filteredBookings}
+                subtitle="La musica fa..."
+              />
+            </div>
           </div>
 
           {/* Right: View Mode Toggle & Zoom & Action Button */}
           <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 flex-wrap">
             
-            {/* View Mode Toggle: 1G / 3G / 7G */}
+            {/* View Mode Toggle: 1G / 3G / 7G / Mese */}
             <div className="flex items-center bg-slate-100 dark:bg-[#141414] rounded-xl p-1 border border-slate-200 dark:border-yellow-500/30 shrink-0">
               <button
                 onClick={() => handleSetViewMode('day')}
@@ -1180,6 +1217,18 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               >
                 <span className="sm:hidden">7G</span>
                 <span className="hidden sm:inline">Settimana</span>
+              </button>
+              <button
+                onClick={() => handleSetViewMode('month')}
+                className={`px-2.5 sm:px-3 py-1.5 min-h-[38px] sm:min-h-[44px] rounded-lg text-xs font-bold transition-all touch-manipulation touch-active ${
+                  viewMode === 'month'
+                    ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black shadow-xs font-black'
+                    : 'text-slate-600 dark:text-yellow-300/80 hover:text-blue-600 dark:hover:text-yellow-300 hover:bg-white dark:hover:bg-neutral-800'
+                }`}
+                title="Vista Tutto il Mese (Visualizzazione completa con selezione giorno)"
+              >
+                <span className="sm:hidden">Mese</span>
+                <span className="hidden sm:inline">Mese</span>
               </button>
             </div>
 
@@ -1358,7 +1407,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         </div>
 
         {/* Row 3 (Optional): Weekdays Quick-Picker for 1G and 3G mode */}
-        {viewMode !== 'week' && (
+        {viewMode !== 'week' && viewMode !== 'month' && (
           <div className="flex items-center gap-1 overflow-x-auto py-1.5 px-2 bg-slate-50 dark:bg-neutral-950 border-t border-slate-200 dark:border-yellow-500/20 no-scrollbar">
             <span className="text-[10px] text-slate-500 dark:text-yellow-500/70 font-bold uppercase tracking-wider shrink-0 mr-1">
               Giorni:
@@ -1479,14 +1528,45 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         </div>
       )}
 
-      {/* -- Time Grid with Zoom & Mobile Scroll & Touch Swipe Navigation -- */}
-      <div
-        className="bg-white dark:bg-[#0c0c0c] rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-sm overflow-hidden flex flex-col touch-pan-y"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchCancel}
-      >
+      {/* -- Time Grid with Zoom & Mobile Scroll & Touch Swipe Navigation OR Full Month View -- */}
+      {viewMode === 'month' ? (
+        <MonthCalendarView
+          currentDate={currentDate}
+          onSelectDate={(newDate) => {
+            setCurrentDate(newDate);
+            setSelectedDateForBooking(formatDateToISO(newDate));
+          }}
+          onOpenNewBooking={(dateStr) => {
+            setSelectedDateForBooking(dateStr);
+            setSelectedStartTimeForBooking('18:00');
+            setSelectedTypeForBooking(undefined);
+            setBookingToEdit(null);
+            setIsBookingModalOpen(true);
+          }}
+          onOpenEditBooking={handleOpenEditBooking}
+          onDeleteBooking={handleDeleteBooking}
+          onQuickTogglePayment={handleQuickTogglePayment}
+          onSwitchToDayView={(targetDate) => {
+            setCurrentDate(targetDate);
+            handleSetViewMode('day');
+          }}
+          bookings={filteredBookings}
+          rooms={rooms}
+          staff={staff}
+          isDark={isDark}
+          isAdmin={isAdmin}
+          onPrevMonth={handlePrevMonth}
+          onNextMonth={handleNextMonth}
+          onGoToday={handleGoToday}
+        />
+      ) : (
+        <div
+          className="bg-white dark:bg-[#0c0c0c] rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-sm overflow-hidden flex flex-col touch-pan-y"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
+        >
         
         {/* Scrollable Container with sticky headers & sticky hour column */}
         <div
@@ -1564,12 +1644,9 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 {/* Date / Month Picker right beside the buttons */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setQuickPickerYear(dominantMonth.getFullYear());
-                    setIsQuickDatePickerOpen(true);
-                  }}
+                  onClick={() => setIsMonthDropdownOpen(prev => !prev)}
                   className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white dark:bg-neutral-900/90 hover:bg-blue-50 dark:hover:bg-yellow-400/20 text-slate-800 dark:text-yellow-200 hover:text-blue-600 dark:hover:text-yellow-400 border border-slate-200 dark:border-yellow-500/40 text-xs font-bold transition-all cursor-pointer group shrink-0 shadow-2xs"
-                  title="Clicca per aprire il selettore rapido di Mesi, Anni e Settimane"
+                  title="Clicca per aprire la visualizzazione mensile rapida"
                 >
                   <CalendarDays className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400 group-hover:scale-110 transition-transform" />
                   <span className="font-extrabold tracking-tight">{monthLabel} {yearLabel}</span>
@@ -2625,6 +2702,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* Floating + button (mobile) */}
       <button
