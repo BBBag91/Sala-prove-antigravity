@@ -805,7 +805,12 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
           ((booking.insegnanteId && other.insegnanteId && booking.insegnanteId === other.insegnanteId) ||
            (booking.insegnanteNome && other.insegnanteNome && booking.insegnanteNome.trim().toLowerCase() === other.insegnanteNome.trim().toLowerCase()));
 
-        return isSameRoom || isSameTeacher;
+        // Conflitto Cliente/Allievo (un allievo/cliente non può essere prenotato in più sale contemporaneamente)
+        const isSameClient =
+          Boolean(booking.clienteNome && other.clienteNome &&
+          booking.clienteNome.trim().toLowerCase() === other.clienteNome.trim().toLowerCase());
+
+        return isSameRoom || isSameTeacher || isSameClient;
       });
 
       const conflictDescriptions = conflicts.map((c) => {
@@ -815,7 +820,13 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
           c.tipo === 'lezione' &&
           ((booking.insegnanteId && c.insegnanteId && booking.insegnanteId === c.insegnanteId) ||
            (booking.insegnanteNome && c.insegnanteNome && booking.insegnanteNome.trim().toLowerCase() === c.insegnanteNome.trim().toLowerCase()));
+        const isClientConflict =
+          Boolean(booking.clienteNome && c.clienteNome &&
+          booking.clienteNome.trim().toLowerCase() === c.clienteNome.trim().toLowerCase());
 
+        if (isClientConflict && !isRoomConflict) {
+          return `Cliente/Allievo "${booking.clienteNome}" ha già un evento in ${c.salaNome || 'altra sala'}`;
+        }
         if (isRoomConflict && isTeacherConflict) {
           return `Sala e Insegnante: ${c.clienteNome}`;
         }

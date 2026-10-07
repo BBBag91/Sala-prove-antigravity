@@ -497,20 +497,47 @@ export const supabaseService = {
       page++;
     }
     const mapped = all.map(mapBookingFromDb);
-    // Deduplicazione a monte: 1 solo evento per slot (stessa data, sala, orario e cliente)
-    const seen = new Map<string, Booking>();
+    // Deduplicazione a monte:
+    // 1. Unico evento per slot esatto (data, sala, orario, cliente)
+    // 2. Unico evento per lo stesso cliente nello stesso orario su sale diverse (predilige Studiolo per lezioni)
+    const seenExact = new Map<string, Booking>();
     for (const b of mapped) {
       const sig = `${b.data}###${b.salaId}###${b.oraInizio}###${b.oraFine}###${(b.clienteNome || '').trim().toLowerCase()}`;
-      if (!seen.has(sig)) {
-        seen.set(sig, b);
+      if (!seenExact.has(sig)) {
+        seenExact.set(sig, b);
       } else {
-        const existing = seen.get(sig)!;
+        const existing = seenExact.get(sig)!;
         if (existing.statoPagamento !== 'pagato' && b.statoPagamento === 'pagato') {
-          seen.set(sig, b);
+          seenExact.set(sig, b);
         }
       }
     }
-    return Array.from(seen.values());
+
+    const clientSlotMap = new Map<string, Booking>();
+    for (const b of seenExact.values()) {
+      const clientNorm = (b.clienteNome || '').trim().toLowerCase();
+      if (!clientNorm) {
+        clientSlotMap.set(b.id, b);
+        continue;
+      }
+      const slotKey = `${b.data}###${b.oraInizio}###${b.oraFine}###${clientNorm}`;
+      if (!clientSlotMap.has(slotKey)) {
+        clientSlotMap.set(slotKey, b);
+      } else {
+        const existing = clientSlotMap.get(slotKey)!;
+        const bIsStudiolo = (b.salaNome || '').toLowerCase().includes('studiolo') || b.salaId.includes('1790981409646');
+        const existingIsStudiolo = (existing.salaNome || '').toLowerCase().includes('studiolo') || existing.salaId.includes('1790981409646');
+        if (bIsStudiolo && !existingIsStudiolo) {
+          clientSlotMap.set(slotKey, b);
+        } else if (!bIsStudiolo && existingIsStudiolo) {
+          // mantieni existing (Studiolo)
+        } else if (existing.statoPagamento !== 'pagato' && b.statoPagamento === 'pagato') {
+          clientSlotMap.set(slotKey, b);
+        }
+      }
+    }
+
+    return Array.from(clientSlotMap.values());
   },
 
   // Caricamento complessivo iniziale

@@ -496,6 +496,49 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return map;
   }, [bookings, bookingToEdit, data, oraInizio, oraFine, staff]);
 
+  // Nome normalizzato del cliente attualmente selezionato o inserito manualmente
+  const normalizedCurrentClientName = useMemo(() => {
+    if (isManualClient) return manualClientName.trim().toLowerCase();
+    const cl = clients.find((c) => c.id === clienteId);
+    return cl ? `${cl.nome} ${cl.cognome}`.trim().toLowerCase() : '';
+  }, [isManualClient, manualClientName, clienteId, clients]);
+
+  // Sovrapposizioni orarie per il cliente selezionato (un allievo/cliente non può essere prenotato in più sale contemporaneamente)
+  const overlappingBookingsByClient = useMemo(() => {
+    const list: Booking[] = [];
+    if (!data || !oraInizio || !oraFine || !normalizedCurrentClientName) return list;
+
+    const startM = timeToMinutes(oraInizio);
+    let endM = timeToMinutes(oraFine);
+    if (endM <= startM) endM += 24 * 60;
+
+    bookings.forEach((b) => {
+      if (bookingToEdit && b.id === bookingToEdit.id) return;
+      if (b.data !== data) return;
+
+      const bClientName = (b.clienteNome || '').trim().toLowerCase();
+      if (!bClientName) return;
+
+      const isMatch =
+        (!isManualClient && clienteId && b.clienteId === clienteId) ||
+        bClientName === normalizedCurrentClientName ||
+        bClientName.startsWith(normalizedCurrentClientName + ' ') ||
+        normalizedCurrentClientName.startsWith(bClientName + ' ');
+
+      if (!isMatch) return;
+
+      const bStart = timeToMinutes(b.oraInizio);
+      let bEnd = timeToMinutes(b.oraFine);
+      if (bEnd <= bStart) bEnd += 24 * 60;
+
+      if (startM < bEnd && endM > bStart) {
+        list.push(b);
+      }
+    });
+
+    return list;
+  }, [bookings, bookingToEdit, data, oraInizio, oraFine, normalizedCurrentClientName, isManualClient, clienteId]);
+
   // Insegnanti candidati
   const teacherCandidates = useMemo(() => {
     return staff.filter(
@@ -852,6 +895,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         `Impossibile inserire la lezione:\n\n${teacherName} risulta già impegnato/a in un'altra lezione il ${data} nella fascia oraria ${oraInizio} - ${oraFine} con:\n${conflicts
           .map((c) => `• ${c.clienteNome} in ${c.salaNome || 'Sala'} (${c.oraInizio} - ${c.oraFine})`)
           .join('\n')}\n\nUn insegnante non può essere assegnato a più lezioni nello stesso orario. Seleziona un insegnante disponibile o cambia orario.`
+      );
+      return;
+    }
+
+    // Controllo bloccante univocità cliente: un cliente/allievo non può avere due prenotazioni contemporanee in sale diverse
+    if (overlappingBookingsByClient.length > 0) {
+      const first = overlappingBookingsByClient[0];
+      alert(
+        `Impossibile inserire la prenotazione:\n\nIl cliente/allievo "${finalClienteNome}" ha già un'altra prenotazione attiva il ${data} nella fascia oraria ${first.oraInizio} - ${first.oraFine} in "${first.salaNome || 'un\'altra sala'}".\n\nNon è consentito inserire prenotazioni contemporanee per la stessa persona in più sale.`
       );
       return;
     }

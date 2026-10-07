@@ -111,21 +111,51 @@ function safeLocalStorageSet(key: string, value: unknown): void {
   }
 }
 
-// Deduplicazione robusta a monte: garantisce un solo evento per data, sala, orario e cliente
+// Deduplicazione robusta a monte:
+// 1. Garantisce un solo evento per data, sala, orario e cliente
+// 2. Garantisce che lo stesso allievo/cliente non abbia prenotazioni duplicate contemporanee in sale diverse (es. Studiolo vs Sala Grande)
 export function deduplicateBookings(bookingsList: Booking[]): Booking[] {
-  const seen = new Map<string, Booking>();
+  // Pass 1: Deduplicazione esatta su slot, sala e cliente
+  const seenExact = new Map<string, Booking>();
   for (const b of bookingsList) {
     const sig = `${b.data}###${b.salaId}###${b.oraInizio}###${b.oraFine}###${(b.clienteNome || '').trim().toLowerCase()}`;
-    if (!seen.has(sig)) {
-      seen.set(sig, b);
+    if (!seenExact.has(sig)) {
+      seenExact.set(sig, b);
     } else {
-      const existing = seen.get(sig)!;
+      const existing = seenExact.get(sig)!;
       if (existing.statoPagamento !== 'pagato' && b.statoPagamento === 'pagato') {
-        seen.set(sig, b);
+        seenExact.set(sig, b);
       }
     }
   }
-  return Array.from(seen.values());
+
+  // Pass 2: Risoluzione conflitti per lo stesso cliente nello stesso orario in sale differenti
+  const clientSlotMap = new Map<string, Booking>();
+  for (const b of seenExact.values()) {
+    const clientNorm = (b.clienteNome || '').trim().toLowerCase();
+    if (!clientNorm) {
+      clientSlotMap.set(b.id, b);
+      continue;
+    }
+    const slotKey = `${b.data}###${b.oraInizio}###${b.oraFine}###${clientNorm}`;
+    if (!clientSlotMap.has(slotKey)) {
+      clientSlotMap.set(slotKey, b);
+    } else {
+      const existing = clientSlotMap.get(slotKey)!;
+      // Se una delle due è in Studiolo ed è lezione, prediligi sempre lo Studiolo
+      const bIsStudiolo = (b.salaNome || '').toLowerCase().includes('studiolo') || b.salaId.includes('1790981409646');
+      const existingIsStudiolo = (existing.salaNome || '').toLowerCase().includes('studiolo') || existing.salaId.includes('1790981409646');
+      if (bIsStudiolo && !existingIsStudiolo) {
+        clientSlotMap.set(slotKey, b);
+      } else if (!bIsStudiolo && existingIsStudiolo) {
+        // Mantieni existing
+      } else if (existing.statoPagamento !== 'pagato' && b.statoPagamento === 'pagato') {
+        clientSlotMap.set(slotKey, b);
+      }
+    }
+  }
+
+  return Array.from(clientSlotMap.values());
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -730,9 +760,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         prev.map((b) => `${b.data}###${b.salaId}###${b.oraInizio}###${b.oraFine}###${(b.clienteNome || '').trim().toLowerCase()}`)
       );
 
-      const uniqueDates = datesToBook.filter((d) => {
-        const sig = `${d}###${bookingData.salaId}###${bookingData.oraInizio}###${bookingData.oraFine}###${(bookingData.clienteNome || '').trim().toLowerCase()}`;
-        return !existingSignatures.has(sig);
+      const bStartMins = timeToMinutes(bookingData.oraInizio);
+      let bEndMins = timeToMinutes(bookingData.oraFine);
+      if (bEndMins <= bStartMins) bEndMins += 24 * 60;
+      const clientNorm = (bookingData.clienteNome || '').trim().toLowerCase();
+      const teacherNorm = (bookingData.insegnanteNome || '').trim().toLowerCase();
+
+      const uniqueDates = datesToBook.filter((d, dIdx) => {
+        const sig = `${d}###${bookingData.salaId}###${bookingData.oraInizio}###${bookingData.oraFine}###${clientNorm}`;
+        if (existingSignatures.has(sig)) return false;
+
+        // Per le occorrenze future (dIdx > 0), verifichiamo che non collidano con sala occupata, cliente già impegnato o docente già impegnato
+        if (dIdx > 0) {
+          const hasConflict = prev.some((existing) => {
+            if (existing.data !== d) return false;
+            const eStartMins = timeToMinutes(existing.oraInizio);
+            let eEndMins = timeToMinutes(existing.oraFine);
+            if (eEndMins <= eStartMins) eEndMins += 24 * 60;
+            const timeOverlap = bStartMins < eEndMins && bEndMins > eStartMins;
+            if (!timeOverlap) return false;
+
+            // 1. Sala già occupata da chiunque
+            if (existing.salaId === bookingData.salaId) return true;
+
+            // 2. Stesso cliente già prenotato in un'altra sala
+            const existingClientNorm = (existing.clienteNome || '').trim().toLowerCase();
+            if (clientNorm && existingClientNorm && (clientNorm === existingClientNorm || existingClientNorm.startsWith(clientNorm + ' ') || clientNorm.startsWith(existingClientNorm + ' '))) {
+              return true;
+            }
+
+            // 3. Stesso docente già impegnato in un'altra sala
+            if (bookingData.tipo === 'lezione' && existing.tipo === 'lezione') {
+              const existingTeacherNorm = (existing.insegnanteNome || '').trim().toLowerCase();
+              if (teacherNorm && existingTeacherNorm && teacherNorm === existingTeacherNorm) return true;
+              if (bookingData.insegnanteId && existing.insegnanteId && bookingData.insegnanteId === existing.insegnanteId) return true;
+            }
+
+            return false;
+          });
+
+          if (hasConflict) return false;
+        }
+
+        return true;
       });
 
       if (uniqueDates.length === 0) {
