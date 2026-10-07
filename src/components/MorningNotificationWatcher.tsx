@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatDateToISO, shouldSendDailyBriefing } from '../utils/dateUtils';
 import { computeDailyShifts } from '../utils/shiftUtils';
-import { showBrowserNotification } from '../services/whatsappService';
+import { formatMorningBriefingMessage, sendWhatsAppViaApi, showBrowserNotification } from '../services/whatsappService';
 
 interface MorningNotificationWatcherProps {
   onOpenBriefingModal: (date?: string) => void;
@@ -11,9 +11,11 @@ interface MorningNotificationWatcherProps {
 export const MorningNotificationWatcher: React.FC<MorningNotificationWatcherProps> = ({
   onOpenBriefingModal,
 }) => {
-  const { studioInfo, bookings, shifts, staff, isLoadingCloud } = useApp();
+  const { studioInfo, rooms, bookings, shifts, staff, isLoadingCloud, updateStudioInfo } = useApp();
   // Evita notifiche desktop multiple nella stessa giornata per questa finestra
   const hasNotifiedDesktopRef = useRef<string | null>(null);
+  // Evita chiamate ripetute dell'invio WhatsApp automatico
+  const hasAutoSentWhatsAppRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Non eseguire nulla prima del termine del caricamento dei dati da Supabase
@@ -49,11 +51,8 @@ export const MorningNotificationWatcher: React.FC<MorningNotificationWatcherProp
 
       if (!isPastTargetTime) return;
 
-      // Notifica Desktop Browser per l'operatore alla postazione PC
-      // NOTA BENE: L'invio automatico del messaggio WhatsApp alle 10:00 viene gestito
-      // ESCLUSIVAMENTE dal server cron (/api/cron-daily-briefing) per garantire
-      // esattamente 1 solo invio al giorno ed evitare duplicati ogni volta che un utente apre il browser.
-      if (config.browserNotificationEnabled) {
+      // 1. Notifica Desktop Browser per l'operatore alla postazione PC
+      if (config.browserNotificationEnabled && hasNotifiedDesktopRef.current !== todayStr) {
         hasNotifiedDesktopRef.current = todayStr;
 
         const todayBookings = bookings.filter((b) => b.data === todayStr);
@@ -74,6 +73,58 @@ export const MorningNotificationWatcher: React.FC<MorningNotificationWatcherProp
           }
         );
       }
+
+      // 2. FALLBACK AUTOMATICO DI SICUREZZA PER WHATSAPP:
+      // Se sono passate le 10:00 e il messaggio WhatsApp non risulta ancora inviato per oggi
+      // (es. perché il runner cron del server o GitHub Actions ha avuto un ritardo/downtime),
+      // invia in background tramite API gateway WhatsApp e aggiorna lastAutoSentDate su Supabase.
+      if (
+        config.autoSendMorning !== false &&
+        config.lastAutoSentDate !== todayStr &&
+        hasAutoSentWhatsAppRef.current !== todayStr
+      ) {
+        hasAutoSentWhatsAppRef.current = todayStr;
+        const isApiConfigured =
+          config.enabled &&
+          config.provider !== 'manual' &&
+          ((config.provider === 'ultramsg' && config.instanceId && config.token && config.chatId) ||
+            (config.provider === 'greenapi' && config.instanceId && config.token && config.chatId) ||
+            (config.provider === 'whapi' && config.token && config.chatId) ||
+            (config.provider === 'webhook' && config.webhookUrl));
+
+        if (isApiConfigured) {
+          const todayBookings = bookings.filter((b) => b.data === todayStr);
+          const dailyShifts = computeDailyShifts(todayStr, todayBookings, shifts, staff);
+          const whatsappMessage = formatMorningBriefingMessage({
+            dateStr: todayStr,
+            studioInfo,
+            dailyShifts,
+            bookings: todayBookings,
+            rooms,
+            staff,
+            config,
+          });
+
+          sendWhatsAppViaApi(config, whatsappMessage)
+            .then((res) => {
+              if (res.success) {
+                console.log('[MorningWatcher] Fallback invio WhatsApp del mattino completato con successo per:', todayStr);
+                updateStudioInfo({
+                  ...studioInfo,
+                  whatsappConfig: {
+                    ...config,
+                    lastAutoSentDate: todayStr,
+                  },
+                });
+              } else {
+                console.warn('[MorningWatcher] Fallback invio automatico WhatsApp fallito:', res.error);
+              }
+            })
+            .catch((err) => {
+              console.error('[MorningWatcher] Errore imprevisto invio automatico WhatsApp:', err);
+            });
+        }
+      }
     };
 
     checkSchedule();
@@ -81,7 +132,7 @@ export const MorningNotificationWatcher: React.FC<MorningNotificationWatcherProp
     // Controlla ogni 60 secondi
     const interval = setInterval(checkSchedule, 60 * 1000);
     return () => clearInterval(interval);
-  }, [studioInfo, bookings, shifts, staff, isLoadingCloud, onOpenBriefingModal]);
+  }, [studioInfo, rooms, bookings, shifts, staff, isLoadingCloud, updateStudioInfo, onOpenBriefingModal]);
 
   return null;
 };
