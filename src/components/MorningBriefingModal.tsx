@@ -147,7 +147,7 @@ export const MorningBriefingModal: React.FC<MorningBriefingModalProps> = ({
     } else {
       // Modalità manuale / fallback: apri WhatsApp con il testo
       const links = getWhatsAppShareLinks(whatsappMessage, config?.chatId);
-      window.open(links.universalUrl, '_blank');
+      window.open(links.universalUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -499,7 +499,7 @@ export const MorningBriefingModal: React.FC<MorningBriefingModalProps> = ({
                 type="button"
                 onClick={() => {
                   const links = getWhatsAppShareLinks(whatsappMessage, config?.chatId);
-                  window.open(links.webUrl, '_blank');
+                  window.open(links.webUrl, '_blank', 'noopener,noreferrer');
                 }}
                 className="px-3 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-xs font-semibold text-neutral-200 flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Apri WhatsApp Web con messaggio precaricato"

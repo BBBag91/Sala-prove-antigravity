@@ -465,7 +465,7 @@ export function generateMonthlyShiftsPDF(options: GenerateMonthlyShiftsPdfOption
   if (options.printDirectly) {
     doc.autoPrint();
     const blobUrl = doc.output('bloburl');
-    window.open(blobUrl, '_blank');
+    window.open(blobUrl, '_blank', 'noopener,noreferrer');
   } else {
     doc.save(downloadFileName || defaultFileName);
   }

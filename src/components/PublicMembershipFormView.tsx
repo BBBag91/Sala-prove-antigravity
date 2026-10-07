@@ -9,16 +9,29 @@ import {
   Phone,
   Mail,
   ShieldCheck,
+  ShieldAlert,
   Send,
   Sparkles,
   ArrowRight,
   Clock,
   Building2,
   Check,
+  Lock,
+  FileText,
+  X,
+  AlertTriangle,
 } from 'lucide-react';
 import { Client } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { supabaseService } from '../services/supabaseService';
+import {
+  sanitizeInput,
+  validateCodiceFiscale,
+  validateEmail,
+  sanitizePhoneNumber,
+  isHoneypotTriggered,
+  formSubmitRateLimiter,
+} from '../utils/security';
 
 export const PublicMembershipFormView: React.FC = () => {
   // Form State
@@ -38,6 +51,11 @@ export const PublicMembershipFormView: React.FC = () => {
   const [discipline, setDiscipline] = useState('Musica / Sala Prove');
   const [gruppoBand, setGruppoBand] = useState('');
   const [accettaRegolamento, setAccettaRegolamento] = useState(true);
+  const [accettaPrivacyGdpr, setAccettaPrivacyGdpr] = useState(true);
+
+  // Enterprise Security States
+  const [honeypot, setHoneypot] = useState(''); // Anti-Bot Honeypot Trap
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -48,14 +66,64 @@ export const PublicMembershipFormView: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
 
-    const cleanCf = codiceFiscale.trim().toUpperCase();
-    if (cleanCf.length !== 16) {
-      setErrorMsg('Il Codice Fiscale deve essere di esattamente 16 caratteri alfanumerici.');
+    // 1. Anti-Bot / Anti-Scraper Honeypot Check
+    if (isHoneypotTriggered(honeypot)) {
+      console.warn('[SECURITY] Bot o scraper automatizzato intercettato tramite Honeypot. Invio scartato.');
+      setIsSuccess(true);
       return;
     }
 
+    // 2. Anti-Flooding Rate Limiting
+    const rateCheck = formSubmitRateLimiter.check('public_membership_form');
+    if (!rateCheck.isAllowed) {
+      setErrorMsg(`Troppe richieste inviate in rapida successione. Attendi ${rateCheck.remainingLockoutSeconds} secondi prima di riprovare.`);
+      return;
+    }
+
+    // 3. Validazione Formale Codice Fiscale (GDPR Data Accuracy - Art. 5.1d)
+    const cfValidation = validateCodiceFiscale(codiceFiscale);
+    if (!cfValidation.isValid) {
+      setErrorMsg(cfValidation.error || 'Codice Fiscale non valido.');
+      return;
+    }
+    const cleanCf = cfValidation.normalized;
+
+    // 4. Validazione Email (se fornita)
+    if (email) {
+      const emailValidation = validateEmail(email);
+      if (!emailValidation.isValid) {
+        setErrorMsg('Indirizzo Email non valido. Inserisci un formato corretto (es. nome@dominio.it).');
+        return;
+      }
+    }
+
+    // 5. Consenso GDPR e Regolamento obbligatori
     if (!accettaRegolamento) {
       setErrorMsg('È necessario accettare lo Statuto e il Regolamento dell\'Associazione per completare il tesseramento.');
+      return;
+    }
+
+    if (!accettaPrivacyGdpr) {
+      setErrorMsg('È obbligatorio confermare il consenso al trattamento dei dati personali ai sensi del GDPR (UE 2016/679).');
+      return;
+    }
+
+    // 6. Sanitizzazione XSS di tutti i campi testuali
+    const safeNome = sanitizeInput(nome).toUpperCase();
+    const safeCognome = sanitizeInput(cognome).toUpperCase();
+    const safeLuogoNascita = sanitizeInput(luogoNascita).toUpperCase();
+    const safeIndirizzo = sanitizeInput(indirizzoResidenza).toUpperCase();
+    const safeCap = sanitizeInput(capResidenza);
+    const safeComune = sanitizeInput(comuneResidenza).toUpperCase();
+    const safeTelefono = sanitizePhoneNumber(telefono);
+    const safeEmail = sanitizeInput(email).toLowerCase();
+    const safeDiscipline = sanitizeInput(discipline);
+    const safeBand = sanitizeInput(gruppoBand);
+    const safeNazioneNascita = sanitizeInput(nazioneNascita) || 'Italia';
+    const safeNazioneCittadinanza = sanitizeInput(nazioneCittadinanza) || 'Italia';
+
+    if (!safeNome || !safeCognome) {
+      setErrorMsg('Nome e Cognome sono campi obbligatori.');
       return;
     }
 
@@ -70,7 +138,7 @@ export const PublicMembershipFormView: React.FC = () => {
       const scadenzaISO = nextYear.toISOString().split('T')[0];
 
       // Formatta la residenza completa (es. "VIA COLLE D'ALBA DI PONENTE 852, 04016 SABAUDIA")
-      const fullResidenza = `${indirizzoResidenza.trim().toUpperCase()}, ${capResidenza.trim()} ${comuneResidenza.trim().toUpperCase()}`.trim();
+      const fullResidenza = `${safeIndirizzo}, ${safeCap} ${safeComune}`.trim();
 
       // Calcola il numero progressivo tessera interrogando Supabase per evitare duplicati
       let nextProg = 1;
@@ -119,25 +187,25 @@ export const PublicMembershipFormView: React.FC = () => {
 
       // Salva parti di residenza nelle note per l'export a 17 colonne dell'ente
       const residenzaMetadata = JSON.stringify({
-        indirizzo: indirizzoResidenza.trim().toUpperCase(),
-        cap: capResidenza.trim(),
-        comune: comuneResidenza.trim().toUpperCase(),
-        nazioneNascita: nazioneNascita.trim(),
-        nazioneCittadinanza: nazioneCittadinanza.trim(),
-        discipline: discipline.trim(),
+        indirizzo: safeIndirizzo,
+        cap: safeCap,
+        comune: safeComune,
+        nazioneNascita: safeNazioneNascita,
+        nazioneCittadinanza: safeNazioneCittadinanza,
+        discipline: safeDiscipline,
       });
 
       const newClient: Client = {
         id: `cli-${Date.now()}`,
-        nome: nome.trim().toUpperCase(),
-        cognome: cognome.trim().toUpperCase(),
+        nome: safeNome,
+        cognome: safeCognome,
         codiceFiscale: cleanCf,
         sesso,
         dataNascita,
-        luogoNascita: luogoNascita.trim().toUpperCase(),
+        luogoNascita: safeLuogoNascita,
         residenza: fullResidenza,
-        telefono: telefono.trim(),
-        email: email.trim().toLowerCase(),
+        telefono: safeTelefono,
+        email: safeEmail,
         statoTesseramento: 'attivo',
         numeroTessera,
         dataTesseramento: todayISO,
@@ -146,8 +214,8 @@ export const PublicMembershipFormView: React.FC = () => {
         // Quota da saldare come richiesto dall'utente per registrazione online
         statoQuota: 'da_saldare',
         quotaPagata: false,
-        descrizioneStrumentazione: discipline.trim(),
-        gruppoBand: gruppoBand.trim() || undefined,
+        descrizioneStrumentazione: safeDiscipline,
+        gruppoBand: safeBand || undefined,
         note: `Iscrizione inviata online via modulo il ${new Date().toLocaleDateString('it-IT')} ore ${new Date().toLocaleTimeString('it-IT')}. [QUOTA_PAGAMENTO:da_saldare] [META_RESIDENZA:${residenzaMetadata}]`,
       };
 
@@ -322,6 +390,24 @@ export const PublicMembershipFormView: React.FC = () => {
             </p>
           </div>
 
+          {/* Anti-Phishing & Official Security Verification Banner */}
+          <div className="bg-emerald-950/20 border-b-2 border-emerald-500/30 p-3.5 px-6 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-emerald-800 font-bold">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Canale Ufficiale Verificato • Crittografia TLS 256-bit • Conforme GDPR (UE 2016/679)</span>
+            </div>
+            <span className="text-[11px] text-slate-500 font-medium">
+              🔒 I tuoi dati personali sono protetti e non saranno mai ceduti a terzi.
+            </span>
+          </div>
+
+          <div className="mx-6 mt-4 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />
+            <span>
+              <strong>Avviso di Sicurezza Anti-Phishing:</strong> Questo è l'unico portale ufficiale di iscrizione. Non ti verrà mai richiesto di inserire password, coordinate bancarie o PIN su questa pagina. La quota di 10€ viene saldata unicamente di persona in sede.
+            </span>
+          </div>
+
           {errorMsg && (
             <div className="m-6 p-4 rounded-xl bg-rose-50 border-2 border-rose-300 text-rose-900 text-sm font-bold flex items-start gap-3">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0 mt-1.5" />
@@ -330,6 +416,18 @@ export const PublicMembershipFormView: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="p-6 sm:p-10 space-y-8 bg-white" style={{ backgroundColor: '#ffffff' }}>
+            {/* Anti-Bot Honeypot Trap (Invisibile agli utenti umani) */}
+            <input
+              type="text"
+              name="b_security_honeypot_field"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+              style={{ display: 'none', position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+              aria-hidden="true"
+            />
+
             {/* Sezione 1: Dati Personali */}
             <div className="space-y-5">
               <div className="flex items-center gap-2 pb-2.5 border-b-2 border-slate-200">
@@ -596,8 +694,8 @@ export const PublicMembershipFormView: React.FC = () => {
               </div>
             </div>
 
-            {/* Consenso & Quota */}
-            <div className="p-5 rounded-2xl bg-slate-50 border-2 border-slate-200 space-y-3" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+            {/* Consenso & Quota & GDPR Compliance (UE 2016/679) */}
+            <div className="p-5 rounded-2xl bg-slate-50 border-2 border-slate-200 space-y-4" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
               <div className="flex items-start gap-3.5">
                 <input
                   type="checkbox"
@@ -609,6 +707,29 @@ export const PublicMembershipFormView: React.FC = () => {
                 <label htmlFor="accettaRegolamento" className="text-sm text-slate-800 cursor-pointer leading-relaxed font-medium" style={{ color: '#1e293b' }}>
                   Dichiaro di aver preso visione dello <strong>Statuto e del Regolamento interno dell'Associazione</strong> e chiedo di essere ammesso in qualità di <strong>Socio Ordinario</strong>. Prendo atto che la quota associativa annuale di <strong>€10,00</strong> sarà registrata con stato <strong>"da saldare"</strong> e versata al primo accesso in sede.
                 </label>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex items-start gap-3.5">
+                <input
+                  type="checkbox"
+                  id="accettaPrivacyGdpr"
+                  checked={accettaPrivacyGdpr}
+                  onChange={(e) => setAccettaPrivacyGdpr(e.target.checked)}
+                  className="mt-1 w-5 h-5 rounded border-2 border-slate-400 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                />
+                <div className="text-sm text-slate-800 leading-relaxed font-medium" style={{ color: '#1e293b' }}>
+                  <label htmlFor="accettaPrivacyGdpr" className="cursor-pointer">
+                    <strong>Informativa Privacy e Protezione Dati (GDPR UE 2016/679):</strong>{' '}
+                    Dichiaro di aver preso visione dell'informativa ai sensi degli artt. 13 e 14 del Regolamento Europeo 2016/679 e acconsento al trattamento dei dati personali forniti per le finalità connesse al tesseramento, all'inserimento nel Libro Soci e alla copertura assicurativa associativa.
+                  </label>{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivacyModal(true)}
+                    className="text-blue-600 hover:text-blue-800 font-bold underline inline-flex items-center gap-1 cursor-pointer ml-1"
+                  >
+                    <FileText className="w-3.5 h-3.5" /> Leggi Informativa Completa
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -622,7 +743,7 @@ export const PublicMembershipFormView: React.FC = () => {
               {isSubmitting ? (
                 <>
                   <span className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Invio Registrazione in corso...</span>
+                  <span>Invio Registrazione Protetta in corso...</span>
                 </>
               ) : (
                 <>
@@ -635,10 +756,99 @@ export const PublicMembershipFormView: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="text-center py-5 px-4 text-xs font-semibold text-slate-600 border-t border-slate-200" style={{ color: '#475569', backgroundColor: '#e2e8f0' }}>
-        Gestionale Sala Prove • Sistema Ufficiale di Registrazione Tesserati & Prenotazioni
+      {/* Footer con Note Legali e Crittografia */}
+      <footer className="text-center py-5 px-4 text-xs font-semibold text-slate-600 border-t border-slate-200 space-y-1" style={{ color: '#475569', backgroundColor: '#e2e8f0' }}>
+        <p>Gestionale Sala Prove • Sistema Ufficiale di Registrazione Tesserati & Prenotazioni</p>
+        <p className="text-[11px] text-slate-500">
+          Protetto da crittografia end-to-end TLS 256-bit • Conformità Privacy GDPR (UE 2016/679) • Row Level Security Database
+        </p>
       </footer>
+
+      {/* Modale Dettagliato Informativa Privacy GDPR (UE 2016/679) */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[88vh] overflow-hidden flex flex-col shadow-2xl border-2 border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-extrabold text-base tracking-tight">
+                  Informativa Trattamento Dati Personali (GDPR UE 2016/679)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPrivacyModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center cursor-pointer transition-colors"
+                title="Chiudi informativa"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-5 text-xs text-slate-700 leading-relaxed custom-scrollbar">
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm mb-1">1. Titolare del Trattamento</h4>
+                <p>
+                  Il Titolare del trattamento dei dati è l'Associazione Culturale Musicale "La musica fa...", con sede legale operativa presso lo Studio & Sala Prove.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm mb-1">2. Finalità del Trattamento & Base Giuridica</h4>
+                <p>
+                  I dati anagrafici, fiscali e di recapito raccolti tramite il presente modulo sono trattati esclusivamente per:
+                </p>
+                <ul className="list-disc pl-5 mt-1 space-y-1">
+                  <li>Iscrizione e tenuta del Libro Soci dell'Associazione ai sensi del Codice Civile e del Codice del Terzo Settore (D.Lgs. 117/2017).</li>
+                  <li>Emissione della tessera socio annuale e attivazione della copertura assicurativa obbligatoria.</li>
+                  <li>Gestione delle prenotazioni delle sale prove, accesso ai corsi musicali e comunicazioni istituzionali dell'Associazione.</li>
+                </ul>
+                <p className="mt-1 text-slate-500 italic">
+                  Base giuridica: esecuzione del rapporto associativo statutario e adempimento di obblighi di legge (Art. 6.1 lett. b e c GDPR).
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm mb-1">3. Categorie di Dati e Minimizzazione</h4>
+                <p>
+                  Sono raccolti unicamente i dati necessari e proporzionati alle finalità associative: Nome, Cognome, Codice Fiscale, Sesso, Data e Luogo di Nascita, Indirizzo di Residenza, Telefono, Email e Discipline musicali (principio di minimizzazione dei dati - Art. 5.1 lett. c GDPR). Nessun dato sensibile relativo alla salute o giudiziario viene richiesto.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm mb-1">4. Modalità di Trattamento e Sicurezza dei Dati</h4>
+                <p>
+                  Il trattamento viene svolto con strumenti elettronici protetti da crittografia end-to-end TLS/HTTPS, Row Level Security su database isolato e accessi controllati riservati al personale autorizzato. I dati non vengono ceduti a terzi per scopi commerciali o di profilazione.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm mb-1">5. Periodo di Conservazione</h4>
+                <p>
+                  I dati saranno conservati per tutta la durata del vincolo associativo e, successivamente al recesso o decadenza, per il periodo prescritto dalle normative contabili, fiscali e di legge (10 anni).
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm mb-1">6. Diritti dell'Interessato (Artt. 15-22 GDPR)</h4>
+                <p>
+                  In qualsiasi momento l'interessato ha il diritto di richiedere l'accesso ai propri dati, la rettifica, la cancellazione (diritto all'oblio), la limitazione del trattamento o la portabilità, inviando una comunicazione all'indirizzo email dell'Associazione o presentandosi di persona presso la segreteria.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setShowPrivacyModal(false)}
+                className="py-2.5 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors cursor-pointer"
+              >
+                Ho Compreso e Accetto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

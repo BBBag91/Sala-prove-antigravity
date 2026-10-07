@@ -485,7 +485,7 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
                       <a
                         href={provider === 'greenapi' ? 'https://green-api.com/' : 'https://ultramsg.com/'}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="text-[10px] text-yellow-400 hover:underline flex items-center gap-1 font-bold"
                       >
                         <span>Apri {provider === 'greenapi' ? 'Green API' : 'UltraMsg'}</span>
@@ -715,7 +715,7 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
                   <a
                     href={provider === 'greenapi' ? 'https://green-api.com/' : 'https://ultramsg.com/'}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="text-yellow-400 hover:underline flex items-center gap-1 font-bold"
                   >
                     <span>Apri {provider === 'greenapi' ? 'Green API' : 'UltraMsg'}</span>

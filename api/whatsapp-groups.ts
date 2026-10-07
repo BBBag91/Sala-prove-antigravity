@@ -13,26 +13,48 @@ interface VercelResponse {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Enterprise Anti-Abuse: Restringi CORS alle origini dell'applicazione
+  const origin = (req.headers.origin as string) || '';
+  const host = (req.headers.host as string) || '';
+  const isAllowedOrigin =
+    !origin ||
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1') ||
+    origin.endsWith('.vercel.app') ||
+    (host && origin.includes(host));
+
+  if (isAllowedOrigin && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  const payload = req.method === 'POST' ? req.body || {} : req.query || {};
-  const provider = payload.provider || 'greenapi';
+  // Permetti solo richieste POST per prevenire token leakage nei log tramite query string (OWASP)
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      success: false,
+      error: 'Metodo non consentito. Utilizzare POST per proteggere le credenziali.',
+    });
+  }
+
+  const payload = req.body || {};
+  const provider = String(payload.provider || 'greenapi').toLowerCase().trim();
   const rawId = payload.instanceId || '';
   const rawToken = payload.token || '';
 
   const cleanId = String(rawId).replace(/^waInstance/i, '').trim();
   const cleanToken = String(rawToken).trim();
 
-  if (!cleanId || !cleanToken) {
+  // Rigorosa validazione dei caratteri per prevenire SSRF e injection
+  if (!cleanId || !cleanToken || !/^[a-zA-Z0-9_-]+$/.test(cleanId) || !/^[a-zA-Z0-9_-]+$/.test(cleanToken)) {
     return res.status(400).json({
       success: false,
-      error: 'Inserisci le credenziali (Instance ID e Token) prima di cercare i gruppi.',
+      error: 'Credenziali non valide o contenenti caratteri non ammessi.',
     });
   }
 
