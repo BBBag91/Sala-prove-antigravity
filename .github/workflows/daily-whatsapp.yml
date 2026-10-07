@@ -23,9 +23,10 @@ jobs:
           echo "hour_it=$HOUR_IT" >> $GITHUB_OUTPUT
 
       - name: Esegui invio riepilogo giornaliero su WhatsApp
-        # Esegui se sono almeno le 10:00 ora italiana (supporta ritardi dei runner GitHub gratuiti).
-        # L'idempotenza e l'invio singolo giornaliero sono garantiti nativamente dal server e da Supabase.
-        if: ${{ (steps.check_time.outputs.hour_it >= '10' && steps.check_time.outputs.hour_it <= '18') || github.event_name == 'workflow_dispatch' }}
+        # Esegui ESCLUSIVAMENTE nella fascia mattutina (10:00 - 11:30 ora italiana) per gestire ora solare/legale.
+        # È tassativamente escluso qualsiasi invio pomeridiano o serale (anche in caso di ritardi dei runner gratuiti GitHub).
+        # L'idempotenza e l'invio singolo giornaliero sono garantiti nativamente dal server e dalla tabella database daily_briefing_log.
+        if: ${{ (steps.check_time.outputs.hour_it >= '10' && steps.check_time.outputs.hour_it <= '11') || github.event_name == 'workflow_dispatch' }}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |

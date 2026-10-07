@@ -559,8 +559,13 @@ export const ShiftsView: React.FC = () => {
                               <span className="font-mono font-bold text-yellow-300 text-xs">
                                 {shift1.oraInizio} &ndash; {shift1.oraFine}
                               </span>
-                              <span className="text-[10px] text-neutral-400 font-mono">
-                                ({shift1.durataOre}h)
+                              <span
+                                className={`text-[10px] font-mono ${
+                                  shift1.durataOre > 0 ? 'text-yellow-400 font-bold' : 'text-neutral-500'
+                                }`}
+                                title={`Presidio effettivo: ${shift1.durataOre}h calcolate dagli eventi attivi (fascia nominale turno: ${shift1.durataTurnoOre || 3}h)`}
+                              >
+                                ({shift1.durataOre}h presidio)
                               </span>
                               {shift1.isAdapted && (
                                 <span
@@ -627,8 +632,13 @@ export const ShiftsView: React.FC = () => {
                               <span className="font-mono font-bold text-yellow-300 text-xs">
                                 {shift2.oraInizio} &ndash; {shift2.oraFine}
                               </span>
-                              <span className="text-[10px] text-neutral-400 font-mono">
-                                ({shift2.durataOre}h)
+                              <span
+                                className={`text-[10px] font-mono ${
+                                  shift2.durataOre > 0 ? 'text-yellow-400 font-bold' : 'text-neutral-500'
+                                }`}
+                                title={`Presidio effettivo: ${shift2.durataOre}h calcolate dagli eventi attivi (fascia nominale turno: ${shift2.durataTurnoOre || 3}h)`}
+                              >
+                                ({shift2.durataOre}h presidio)
                               </span>
                               {shift2.isAdapted && (
                                 <span
@@ -802,8 +812,13 @@ export const ShiftsView: React.FC = () => {
                           <span className="font-mono font-bold text-yellow-300 text-xs">
                             {shift1.oraInizio} &ndash; {shift1.oraFine}
                           </span>
-                          <span className="text-[10px] text-neutral-400 font-mono">
-                            ({shift1.durataOre}h)
+                          <span
+                            className={`text-[10px] font-mono ${
+                              shift1.durataOre > 0 ? 'text-yellow-400 font-bold' : 'text-neutral-500'
+                            }`}
+                            title={`Presidio effettivo: ${shift1.durataOre}h calcolate dagli eventi attivi`}
+                          >
+                            ({shift1.durataOre}h presidio)
                           </span>
                           {shift1.isAdapted && (
                             <span className="text-[8px] font-bold text-amber-300 bg-amber-400/15 border border-amber-500/30 px-1 rounded">
@@ -858,8 +873,13 @@ export const ShiftsView: React.FC = () => {
                           <span className="font-mono font-bold text-yellow-300 text-xs">
                             {shift2.oraInizio} &ndash; {shift2.oraFine}
                           </span>
-                          <span className="text-[10px] text-neutral-400 font-mono">
-                            ({shift2.durataOre}h)
+                          <span
+                            className={`text-[10px] font-mono ${
+                              shift2.durataOre > 0 ? 'text-yellow-400 font-bold' : 'text-neutral-500'
+                            }`}
+                            title={`Presidio effettivo: ${shift2.durataOre}h calcolate dagli eventi attivi`}
+                          >
+                            ({shift2.durataOre}h presidio)
                           </span>
                           {shift2.isAdapted && (
                             <span className="text-[8px] font-bold text-amber-300 bg-amber-400/15 border border-amber-500/30 px-1 rounded">
@@ -1054,7 +1074,7 @@ export const ShiftsView: React.FC = () => {
 
       {/* ── 4. QUADRO EQUITÀ ORE E TURNAZIONE (SENZA ALCUN CALCOLO ECONOMICO O COSTO ORARIO) ── */}
       {(() => {
-        const monthlyReport = getMonthlyWorkloadReport(currentMonthKey, shifts, staff);
+        const monthlyReport = getMonthlyWorkloadReport(currentMonthKey, shifts, staff, bookings);
 
         return (
           <div className="bg-[#0e0e0e] rounded-2xl p-4 sm:p-5 border border-yellow-500/20 shadow-xl space-y-4 print:hidden">

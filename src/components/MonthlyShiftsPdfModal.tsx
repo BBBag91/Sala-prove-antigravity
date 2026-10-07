@@ -230,7 +230,7 @@ export const MonthlyShiftsPdfModal: React.FC<MonthlyShiftsPdfModalProps> = ({
               <span className="text-base font-black text-yellow-400 mt-0.5 block font-mono">
                 {data.totalOperatingHours}h
               </span>
-              <span className="text-[10px] text-neutral-500 block">Inclusi extra dinamici</span>
+              <span className="text-[10px] text-neutral-500 block">Presidio effettivo da eventi</span>
             </div>
 
             <div className="p-3 rounded-xl bg-neutral-950 border border-yellow-500/20">
@@ -266,7 +266,7 @@ export const MonthlyShiftsPdfModal: React.FC<MonthlyShiftsPdfModalProps> = ({
                     <th className="py-2 px-2.5 font-semibold text-center">1° Turno (17-20)</th>
                     <th className="py-2 px-2.5 font-semibold text-center">2° Turno (20-23)</th>
                     <th className="py-2 px-2.5 font-semibold text-center">Totale Turni</th>
-                    <th className="py-2 px-2.5 font-semibold text-center">Ore Totali</th>
+                    <th className="py-2 px-2.5 font-semibold text-center">Ore Presidio Effettivo</th>
                     <th className="py-2 px-2.5 font-semibold text-center">Quota % Carico</th>
                     <th className="py-2 px-2.5 font-semibold text-right">Ferie / Indisp.</th>
                   </tr>

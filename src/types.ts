@@ -112,10 +112,14 @@ export interface DailyShiftComputed {
   oraInizio: string;
   /** Fine effettiva calcolata in base alle prenotazioni presenti o modifiche manuali */
   oraFine: string;
-  /** Durata totale del turno in minuti */
+  /** Durata totale del turno in minuti effettivi di presidio */
   durataMinuti: number;
-  /** Durata totale del turno in ore decimali (es. 3.5 per 3h 30m) */
+  /** Durata effettiva di presidio in ore decimali calcolata dagli eventi presenti (es. 2h per evento 18-20, non 3h del turno) */
   durataOre: number;
+  /** Durata nominale dell'intervallo orario del turno (es. 3.0h per fascia 17:00-20:00) */
+  durataTurnoOre?: number;
+  /** Alias esplicito per le ore effettive di presidio */
+  orePresidioEffettivo?: number;
   /** Minuti extra di presidio rispetto alla fascia base nominale */
   minutiExtra: number;
   /** Indica se l'orario è stato adattato dinamicamente a causa delle prenotazioni */

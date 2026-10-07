@@ -256,12 +256,21 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
           <div className="flex items-center justify-between text-xs pt-1 border-t border-neutral-900">
             <span className="text-neutral-300 font-semibold flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-yellow-400" />
-              Orario Effettivo Turno:
+              Fascia Oraria Turno:
             </span>
             <span className="font-mono font-bold text-yellow-400 text-sm">
               {isCustomHours ? `${customStart} - ${customEnd}` : `${shiftComputed.oraInizio} - ${shiftComputed.oraFine}`}
-              <span className="text-[11px] font-normal text-neutral-400 ml-1.5">
-                ({isCustomHours ? '' : `${shiftComputed.durataOre}h`})
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between text-xs pt-1 border-t border-neutral-900">
+            <span className="text-neutral-400 font-medium flex items-center gap-1.5">
+              <span>⏱️ Presidio Effettivo Operatore:</span>
+            </span>
+            <span className="font-mono font-bold text-yellow-300">
+              {shiftComputed.durataOre}h
+              <span className="text-[10px] text-neutral-500 font-normal ml-1.5">
+                (da eventi reali)
               </span>
             </span>
           </div>

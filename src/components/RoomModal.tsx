@@ -20,6 +20,7 @@ const ROOM_COLORS = [
   '#ec4899', // Pink
   '#06b6d4', // Cyan
   '#14b8a6', // Teal
+  '#64748b', // Grigio (Slate)
 ];
 
 export const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, roomToEdit }) => {
@@ -191,16 +192,17 @@ export const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, roomToEdi
             <label className="block text-xs font-semibold text-slate-600 mb-1">
               Colore Badge nel Calendario
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {ROOM_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColore(c)}
-                  className={`w-7 h-7 rounded-full transition-transform ${
+                  className={`w-7 h-7 rounded-full transition-transform cursor-pointer ${
                     colore === c ? 'scale-125 ring-2 ring-offset-2 ring-slate-800' : 'hover:scale-110'
                   }`}
                   style={{ backgroundColor: c }}
+                  title={c === '#64748b' ? 'Grigio' : undefined}
                 />
               ))}
             </div>

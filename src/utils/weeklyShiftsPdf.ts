@@ -553,9 +553,9 @@ export function generateWeeklyShiftsPDF(options: WeeklyShiftsPrintOptions & { do
     doc.text('1° TURNO', xCursor + 3, y + 5.5);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(15, 23, 42);
-    doc.text(`${shift1.oraInizio} - ${shift1.oraFine} (${shift1.durataOre}h)`, xCursor + 22, y + 5.5);
+    doc.text(`${shift1.oraInizio} - ${shift1.oraFine} (${shift1.durataOre}h presidio)`, xCursor + 22, y + 5.5);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
@@ -588,9 +588,9 @@ export function generateWeeklyShiftsPDF(options: WeeklyShiftsPrintOptions & { do
     doc.text('2° TURNO', xCursor + 3, y + 5.5);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(15, 23, 42);
-    doc.text(`${shift2.oraInizio} - ${shift2.oraFine} (${shift2.durataOre}h)`, xCursor + 22, y + 5.5);
+    doc.text(`${shift2.oraInizio} - ${shift2.oraFine} (${shift2.durataOre}h presidio)`, xCursor + 22, y + 5.5);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);

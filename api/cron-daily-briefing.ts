@@ -888,16 +888,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // 5. GUARD IDEMPOTENZA:
+    // 5. GUARD IDEMPOTENZA ATOMICA (Zero Duplicati Giornalieri):
     // Se il messaggio è già stato inviato per oggi, FERMATI IMMEDIATAMENTE (a meno di ?force=true)
-    if (!isForce && config.lastAutoSentDate === todayStr) {
-      return res.status(200).json({
-        message: `Messaggio già inviato oggi (${todayStr}), invio singolo garantito. Skip.`,
-        lastAutoSentDate: config.lastAutoSentDate,
-      });
+    if (!isForce) {
+      if (config.lastAutoSentDate === todayStr) {
+        return res.status(200).json({
+          message: `Messaggio già inviato oggi (${todayStr}), invio singolo garantito da studio_info. Skip.`,
+          lastAutoSentDate: config.lastAutoSentDate,
+        });
+      }
+
+      // Controllo tabella atomica di log invii
+      try {
+        const { data: existingLog } = await supabase
+          .from('daily_briefing_log')
+          .select('date_iso, sent_at')
+          .eq('date_iso', todayStr)
+          .maybeSingle();
+
+        if (existingLog) {
+          return res.status(200).json({
+            message: `Messaggio già inviato oggi (${todayStr}), invio singolo garantito da daily_briefing_log (${existingLog.sent_at}). Skip.`,
+            date: todayStr,
+            sentAt: existingLog.sent_at,
+          });
+        }
+      } catch (logErr) {
+        console.warn('[cron] Impossibile verificare daily_briefing_log:', logErr);
+      }
     }
 
-    // 6. Verifica orario target (default 10:00)
+    // 6. Verifica orario target (default 10:00) E FINESTRA MASSIMA MATTUTINA
     const targetTimeStr: string = config.orarioNotifica || '10:00';
     const [targetHours, targetMinutes] = targetTimeStr.split(':').map((n: string) => parseInt(n, 10));
 
@@ -909,6 +930,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (isTooEarly) {
         return res.status(200).json({
           message: `Troppo presto: ora italiana ${currentHourIT}:${String(currentMinuteIT).padStart(2, '0')}, target ${targetTimeStr}. Skip.`,
+        });
+      }
+
+      // BLOCCO DI SICUREZZA: Nessun riepilogo "Buongiorno" deve MAI essere inviato di pomeriggio o sera!
+      // Se il cron subisce ritardi o viene chiamato dopo le 13:00, interrompi immediatamente.
+      const isPastMorningWindow = currentHourIT >= 13;
+      if (isPastMorningWindow) {
+        return res.status(200).json({
+          message: `Fuori dalla finestra mattutina: ora italiana ${currentHourIT}:${String(currentMinuteIT).padStart(2, '0')}. I messaggi del mattino possono essere inviati solo tra le 09:30 e le 12:59. Skip.`,
         });
       }
     }
@@ -953,7 +983,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (match && match[1]) {
           const parsed = JSON.parse(match[1]);
           if (Array.isArray(parsed)) {
-            shifts = parsed.filter((s: any) => s.data === todayStr);
+            shifts = parsed.filter((s: any) => s.data === todayStr).map(mapShiftFromDb);
           }
         }
       } catch (e) {
@@ -998,16 +1028,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // 11. PERSISTENZA IMMEDIATA DI lastAutoSentDate:
+    // 11. PERSISTENZA IMMEDIATA DI lastAutoSentDate & LOG ATOMICO:
     const updatedConfig = { ...config, lastAutoSentDate: todayStr };
+
+    // Registra subito nella tabella log atomica di Supabase (chiave primaria su data = zero duplicati)
+    try {
+      await supabase.from('daily_briefing_log').upsert({
+        date_iso: todayStr,
+        sent_at: new Date().toISOString(),
+        provider: config.provider,
+        sender_source: 'cron_serverless',
+        message_id: sendResult.messageId || 'sent',
+        success: true,
+      });
+    } catch (e) {
+      console.warn('[cron] Errore salvataggio daily_briefing_log:', e);
+    }
 
     const { error: updateErr } = await supabase
       .from('studio_info')
       .update({ whatsapp_config: updatedConfig })
       .eq('id', studioInfo.id || 'main');
 
-    // Se la colonna non esiste (PGRST204), fallback nel blocco note
-    if (updateErr && (updateErr.code === 'PGRST204' || updateErr.message?.includes('whatsapp_config'))) {
+    // Se la colonna non esiste o fallisce, fallback nel blocco note
+    if (updateErr) {
       const cleanBaseNote = (studioInfo.note || '').replace(/__WA_CFG__:[\s\S]*?__END_WA_CFG__/g, '').trim();
       const encodedWa = `__WA_CFG__:${JSON.stringify(updatedConfig)}__END_WA_CFG__`;
       const noteWithConfig = cleanBaseNote ? `${cleanBaseNote}\n${encodedWa}` : encodedWa;

@@ -42,6 +42,81 @@ export function isWeekdayDate(dateStr: string): boolean {
 }
 
 /**
+ * Calcola le ore effettive di presidio per un turno orario specifico.
+ * Invece di calcolare la durata nominale dell'intera fascia di turno (es. 17:00-20:00 = 3h),
+ * calcola l'unione effettiva degli orari degli eventi/prenotazioni presenti in quel turno:
+ * - Se un evento è dalle 18:00 alle 20:00, calcola presidio effettivo 2h (senza calcolare le 3h canoniche).
+ * - Se ci sono più eventi nel turno che condividono lo stesso orario (o orari sovrapposti),
+ *   calcola sempre l'intervallo temporale effettivo a unione (es. 2h) senza sommarli duplicati e senza usare le 3h del turno.
+ * - Se non sono presenti eventi nel turno, il presidio effettivo è 0h.
+ */
+export function calculateEffectivePresidioHours(
+  shiftStartTime: string,
+  shiftEndTime: string,
+  bookings: Booking[] = []
+): number {
+  if (!bookings || bookings.length === 0) {
+    return 0;
+  }
+
+  const sStartMins = timeToMinutes(shiftStartTime);
+  let sEndMins = timeToMinutes(shiftEndTime);
+  if (sEndMins <= sStartMins) {
+    sEndMins += 24 * 60; // Scavallamento mezzanotte
+  }
+
+  const intervals: Array<[number, number]> = [];
+
+  for (const b of bookings) {
+    if (!b.oraInizio || !b.oraFine) continue;
+
+    const bStart = timeToMinutes(b.oraInizio);
+    let bEnd = timeToMinutes(b.oraFine);
+    if (bEnd <= bStart) {
+      bEnd += 24 * 60; // Scavallamento mezzanotte prenotazione
+    }
+
+    // Intersezione tra l'orario della prenotazione e la fascia del turno
+    const overlapStart = Math.max(sStartMins, bStart);
+    const overlapEnd = Math.min(sEndMins, bEnd);
+
+    if (overlapEnd > overlapStart) {
+      intervals.push([overlapStart, overlapEnd]);
+    }
+  }
+
+  if (intervals.length === 0) {
+    return 0;
+  }
+
+  // Ordina per orario di inizio
+  intervals.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+
+  // Unione (merge) degli intervalli sovrapposti o contigui
+  const merged: Array<[number, number]> = [];
+  let current: [number, number] = [intervals[0][0], intervals[0][1]];
+
+  for (let i = 1; i < intervals.length; i++) {
+    const next = intervals[i];
+    if (next[0] <= current[1]) {
+      current[1] = Math.max(current[1], next[1]);
+    } else {
+      merged.push(current);
+      current = [next[0], next[1]];
+    }
+  }
+  merged.push(current);
+
+  // Somma minuti totali effettivi
+  let totalEffectiveMinutes = 0;
+  for (const [start, end] of merged) {
+    totalEffectiveMinutes += end - start;
+  }
+
+  return Math.round((totalEffectiveMinutes / 60) * 100) / 100;
+}
+
+/**
  * Calcola i due turni per una data:
  * - Lunedì - Venerdì: Turno 1 (17:00-20:00), Turno 2 (20:00-23:00)
  * - Sabato: Turno 1 (09:00-12:00), Turno 2 (14:00-18:00)
@@ -166,6 +241,8 @@ export function computeDailyShifts(
   }
 
   const s1DurMins = timeToMinutes(s1End) - timeToMinutes(s1Start);
+  const s1EffettivoOre = calculateEffectivePresidioHours(s1Start, s1End, bookingsOnDate);
+  const s1NominaleOre = Math.round((s1DurMins / 60) * 100) / 100;
 
   const shift1: DailyShiftComputed = {
     id: saved1?.id || `shift-${dateStr}-1`,
@@ -176,8 +253,10 @@ export function computeDailyShifts(
     oraFineBase: isSaturday ? SATURDAY_SHIFT_1_END : BASE_SHIFT_1_END,
     oraInizio: s1Start,
     oraFine: s1End,
-    durataMinuti: s1DurMins,
-    durataOre: Math.round((s1DurMins / 60) * 100) / 100,
+    durataMinuti: Math.round(s1EffettivoOre * 60),
+    durataOre: s1EffettivoOre,
+    durataTurnoOre: s1NominaleOre,
+    orePresidioEffettivo: s1EffettivoOre,
     minutiExtra: isAdapted ? extraMinsPerTurn : 0,
     isAdapted: isAdapted || !!saved1?.isCustomHours,
     adaptationReason: saved1?.isCustomHours ? 'Orario personalizzato manualmente' : adaptationReason1,
@@ -192,6 +271,8 @@ export function computeDailyShifts(
   const s2Start = saved2?.isCustomHours && saved2.oraInizioEffettiva ? saved2.oraInizioEffettiva : minutesToTimeString(shift2StartMins);
   const s2End = saved2?.isCustomHours && saved2.oraFineEffettiva ? saved2.oraFineEffettiva : minutesToTimeString(shift2EndMins);
   const s2DurMins = (timeToMinutes(s2End) <= timeToMinutes(s2Start) ? timeToMinutes(s2End) + 24 * 60 : timeToMinutes(s2End)) - timeToMinutes(s2Start);
+  const s2EffettivoOre = calculateEffectivePresidioHours(s2Start, s2End, bookingsOnDate);
+  const s2NominaleOre = Math.round((s2DurMins / 60) * 100) / 100;
 
   const shift2: DailyShiftComputed = {
     id: saved2?.id || `shift-${dateStr}-2`,
@@ -202,8 +283,10 @@ export function computeDailyShifts(
     oraFineBase: isSaturday ? SATURDAY_SHIFT_2_END : BASE_SHIFT_2_END,
     oraInizio: s2Start,
     oraFine: s2End,
-    durataMinuti: s2DurMins,
-    durataOre: Math.round((s2DurMins / 60) * 100) / 100,
+    durataMinuti: Math.round(s2EffettivoOre * 60),
+    durataOre: s2EffettivoOre,
+    durataTurnoOre: s2NominaleOre,
+    orePresidioEffettivo: s2EffettivoOre,
     minutiExtra: isAdapted ? extraMinsPerTurn : 0,
     isAdapted: isAdapted || !!saved2?.isCustomHours,
     adaptationReason: saved2?.isCustomHours ? 'Orario personalizzato manualmente' : adaptationReason2,
@@ -475,7 +558,8 @@ export function autoAssignMonthlyShifts(
 export function getMonthlyWorkloadReport(
   monthStr: string, // YYYY-MM
   shifts: WorkShift[],
-  staffList: StaffMember[]
+  staffList: StaffMember[],
+  allBookings: Booking[] = []
 ): Array<{
   operator: StaffMember;
   shiftsCount: number;
@@ -498,10 +582,10 @@ export function getMonthlyWorkloadReport(
   monthShifts.forEach((s) => {
     if (s.operatoreId && hoursMap[s.operatoreId]) {
       hoursMap[s.operatoreId].count += 1;
-      const sStart = timeToMinutes(s.oraInizioEffettiva || s.oraInizioBase);
-      let sEnd = timeToMinutes(s.oraFineEffettiva || s.oraFineBase);
-      if (sEnd <= sStart) sEnd += 24 * 60;
-      const dur = Math.round(((sEnd - sStart) / 60) * 100) / 100;
+      const sStart = s.oraInizioEffettiva || s.oraInizioBase;
+      const sEnd = s.oraFineEffettiva || s.oraFineBase;
+      const dayBookings = allBookings.filter((b) => b.data === s.data);
+      const dur = calculateEffectivePresidioHours(sStart, sEnd, dayBookings);
       hoursMap[s.operatoreId].hours += dur;
       totalMonthHours += dur;
     }
