@@ -10,6 +10,7 @@ import { RecurrenceModal } from './RecurrenceModal';
 import { SmartTimePicker } from './SmartTimePicker';
 import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
 import { checkOperatorsCoverageForTimeSlot } from '../utils/scheduler';
+import { RoomFloorPlanSelector } from './RoomFloorPlanSelector';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -1223,39 +1224,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </span>
                 )}
               </div>
-              <select
-                required
-                value={salaId}
-                onChange={(e) => setSalaId(e.target.value)}
-                className={`w-full px-3.5 py-2.5 rounded-lg border text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all ${
-                  overlappingBookingsByRoom.has(salaId)
-                    ? 'border-red-500 bg-red-50 text-red-900 ring-2 ring-red-400'
-                    : 'border-slate-300 bg-white text-slate-800'
-                }`}
-              >
-                <option value="">-- Seleziona sala ({availableRooms.length} disponibili) --</option>
-                {/* Sale Disponibili */}
-                {availableRooms.map((r) => (
-                  <option key={r.id} value={r.id} className="font-bold text-slate-900">
-                    ✓ {r.nome} {tipo !== 'lezione' ? `(€${r.tariffaOraria}/h)` : ''} - Capienza: {r.capienza}
-                  </option>
-                ))}
-                {/* Sale già occupate: disabilitate e non selezionabili */}
-                {occupiedRooms.length > 0 && (
-                  <optgroup label="── Sale già occupate in questo orario (Non selezionabili) ──">
-                    {occupiedRooms.map(({ room: r, conflicts }) => (
-                      <option
-                        key={r.id}
-                        value={r.id}
-                        disabled
-                        className="text-slate-400 bg-slate-100 italic"
-                      >
-                        🚫 {r.nome} - OCCUPATA ({conflicts.map((c) => `${c.clienteNome} ${c.oraInizio}-${c.oraFine}`).join(', ')})
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
+              <RoomFloorPlanSelector
+                rooms={rooms}
+                selectedRoomId={salaId}
+                onSelectRoom={(newRoomId) => setSalaId(newRoomId)}
+                availableRooms={availableRooms}
+                occupiedRooms={occupiedRooms}
+                tipo={tipo}
+                data={data}
+                oraInizio={oraInizio}
+                oraFine={oraFine}
+              />
+              <input type="hidden" name="salaId" value={salaId} required />
 
               {/* Avviso in tempo reale se la sala scelta ha un conflitto */}
               {salaId && overlappingBookingsByRoom.has(salaId) && (
