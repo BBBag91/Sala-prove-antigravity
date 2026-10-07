@@ -930,6 +930,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const rooms: Room[] = (roomsRes.data || []).map(mapRoomFromDb);
 
     let shifts: WorkShift[] = (shiftsRes.data || []).map(mapShiftFromDb);
+    if (shifts.length === 0) {
+      try {
+        const { data: storeRow } = await supabase
+          .from('studio_info')
+          .select('note')
+          .eq('id', 'shifts_store')
+          .maybeSingle();
+        if (storeRow?.note) {
+          const parsed = JSON.parse(storeRow.note);
+          if (Array.isArray(parsed)) {
+            shifts = parsed.filter((s: any) => s.data === todayStr).map(mapShiftFromDb);
+          }
+        }
+      } catch (e) {
+        console.warn('[cron] Errore parsing shifts_store:', e);
+      }
+    }
     if (shifts.length === 0 && studioInfo.note && studioInfo.note.includes('__SHIFTS__:')) {
       try {
         const match = studioInfo.note.match(/__SHIFTS__:([\s\S]*?)__END_SHIFTS__/);

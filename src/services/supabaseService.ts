@@ -338,9 +338,20 @@ export const mapIncomeFromDb = (i: any): ManualIncome => ({
 export const mapStudioInfoToDb = (s: StudioInfo, includeWaConfigCol: boolean = true) => {
   let noteWithConfig = s.note || '';
   if (s.whatsappConfig) {
-    const cleanBaseNote = (s.note || '').replace(/__WA_CFG__:[\s\S]*?__END_WA_CFG__/g, '').trim();
+    const cleanBaseNote = (s.note || '')
+      .replace(/__WA_CFG__:[\s\S]*?__END_WA_CFG__/g, '')
+      .replace(/__SHIFTS__:[\s\S]*?__END_SHIFTS__/g, '')
+      .trim();
     const encodedWa = `__WA_CFG__:${JSON.stringify(s.whatsappConfig)}__END_WA_CFG__`;
     noteWithConfig = cleanBaseNote ? `${cleanBaseNote}\n${encodedWa}` : encodedWa;
+  }
+
+  // Preserva SEMPRE il blocco turni __SHIFTS__: se presente nel testo delle note
+  if (s.note && s.note.includes('__SHIFTS__:')) {
+    const match = s.note.match(/__SHIFTS__:[\s\S]*?__END_SHIFTS__/);
+    if (match && !noteWithConfig.includes('__SHIFTS__:')) {
+      noteWithConfig = noteWithConfig ? `${noteWithConfig}\n${match[0]}` : match[0];
+    }
   }
   const result: any = {
     id: 'main',
@@ -493,6 +504,9 @@ export const supabaseService = {
     ]);
 
     let shifts = (shiftsRes.data || []).map(mapShiftFromDb);
+    if (shifts.length === 0) {
+      shifts = await this.getShiftsFromStore();
+    }
     if (shifts.length === 0 && studioRes.data?.note) {
       shifts = extractShiftsFromNote(studioRes.data.note);
     }
@@ -643,18 +657,68 @@ export const supabaseService = {
     if (error) console.error('[Supabase] Errore deleteIncome:', error);
   },
 
-  // Shifts (Turni Presidio Sala)
+  // Recupera l'elenco turni dalla riga dedicata 'shifts_store' in studio_info (isolata da qualsiasi sovrascrittura)
+  async getShiftsFromStore(): Promise<WorkShift[]> {
+    if (!supabase) return [];
+    try {
+      const { data } = await supabase
+        .from('studio_info')
+        .select('note')
+        .eq('id', 'shifts_store')
+        .maybeSingle();
+      if (data?.note) {
+        const parsed = JSON.parse(data.note);
+        if (Array.isArray(parsed)) {
+          return parsed.map(mapShiftFromDb);
+        }
+      }
+    } catch (e) {
+      console.warn('[Supabase] Errore getShiftsFromStore:', e);
+    }
+    return [];
+  },
+
+  // Salva l'elenco completo turni nella riga dedicata 'shifts_store' di studio_info
+  async saveShiftsToStore(shifts: WorkShift[]): Promise<boolean> {
+    if (!supabase) return false;
+    try {
+      const dbRows = shifts.map(mapShiftToDb);
+      const { error } = await supabase
+        .from('studio_info')
+        .upsert({
+          id: 'shifts_store',
+          nome: 'Shifts Store',
+          note: JSON.stringify(dbRows),
+          updated_at: new Date().toISOString(),
+        });
+      if (error) {
+        console.error('[Supabase] Errore saveShiftsToStore:', error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('[Supabase] Errore saveShiftsToStore catch:', e);
+      return false;
+    }
+  },
+
+  // Shifts (Turni Presidio Sala Prove)
   async upsertShift(shift: WorkShift) {
     if (!supabase) return;
     try {
+      // 1. Tenta la tabella shifts (se creata nel DB)
       const { error } = await supabase.from('shifts').upsert(mapShiftToDb(shift));
       if (error && (error.code === 'PGRST205' || error.message?.includes('shifts'))) {
+        await this.fallbackSaveShifts([shift]);
+      } else {
+        // Mirroring sempre attivo su store per garantire ridondanza e continuità
         await this.fallbackSaveShifts([shift]);
       }
     } catch (e) {
       await this.fallbackSaveShifts([shift]);
     }
   },
+
   async upsertMultipleShifts(shifts: WorkShift[]) {
     if (!supabase || shifts.length === 0) return;
     try {
@@ -662,35 +726,70 @@ export const supabaseService = {
       const { error } = await supabase.from('shifts').upsert(rows);
       if (error && (error.code === 'PGRST205' || error.message?.includes('shifts'))) {
         await this.fallbackSaveShifts(shifts);
+      } else {
+        await this.fallbackSaveShifts(shifts);
       }
     } catch (e) {
       await this.fallbackSaveShifts(shifts);
     }
   },
+
   async fallbackSaveShifts(newShifts: WorkShift[]) {
     if (!supabase || newShifts.length === 0) return;
     try {
-      const { data: studioData } = await supabase.from('studio_info').select('id, note').limit(1).maybeSingle();
-      if (!studioData) return;
-      const existingShifts = extractShiftsFromNote(studioData.note);
-      const newMap = new Map<string, WorkShift>();
-      existingShifts.forEach((s) => newMap.set(s.id, s));
-      newShifts.forEach((s) => newMap.set(s.id, s));
-      const merged = Array.from(newMap.values());
+      // 1. Legge i turni esistenti dallo store dedicato
+      let existingShifts = await this.getShiftsFromStore();
 
-      const cleanNote = (studioData.note || '').replace(/__SHIFTS__:[\s\S]*?__END_SHIFTS__/g, '').trim();
-      const encodedShifts = `__SHIFTS__:${JSON.stringify(merged)}__END_SHIFTS__`;
-      const updatedNote = cleanNote ? `${cleanNote}\n${encodedShifts}` : encodedShifts;
-      await supabase.from('studio_info').update({ note: updatedNote }).eq('id', studioData.id || 'main');
+      // Se vuoto, controlla anche il blocco note del record main
+      if (existingShifts.length === 0) {
+        const { data: studioMain } = await supabase.from('studio_info').select('note').eq('id', 'main').maybeSingle();
+        if (studioMain?.note) {
+          existingShifts = extractShiftsFromNote(studioMain.note);
+        }
+      }
+
+      // 2. Chiave univoca robusta: data + '_' + turnoNumero
+      const map = new Map<string, WorkShift>();
+      existingShifts.forEach((s) => map.set(`${s.data}_${s.turnoNumero}`, s));
+      newShifts.forEach((s) => map.set(`${s.data}_${s.turnoNumero}`, s));
+      const merged = Array.from(map.values());
+
+      // 3. Salva nella riga dedicata 'shifts_store' (100% isolata e sicura da qualsiasi sovrascrittura)
+      await this.saveShiftsToStore(merged);
+
+      // 4. Salva anche come backup nel note del record 'main'
+      try {
+        const { data: studioMain } = await supabase.from('studio_info').select('id, note').eq('id', 'main').maybeSingle();
+        if (studioMain) {
+          const cleanNote = (studioMain.note || '').replace(/__SHIFTS__:[\s\S]*?__END_SHIFTS__/g, '').trim();
+          const encodedShifts = `__SHIFTS__:${JSON.stringify(merged)}__END_SHIFTS__`;
+          const updatedNote = cleanNote ? `${cleanNote}\n${encodedShifts}` : encodedShifts;
+          await supabase.from('studio_info').update({ note: updatedNote }).eq('id', studioMain.id);
+        }
+      } catch {}
     } catch (e) {
       console.warn('[Supabase] Errore fallbackSaveShifts:', e);
     }
   },
+
   async deleteShift(id: string) {
     if (!supabase) return;
     try {
-      const { error } = await supabase.from('shifts').delete().eq('id', id);
-      if (error) console.warn('[Supabase] deleteShift:', error.message);
+      await supabase.from('shifts').delete().eq('id', id);
+    } catch {}
+
+    try {
+      const existing = await this.getShiftsFromStore();
+      const filtered = existing.filter((s) => s.id !== id);
+      await this.saveShiftsToStore(filtered);
+
+      const { data: studioMain } = await supabase.from('studio_info').select('id, note').eq('id', 'main').maybeSingle();
+      if (studioMain) {
+        const cleanNote = (studioMain.note || '').replace(/__SHIFTS__:[\s\S]*?__END_SHIFTS__/g, '').trim();
+        const encodedShifts = `__SHIFTS__:${JSON.stringify(filtered)}__END_SHIFTS__`;
+        const updatedNote = cleanNote ? `${cleanNote}\n${encodedShifts}` : encodedShifts;
+        await supabase.from('studio_info').update({ note: updatedNote }).eq('id', studioMain.id);
+      }
     } catch (e) {
       console.warn('[Supabase] deleteShift error:', e);
     }
@@ -776,7 +875,12 @@ export const supabaseService = {
       data.bookings.length > 0 ? supabase.from('bookings').upsert(data.bookings.map(mapBookingToDb)) : Promise.resolve({ error: null }),
       data.expenses.length > 0 ? supabase.from('expenses').upsert(data.expenses.map(mapExpenseToDb)) : Promise.resolve({ error: null }),
       data.incomes.length > 0 ? supabase.from('incomes').upsert(data.incomes.map(mapIncomeToDb)) : Promise.resolve({ error: null }),
-      data.shifts && data.shifts.length > 0 ? Promise.resolve(supabase.from('shifts').upsert(data.shifts.map(mapShiftToDb))) : Promise.resolve({ error: null }),
+      data.shifts && data.shifts.length > 0
+        ? (async () => {
+            await this.saveShiftsToStore(data.shifts!);
+            return supabase.from('shifts').upsert(data.shifts!.map(mapShiftToDb));
+          })()
+        : Promise.resolve({ error: null }),
     ]);
 
     const errors: string[] = [];

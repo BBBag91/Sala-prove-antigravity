@@ -305,7 +305,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return remote.studioInfo;
           });
         }
-        if (remote.shifts && remote.shifts.length > 0) setShifts(remote.shifts);
+        if (remote.shifts !== undefined) {
+          setShifts(remote.shifts);
+        }
         setIsCloudConnected(true);
         setLastCloudRefresh(new Date());
       }
@@ -340,7 +342,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  // Supabase Realtime: aggiornamento automatico istantaneo appena un utente aggiunge/modifica una prenotazione
+  // Supabase Realtime: sincronizzazione istantanea turni e prenotazioni condivisi tra tutti i profili e client
   useEffect(() => {
     if (!configured || !supabase) return;
 
@@ -352,6 +354,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           { event: '*', schema: 'public', table: 'bookings' },
           (payload) => {
             console.log('[Supabase Realtime] Modifica prenotazioni rilevata da altro client:', payload);
+            refreshFromCloud();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'studio_info' },
+          (payload) => {
+            console.log('[Supabase Realtime] Modifica turni/studio_info rilevata da altro client:', payload);
             refreshFromCloud();
           }
         )
@@ -489,38 +499,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     syncToBookings = true,
     customOperatorName?: string
   ) => {
-    const existing = shifts.find((s) => s.data === date && s.turnoNumero === turnoNumero);
     const op = operatorId ? staff.find((st) => st.id === operatorId) : undefined;
     const opName = op ? `${op.nome} ${op.cognome}` : (customOperatorName?.trim() || undefined);
-    const effectiveOpId = operatorId || (customOperatorName?.trim() ? (existing?.operatoreId || `manual-op-${Date.now()}`) : undefined);
+    const effectiveOpId = operatorId || (customOperatorName?.trim() ? `manual-op-${Date.now()}` : undefined);
 
     const baseStart = turnoNumero === 1 ? '17:00' : '20:00';
     const baseEnd = turnoNumero === 1 ? '20:00' : '23:00';
 
-    const updatedShift: WorkShift = {
-      id: existing?.id || `shift-${date}-${turnoNumero}`,
-      data: date,
-      turnoNumero,
-      nomeTurno: turnoNumero === 1 ? '1° Turno (Pomeridiano)' : '2° Turno (Serale)',
-      oraInizioBase: baseStart,
-      oraFineBase: baseEnd,
-      oraInizioEffettiva: existing?.isCustomHours ? existing?.oraInizioEffettiva : undefined,
-      oraFineEffettiva: existing?.isCustomHours ? existing?.oraFineEffettiva : undefined,
-      operatoreId: effectiveOpId,
-      operatoreNome: opName,
-      note: existing?.note || '',
-      isCustomHours: existing?.isCustomHours || false,
-    };
+    let updatedShiftRecord: WorkShift | null = null;
 
-    const newShifts = shifts.filter((s) => !(s.data === date && s.turnoNumero === turnoNumero));
-    newShifts.push(updatedShift);
-    setShifts(newShifts);
-    supabaseService.upsertShift(updatedShift);
+    setShifts((prevShifts) => {
+      const existing = prevShifts.find((s) => s.data === date && s.turnoNumero === turnoNumero);
+      updatedShiftRecord = {
+        id: existing?.id || `shift-${date}-${turnoNumero}`,
+        data: date,
+        turnoNumero,
+        nomeTurno: turnoNumero === 1 ? '1° Turno (Pomeridiano)' : '2° Turno (Serale)',
+        oraInizioBase: baseStart,
+        oraFineBase: baseEnd,
+        oraInizioEffettiva: existing?.isCustomHours ? existing?.oraInizioEffettiva : undefined,
+        oraFineEffettiva: existing?.isCustomHours ? existing?.oraFineEffettiva : undefined,
+        operatoreId: effectiveOpId,
+        operatoreNome: opName,
+        note: existing?.note || '',
+        isCustomHours: existing?.isCustomHours || false,
+      };
+
+      const filtered = prevShifts.filter((s) => !(s.data === date && s.turnoNumero === turnoNumero));
+      return [...filtered, updatedShiftRecord];
+    });
+
+    if (updatedShiftRecord) {
+      supabaseService.upsertShift(updatedShiftRecord).catch((err) =>
+        console.error('[AppContext] Errore salvataggio turno su Supabase:', err)
+      );
+    }
 
     // Se richiesto, applica l'operatore anche a tutte le prenotazioni in questa fascia
-    if (syncToBookings && opName) {
+    if (syncToBookings) {
       const dayBookings = bookings.filter((b) => b.data === date);
-      const [c1, c2] = computeDailyShifts(date, dayBookings, newShifts, staff);
+      const tempShifts = shifts.filter((s) => !(s.data === date && s.turnoNumero === turnoNumero));
+      if (updatedShiftRecord) tempShifts.push(updatedShiftRecord);
+
+      const [c1, c2] = computeDailyShifts(date, dayBookings, tempShifts, staff);
       const computed = turnoNumero === 1 ? c1 : c2;
       const shiftStartMins = timeToMinutes(computed.oraInizio);
       const shiftEndMins = timeToMinutes(computed.oraFine);
@@ -528,7 +549,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       let updatedAnyBooking = false;
       const updatedBookings = bookings.map((b) => {
         if (b.data !== date) return b;
-        // Non assegnare MAI l'operatore di presidio alle lezioni (gestite dal docente)
+        // Non assegnare MAI l'operatore di presidio alle lezioni didattiche (docente autonomo)
         if (isLessonBooking(b)) {
           if (b.operatoreAssegnatoId || b.operatoreAssegnatoNome) {
             updatedAnyBooking = true;
@@ -541,11 +562,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           return b;
         }
+
         const bStartMins = timeToMinutes(b.oraInizio);
         let bEndMins = timeToMinutes(b.oraFine);
         if (bEndMins <= bStartMins) bEndMins += 24 * 60;
 
-        // Se la prenotazione (prova musicale) si sovrappone al turno
+        // Se la prova si sovrappone alla fascia oraria del turno
         if (bStartMins < shiftEndMins && bEndMins > shiftStartMins) {
           updatedAnyBooking = true;
           return {
@@ -560,35 +582,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (updatedAnyBooking) {
         setBookings(updatedBookings);
         updatedBookings
-          .filter((b) => b.data === date && b.operatoreAssegnatoNome === opName)
-          .forEach((b) => supabaseService.upsertBooking(b));
+          .filter((b) => b.data === date)
+          .forEach((b) => supabaseService.upsertBooking(b).catch(console.error));
       }
     }
   };
 
   const updateShift = (shift: WorkShift) => {
-    const newShifts = shifts.filter((s) => s.id !== shift.id && !(s.data === shift.data && s.turnoNumero === shift.turnoNumero));
-    newShifts.push(shift);
-    setShifts(newShifts);
-    supabaseService.upsertShift(shift);
+    setShifts((prev) => {
+      const filtered = prev.filter((s) => s.id !== shift.id && !(s.data === shift.data && s.turnoNumero === shift.turnoNumero));
+      return [...filtered, shift];
+    });
+    supabaseService.upsertShift(shift).catch((err) =>
+      console.error('[AppContext] Errore updateShift su Supabase:', err)
+    );
   };
 
   const deleteShift = (id: string) => {
     setShifts((prev) => prev.filter((s) => s.id !== id));
-    supabaseService.deleteShift(id);
+    supabaseService.deleteShift(id).catch((err) =>
+      console.error('[AppContext] Errore deleteShift su Supabase:', err)
+    );
   };
 
   const autoAssignWeeklyShiftsAction = (weekDates: string[]) => {
     const result = autoAssignWeeklyShifts(weekDates, shifts, bookings, staff);
     setShifts(result.updatedShifts);
-    supabaseService.upsertMultipleShifts(result.updatedShifts);
+    supabaseService.upsertMultipleShifts(result.updatedShifts).catch((err) =>
+      console.error('[AppContext] Errore salvataggio turni settimanali su Supabase:', err)
+    );
     return { assignedCount: result.assignedCount, unassignedCount: result.unassignedCount };
   };
 
   const autoAssignMonthlyShiftsAction = (monthStr: string, forceReassign?: boolean) => {
     const result = autoAssignMonthlyShifts(monthStr, shifts, bookings, staff, forceReassign);
     setShifts(result.updatedShifts);
-    supabaseService.upsertMultipleShifts(result.updatedShifts);
+    supabaseService.upsertMultipleShifts(result.updatedShifts).catch((err) =>
+      console.error('[AppContext] Errore salvataggio turni mensili su Supabase:', err)
+    );
     return { assignedCount: result.assignedCount, unassignedCount: result.unassignedCount };
   };
 
