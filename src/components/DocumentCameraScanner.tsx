@@ -202,6 +202,7 @@ A presto!`;
   };
 
   // Scatto foto
+  // Scatto foto
   const capturePhoto = () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
@@ -219,7 +220,8 @@ A presto!`;
 
     stopCameraStream();
     setCapturedImage(dataUrl);
-    setMode('preview');
+    // Avvia immediatamente l'analisi IA automatica
+    runAiAnalysis(dataUrl);
   };
 
   // Ridimensiona e ottimizza l'immagine prima dell'invio se supera 1920px (velocizza l'upload ed evita timeout)
@@ -272,11 +274,12 @@ A presto!`;
       if (result) {
         const optimized = await compressImageIfNeeded(result);
         setCapturedImage(optimized);
-        setMode('preview');
+        // Avvia immediatamente l'analisi IA automatica
+        runAiAnalysis(optimized);
       }
     };
     reader.onerror = () => {
-      setErrorMessage('Errore durante la lettura del file.');
+      setErrorMessage('Errore durante la lettura del file immagine.');
     };
     reader.readAsDataURL(file);
     // Reset input
@@ -288,13 +291,6 @@ A presto!`;
     const rawImage = imageDataUrl || capturedImage;
     if (!rawImage) return;
 
-    // Se non c'è una chiave API configurata, apri il modal per richiederla
-    const currentKey = getGeminiApiKey();
-    if (!currentKey) {
-      setIsApiKeyModalOpen(true);
-      return;
-    }
-
     setMode('analyzing');
     setErrorMessage(null);
 
@@ -304,13 +300,6 @@ A presto!`;
       setExtractedData(data);
       onDataExtracted(data);
       setMode('success');
-
-      // Compila e scarica automaticamente il file Excel (.csv con 17 colonne formattate)
-      try {
-        downloadMemberExcelFile(data);
-      } catch (dlErr) {
-        console.warn('Download automatico Excel:', dlErr);
-      }
     } catch (err: any) {
       console.error('Errore estrazione IA:', err);
       const msg = err.message || 'Errore durante l\'analisi IA dell\'immagine.';

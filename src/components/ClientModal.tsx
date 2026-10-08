@@ -372,9 +372,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 >
                   <option value="attivo">✅ Attivo (In regola)</option>
+                  <option value="in_attesa">⏳ In Attesa (Inviata all&apos;ente - Esclusa da file Excel)</option>
                   <option value="scaduto">⚠️ Scaduto (Da rinnovare)</option>
-                  <option value="in_attesa">⏳ In Attesa (Nuovo)</option>
                 </select>
+                <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                  I tesserati &quot;In Attesa&quot; sono esclusi dal file Excel da inviare all&apos;ente.
+                </p>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1">

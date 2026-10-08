@@ -1254,14 +1254,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.nome} {c.cognome} {c.gruppoBand ? `[${c.gruppoBand}]` : ''} - Tessera:{' '}
-                        {c.statoTesseramento === 'attivo' ? 'Attiva' : 'Scaduta/Attesa'}
+                        {c.statoTesseramento === 'attivo' ? 'Attiva' : c.statoTesseramento === 'in_attesa' ? 'In Attesa Ente' : 'Scaduta'}
                       </option>
                     ))}
                   </select>
                   {selectedClient && selectedClient.statoTesseramento !== 'attivo' && (
                     <div className="mt-1.5 flex items-center gap-1 text-xs text-amber-700 font-medium">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>Attenzione: tesseramento {selectedClient.statoTesseramento}. Da rinnovare!</span>
+                      <span>
+                        {selectedClient.statoTesseramento === 'in_attesa'
+                          ? 'Tesseramento in attesa di approvazione dall\'ente.'
+                          : 'Attenzione: tesseramento scaduto. Da rinnovare!'}
+                      </span>
                     </div>
                   )}
                 </>

@@ -253,8 +253,12 @@ export const extractMemberDataFromImage = async (
   mimeType: string = 'image/jpeg',
   customApiKey?: string
 ): Promise<ExtractedMemberData> => {
-  const apiKey = (customApiKey || getGeminiApiKey()).trim();
-  if (!apiKey) {
+  const fallbackKey = getFallbackKey();
+  const envKey = (import.meta.env?.VITE_GEMINI_API_KEY || import.meta.env?.GEMINI_API_KEY || '') as string;
+  const verifiedDefaultKey = (envKey || fallbackKey).trim();
+  const initialKey = (customApiKey || getGeminiApiKey() || verifiedDefaultKey).trim();
+
+  if (!initialKey && !verifiedDefaultKey) {
     throw new Error('Chiave API Gemini non configurata. Inserisci la tua API key nelle impostazioni scansione.');
   }
 
@@ -333,119 +337,144 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
     generationConfig: {
       temperature: 0.1,
       responseMimeType: 'application/json',
-      thinkingConfig: {
-        thinkingBudget: 0,
-      },
     },
   };
 
-  // Modelli Gemini attivi con supporto vision, fallback a catena su modelli ultra-veloci
+  // Modelli Gemini attivi con supporto vision, fallback a catena dal più affidabile e veloce
   const modelsToTry = [
-    'gemini-3.1-flash-lite',
     'gemini-flash-latest',
-    'gemini-3.7-flash',
     'gemini-3.5-flash',
-    'gemini-3.8-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3.6-flash',
+    'gemini-3.7-flash',
   ];
+
+  // Se initialKey è diversa da verifiedDefaultKey, proviamo prima con initialKey, poi con verifiedDefaultKey
+  const keysToTry = Array.from(new Set([initialKey, verifiedDefaultKey].filter(Boolean)));
   let lastError: any = null;
 
-  for (const model of modelsToTry) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+  for (const currentApiKey of keysToTry) {
+    for (const model of modelsToTry) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentApiKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        const msg = errJson?.error?.message || `Errore HTTP ${res.status}`;
-        throw new Error(`${model}: ${msg}`);
-      }
-
-      const responseJson = await res.json();
-      const textOutput =
-        responseJson?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-      if (!textOutput) {
-        throw new Error('Risposta vuota da Gemini AI.');
-      }
-
-      // Estrai il JSON pulito (cerca la prima parentesi quadra o graffa per isolare il payload)
-      let cleanJsonStr = textOutput.trim();
-      const firstBrace = cleanJsonStr.indexOf('{');
-      const lastBrace = cleanJsonStr.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        cleanJsonStr = cleanJsonStr.substring(firstBrace, lastBrace + 1);
-      } else if (cleanJsonStr.startsWith('```json')) {
-        cleanJsonStr = cleanJsonStr.replace(/^```json\s*/, '').replace(/```\s*$/, '');
-      } else if (cleanJsonStr.startsWith('```')) {
-        cleanJsonStr = cleanJsonStr.replace(/^```\s*/, '').replace(/```\s*$/, '');
-      }
-
-      const parsed: ExtractedMemberData = JSON.parse(cleanJsonStr);
-
-      // Post-elaborazione e validazione Codice Fiscale
-      if (parsed.codiceFiscale) {
-        parsed.codiceFiscale = parsed.codiceFiscale.toUpperCase().replace(/\s+/g, '');
-        // Se manca la data di nascita o sesso ma il CF è valido, ricaviamoli
-        const cfDecoded = decodeCodiceFiscale(parsed.codiceFiscale);
-        if (!parsed.sesso && cfDecoded.sesso) {
-          parsed.sesso = cfDecoded.sesso;
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          const msg = errJson?.error?.message || `Errore HTTP ${res.status}`;
+          // Se la chiave è invalida (400 o 403), interrompi i tentativi su questa chiave e passa alla chiave di default
+          if (res.status === 400 && msg.toLowerCase().includes('api key')) {
+            console.warn(`Chiave non valida per ${model}, passo alla chiave di fallback.`);
+            break;
+          }
+          throw new Error(`${model}: ${msg}`);
         }
-        if ((!parsed.dataNascita || !/^\d{4}-\d{2}-\d{2}$/.test(parsed.dataNascita)) && cfDecoded.dataNascita) {
-          parsed.dataNascita = cfDecoded.dataNascita;
+
+        const responseJson = await res.json();
+        const textOutput =
+          responseJson?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        if (!textOutput) {
+          throw new Error('Risposta vuota da Gemini AI.');
         }
-      }
 
-      // Normalizzazione data nascita a formato YYYY-MM-DD se scritta come DD-MM-YYYY o DD/MM/YYYY
-      if (parsed.dataNascita) {
-        const d = parsed.dataNascita.trim();
-        const dmy = d.match(/^(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})$/);
-        if (dmy) {
-          parsed.dataNascita = `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+        // Estrai il JSON pulito (cerca la prima parentesi quadra o graffa per isolare il payload)
+        let cleanJsonStr = textOutput.trim();
+        const firstBrace = cleanJsonStr.indexOf('{');
+        const lastBrace = cleanJsonStr.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          cleanJsonStr = cleanJsonStr.substring(firstBrace, lastBrace + 1);
+        } else if (cleanJsonStr.startsWith('```json')) {
+          cleanJsonStr = cleanJsonStr.replace(/^```json\s*/, '').replace(/```\s*$/, '');
+        } else if (cleanJsonStr.startsWith('```')) {
+          cleanJsonStr = cleanJsonStr.replace(/^```\s*/, '').replace(/```\s*$/, '');
         }
-      }
 
-      // Normalizzazione sesso
-      if (parsed.sesso) {
-        const s = String(parsed.sesso).toUpperCase().trim();
-        if (s.startsWith('M') || s === 'MASCHIO') parsed.sesso = 'M';
-        else if (s.startsWith('F') || s === 'FEMMINA') parsed.sesso = 'F';
-        else parsed.sesso = 'Altro';
-      } else {
-        parsed.sesso = 'M';
-      }
+        const parsed: ExtractedMemberData = JSON.parse(cleanJsonStr);
 
-      // Normalizza CAP
-      if (!parsed.cap && parsed.residenzaCompleta) {
-        const capMatch = parsed.residenzaCompleta.match(/\b\d{5}\b/);
-        if (capMatch) parsed.cap = capMatch[0];
-      }
+        // Post-elaborazione e validazione Codice Fiscale
+        if (parsed.codiceFiscale) {
+          parsed.codiceFiscale = parsed.codiceFiscale.toUpperCase().replace(/\s+/g, '');
+          // Se manca la data di nascita o sesso ma il CF è valido, ricaviamoli
+          const cfDecoded = decodeCodiceFiscale(parsed.codiceFiscale);
+          if (!parsed.sesso && cfDecoded.sesso) {
+            parsed.sesso = cfDecoded.sesso;
+          }
+          if ((!parsed.dataNascita || !/^\d{4}-\d{2}-\d{2}$/.test(parsed.dataNascita)) && cfDecoded.dataNascita) {
+            parsed.dataNascita = cfDecoded.dataNascita;
+          }
+        }
 
-      // Costruisci residenzaCompleta se non fornita
-      if (!parsed.residenzaCompleta) {
-        const parts = [
-          parsed.indirizzo,
-          parsed.cap,
-          parsed.comuneResidenza,
-          parsed.provinciaResidenza ? `(${parsed.provinciaResidenza})` : '',
-        ].filter(Boolean);
-        parsed.residenzaCompleta = parts.join(' ').trim();
-      }
+        // Normalizzazione data nascita a formato YYYY-MM-DD
+        if (parsed.dataNascita) {
+          const d = parsed.dataNascita.trim();
+          // Gestisce DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY
+          const dmy = d.match(/^(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{2,4})$/);
+          if (dmy) {
+            let year = dmy[3];
+            if (year.length === 2) {
+              const yNum = parseInt(year, 10);
+              const current2Digits = new Date().getFullYear() % 100;
+              year = yNum > current2Digits ? `19${year}` : `20${year}`;
+            }
+            parsed.dataNascita = `${year}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+          }
+        }
 
-      if (!parsed.indirizzo && parsed.residenzaCompleta) {
-        parsed.indirizzo = parsed.residenzaCompleta;
-      }
+        // Se ancora non c'è una data formattata valida ma abbiamo il CF, decodificalo
+        if ((!parsed.dataNascita || !/^\d{4}-\d{2}-\d{2}$/.test(parsed.dataNascita)) && parsed.codiceFiscale) {
+          const cfDecoded = decodeCodiceFiscale(parsed.codiceFiscale);
+          if (cfDecoded.dataNascita) {
+            parsed.dataNascita = cfDecoded.dataNascita;
+          }
+        }
 
-      return parsed;
-    } catch (err: any) {
-      lastError = err;
-      console.warn(`Tentativo con ${model} fallito:`, err.message);
-      // Passa al prossimo modello
+        // Normalizzazione sesso
+        if (parsed.sesso) {
+          const s = String(parsed.sesso).toUpperCase().trim();
+          if (s.startsWith('M') || s === 'MASCHIO') parsed.sesso = 'M';
+          else if (s.startsWith('F') || s === 'FEMMINA') parsed.sesso = 'F';
+          else parsed.sesso = 'Altro';
+        } else if (parsed.codiceFiscale) {
+          const cfDecoded = decodeCodiceFiscale(parsed.codiceFiscale);
+          parsed.sesso = cfDecoded.sesso || 'M';
+        } else {
+          parsed.sesso = 'M';
+        }
+
+        // Normalizza CAP
+        if (!parsed.cap && parsed.residenzaCompleta) {
+          const capMatch = parsed.residenzaCompleta.match(/\b\d{5}\b/);
+          if (capMatch) parsed.cap = capMatch[0];
+        }
+
+        // Costruisci residenzaCompleta se non fornita
+        if (!parsed.residenzaCompleta) {
+          const parts = [
+            parsed.indirizzo,
+            parsed.cap,
+            parsed.comuneResidenza,
+            parsed.provinciaResidenza ? `(${parsed.provinciaResidenza})` : '',
+          ].filter(Boolean);
+          parsed.residenzaCompleta = parts.join(' ').trim();
+        }
+
+        if (!parsed.indirizzo && parsed.residenzaCompleta) {
+          parsed.indirizzo = parsed.residenzaCompleta;
+        }
+
+        return parsed;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`Tentativo con ${model} fallito:`, err.message);
+      }
     }
   }
 
