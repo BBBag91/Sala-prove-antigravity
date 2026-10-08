@@ -340,15 +340,47 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
     },
   };
 
-  // Modelli Gemini attivi con supporto vision, fallback a catena dal più affidabile e veloce
+  // Modelli Gemini attivi con supporto vision, ordinati partendo dai più stabili, veloci e costantemente disponibili
   const modelsToTry = [
-    'gemini-flash-latest',
     'gemini-3.5-flash',
     'gemini-3.1-flash-lite',
-    'gemini-3.1-flash-lite-preview',
+    'gemini-flash-lite-latest',
+    'gemini-3-flash-preview',
+    'gemini-flash-latest',
     'gemini-3.6-flash',
     'gemini-3.7-flash',
+    'gemini-3.8-flash',
   ];
+
+  // Funzione helper per parsing JSON ultra-robusto (rimuove markdown, commenti e virgole finali)
+  const safeParseJson = (rawText: string): ExtractedMemberData => {
+    let clean = rawText.trim();
+    // Isola blocco JSON principale
+    const firstBrace = clean.indexOf('{');
+    const lastBrace = clean.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      clean = clean.substring(firstBrace, lastBrace + 1);
+    } else {
+      clean = clean.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+    }
+
+    // Rimuovi commenti JS a riga singola (// ...)
+    clean = clean.replace(/\/\/.*$/gm, '');
+    // Rimuovi virgole finali prima di parentesi quadre o graffe di chiusura (errore comune di sintassi JSON nei modelli IA)
+    clean = clean.replace(/,\s*([}\]])/g, '$1');
+
+    try {
+      return JSON.parse(clean);
+    } catch {
+      // Secondo tentativo: rimuovi eventuali a capo non escapati all'interno delle stringhe
+      try {
+        const repaired = clean.replace(/(:\s*"[^"]*")/gs, (m) => m.replace(/[\r\n]+/g, ' '));
+        return JSON.parse(repaired);
+      } catch (err: any) {
+        throw new Error(`Risposta JSON non interpretabile da Gemini: ${err.message}`);
+      }
+    }
+  };
 
   // Se initialKey è diversa da verifiedDefaultKey, proviamo prima con initialKey, poi con verifiedDefaultKey
   const keysToTry = Array.from(new Set([initialKey, verifiedDefaultKey].filter(Boolean)));
@@ -369,35 +401,34 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
         if (!res.ok) {
           const errJson = await res.json().catch(() => ({}));
           const msg = errJson?.error?.message || `Errore HTTP ${res.status}`;
-          // Se la chiave è invalida (400 o 403), interrompi i tentativi su questa chiave e passa alla chiave di default
-          if (res.status === 400 && msg.toLowerCase().includes('api key')) {
-            console.warn(`Chiave non valida per ${model}, passo alla chiave di fallback.`);
-            break;
+
+          // Se la chiave è invalida o non autorizzata (400, 401, 403), interrompi i tentativi su questa chiave e passa alla chiave di default
+          const isApiKeyProblem =
+            res.status === 401 ||
+            res.status === 403 ||
+            (res.status === 400 && (msg.toLowerCase().includes('api key') || msg.toLowerCase().includes('apikey') || msg.toLowerCase().includes('credential')));
+
+          if (isApiKeyProblem && currentApiKey !== verifiedDefaultKey) {
+            console.warn(`Chiave non valida per ${model} (${msg}), passaggio immediato alla chiave di default di sistema.`);
+            break; // Esci dal ciclo dei modelli per questa chiave e passa al verifiedDefaultKey
           }
+
+          // Se errore di congestione momentanea (503 / 429), breve attesa non bloccante per permettere al modello successivo di rispondere
+          if (res.status === 503 || res.status === 429) {
+            await new Promise((resolve) => setTimeout(resolve, 400));
+          }
+
           throw new Error(`${model}: ${msg}`);
         }
 
         const responseJson = await res.json();
-        const textOutput =
-          responseJson?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const textOutput = responseJson?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
         if (!textOutput) {
-          throw new Error('Risposta vuota da Gemini AI.');
+          throw new Error(`Risposta vuota ricevuta da ${model}.`);
         }
 
-        // Estrai il JSON pulito (cerca la prima parentesi quadra o graffa per isolare il payload)
-        let cleanJsonStr = textOutput.trim();
-        const firstBrace = cleanJsonStr.indexOf('{');
-        const lastBrace = cleanJsonStr.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          cleanJsonStr = cleanJsonStr.substring(firstBrace, lastBrace + 1);
-        } else if (cleanJsonStr.startsWith('```json')) {
-          cleanJsonStr = cleanJsonStr.replace(/^```json\s*/, '').replace(/```\s*$/, '');
-        } else if (cleanJsonStr.startsWith('```')) {
-          cleanJsonStr = cleanJsonStr.replace(/^```\s*/, '').replace(/```\s*$/, '');
-        }
-
-        const parsed: ExtractedMemberData = JSON.parse(cleanJsonStr);
+        const parsed = safeParseJson(textOutput);
 
         // Post-elaborazione e validazione Codice Fiscale
         if (parsed.codiceFiscale) {
@@ -478,5 +509,11 @@ Rispondi RIGOROSAMENTE con un oggetto JSON valido avente questa struttura:
     }
   }
 
-  throw new Error(lastError?.message || 'Impossibile elaborare il modulo con Gemini AI.');
+  // Messaggio d'errore chiaro e guidato
+  const userFriendlyMsg =
+    lastError?.message && (lastError.message.includes('503') || lastError.message.includes('demand'))
+      ? 'I server Google AI sono momentaneamente congestionati. Riprova tra pochi istanti.'
+      : lastError?.message || 'Impossibile elaborare il modulo con Gemini AI. Verifica la foto o la chiave API.';
+
+  throw new Error(userFriendlyMsg);
 };

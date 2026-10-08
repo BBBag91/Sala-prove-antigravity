@@ -65,7 +65,7 @@ export const DocumentCameraScanner: React.FC<DocumentCameraScannerProps> = ({
   const [hasCopiedFormLink, setHasCopiedFormLink] = useState(false);
   const [isEditingFormUrl, setIsEditingFormUrl] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState('');
-  const [showCameraSection, setShowCameraSection] = useState(false);
+  const [showCameraSection, setShowCameraSection] = useState(true);
 
   const handleSendWhatsAppInvite = () => {
     const greeting = clientName ? `Ciao ${clientName}! 🎶` : 'Ciao! 🎶';
@@ -206,8 +206,8 @@ A presto!`;
   const capturePhoto = () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
-    const width = video.videoWidth || 1280;
-    const height = video.videoHeight || 720;
+    const width = video.videoWidth && video.videoWidth > 0 ? video.videoWidth : 1280;
+    const height = video.videoHeight && video.videoHeight > 0 ? video.videoHeight : 720;
 
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -216,7 +216,7 @@ A presto!`;
     if (!ctx) return;
 
     ctx.drawImage(video, 0, 0, width, height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
 
     stopCameraStream();
     setCapturedImage(dataUrl);
@@ -224,14 +224,14 @@ A presto!`;
     runAiAnalysis(dataUrl);
   };
 
-  // Ridimensiona e ottimizza l'immagine prima dell'invio se supera 1920px (velocizza l'upload ed evita timeout)
+  // Ridimensiona e ottimizza l'immagine prima dell'invio (max 1600px: alta leggibilità testo manoscritto e upload rapido senza timeout)
   const compressImageIfNeeded = (dataUrl: string): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const maxDim = 1920;
+        const maxDim = 1600;
         let { width, height } = img;
-        if (width <= maxDim && height <= maxDim && dataUrl.length < 2_000_000) {
+        if (width <= maxDim && height <= maxDim && dataUrl.length < 1_500_000) {
           resolve(dataUrl);
           return;
         }
@@ -255,7 +255,7 @@ A presto!`;
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.88));
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
       img.onerror = () => resolve(dataUrl);
       img.src = dataUrl;
@@ -726,26 +726,44 @@ A presto!`;
             )}
           </div>
 
-          {/* Azioni Anteprima */}
+          {/* Azioni Anteprima & Messaggio di Errore se fallito */}
           {mode === 'preview' && (
-            <div className="p-3 bg-slate-950 flex flex-wrap items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => startCamera()}
-                className="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Rifai Foto
-              </button>
+            <div className="p-3 bg-slate-950 flex flex-col gap-2.5">
+              {errorMessage && (
+                <div className="p-2.5 rounded-lg bg-rose-950/80 border border-rose-500/60 flex items-center justify-between gap-2 text-xs text-rose-200">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                    <span className="truncate">{errorMessage}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => runAiAnalysis()}
+                    className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shrink-0 cursor-pointer transition-colors"
+                  >
+                    Riprova
+                  </button>
+                </div>
+              )}
 
-              <button
-                type="button"
-                onClick={() => runAiAnalysis()}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 transition-all cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
-                <span>Analizza con IA & Compila Scheda</span>
-              </button>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => startCamera()}
+                  className="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Rifai Foto
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => runAiAnalysis()}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+                  <span>Analizza con IA & Compila Scheda</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
