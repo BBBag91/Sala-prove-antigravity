@@ -1,4 +1,4 @@
-import { Booking, DailyShiftComputed, Room, StaffMember, StudioInfo, WhatsAppNotificationConfig, WhatsAppProvider } from '../types';
+import { Booking, Client, DailyShiftComputed, Room, StaffMember, StudioInfo, WhatsAppNotificationConfig, WhatsAppProvider, isLessonBooking } from '../types';
 import { MESI_ITALIANI, parseISODate } from '../utils/dateUtils';
 
 const GIORNI_SETTIMANA = [
@@ -10,6 +10,28 @@ const GIORNI_SETTIMANA = [
   'Venerdì',
   'Sabato',
 ];
+
+/**
+ * Normalizza e pulisce un numero telefonico per i link e le API di WhatsApp.
+ * Converte prefissi italiani (es. 340... -> 39340...) e rimuove caratteri speciali.
+ */
+export function cleanPhoneNumberForWhatsApp(phone?: string | null): string {
+  if (!phone) return '';
+  let digits = String(phone).replace(/[^0-9]/g, '');
+  if (!digits) return '';
+
+  // Rimuovi eventuale doppio zero internazionale iniziale (0039 -> 39)
+  if (digits.startsWith('00')) {
+    digits = digits.substring(2);
+  }
+
+  // Se è un cellulare italiano standard a 9 o 10 cifre che inizia per 3, aggiungi il prefisso Italia 39
+  if (/^3\d{8,9}$/.test(digits)) {
+    digits = `39${digits}`;
+  }
+
+  return digits;
+}
 
 /**
  * Genera il testo completo del riepilogo giornaliero formattato per WhatsApp
@@ -239,30 +261,168 @@ export function formatMorningBriefingMessage({
 }
 
 /**
- * Invio effettivo del messaggio tramite Gateway WhatsApp (UltraMsg, Green API, Whapi o Webhook)
+ * Genera il messaggio WhatsApp di promemoria/conferma personalizzato per una singola prenotazione.
+ * Supporta promemoria per Allievo/Musicista (con sala, orari, docente/attrezzatura)
+ * oppure promemoria per l'Insegnante (con nome allievo e dettagli).
+ */
+export function formatBookingReminderMessage({
+  booking,
+  client,
+  room,
+  teacher,
+  studioInfo,
+  customNote,
+  recipientType = 'client',
+}: {
+  booking: Booking;
+  client?: Client | null;
+  room?: Room | null;
+  teacher?: StaffMember | null;
+  studioInfo: StudioInfo;
+  customNote?: string;
+  recipientType?: 'client' | 'teacher';
+}): string {
+  const d = parseISODate(booking.data);
+  const giornoSettimana = GIORNI_SETTIMANA[d.getDay()];
+  const giornoNumero = d.getDate();
+  const meseNome = MESI_ITALIANI[d.getMonth()];
+  const anno = d.getFullYear();
+
+  const studioNome = studioInfo.nome || 'Sala Prove Musicale';
+  const isLesson = isLessonBooking(booking);
+  const roomName = booking.salaNome || room?.nome || 'Sala Prove';
+
+  const lines: string[] = [];
+
+  if (recipientType === 'teacher') {
+    const docenteNome =
+      (teacher ? `${teacher.nome} ${teacher.cognome}`.trim() : '') ||
+      booking.insegnanteNome ||
+      'Docente';
+
+    lines.push(`👨‍🏫 *PROMEMORIA LEZIONE • ${studioNome.toUpperCase()}*`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`Ciao *${docenteNome}*! 👋`);
+    lines.push(`Ti ricordiamo la lezione in programma a calendario:`);
+    lines.push(``);
+    lines.push(`👤 *Allievo/a:* *${booking.clienteNome}*`);
+    lines.push(`📅 *Data:* *${giornoSettimana} ${giornoNumero} ${meseNome} ${anno}*`);
+    lines.push(`🕒 *Orario:* *${booking.oraInizio} - ${booking.oraFine}* (${booking.durataOre}h)`);
+    lines.push(`🚪 *Sala:* *${roomName}*`);
+
+    if (booking.richiesteStrumentazione?.trim()) {
+      lines.push(`🎛️ *Note / Strumenti:* _${booking.richiesteStrumentazione.trim()}_`);
+    }
+
+    if (customNote && customNote.trim()) {
+      lines.push(``);
+      lines.push(`💬 *Nota per te:* ${customNote.trim()}`);
+    }
+
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`Buona lezione e buon lavoro! 🎶`);
+    return lines.join('\n');
+  }
+
+  // Destinatario: Allievo o Band / Musicista
+  const destinatarioNome =
+    (client ? `${client.nome}${client.gruppoBand ? ` (${client.gruppoBand})` : ''}` : '') ||
+    booking.clienteNome ||
+    'Musicista';
+
+  if (isLesson) {
+    const docenteNome =
+      (teacher ? `${teacher.nome} ${teacher.cognome}`.trim() : '') ||
+      booking.insegnanteNome ||
+      'Docente';
+
+    lines.push(`🎓 *PROMEMORIA LEZIONE • ${studioNome.toUpperCase()}*`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`Ciao *${destinatarioNome}*! 👋`);
+    lines.push(`Ti ricordiamo il tuo appuntamento per la lezione di musica:`);
+    lines.push(``);
+    lines.push(`📅 *Data:* *${giornoSettimana} ${giornoNumero} ${meseNome} ${anno}*`);
+    lines.push(`🕒 *Orario:* *${booking.oraInizio} - ${booking.oraFine}* (${booking.durataOre}h)`);
+    lines.push(`🚪 *Sala:* *${roomName}*`);
+    lines.push(`👨‍🏫 *Docente:* *${docenteNome}*`);
+
+    if (booking.richiesteStrumentazione?.trim()) {
+      lines.push(`🎛️ *Note / Richieste:* _${booking.richiesteStrumentazione.trim()}_`);
+    }
+
+    if (customNote && customNote.trim()) {
+      lines.push(``);
+      lines.push(`💬 *Nota dello studio:* ${customNote.trim()}`);
+    }
+
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+    if (studioInfo.indirizzo?.trim()) {
+      lines.push(`📍 *Sede:* ${studioInfo.indirizzo.trim()}${studioInfo.citta ? ` (${studioInfo.citta.trim()})` : ''}`);
+    }
+    lines.push(`Ti aspettiamo! In caso di variazioni ti preghiamo di avvisarci con anticipo. A presto! 🎶`);
+  } else {
+    lines.push(`🎸 *PROMEMORIA SALA PROVE • ${studioNome.toUpperCase()}*`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`Ciao *${destinatarioNome}*! 👋`);
+    lines.push(`Ti confermiamo la prenotazione per la sala prove:`);
+    lines.push(``);
+    lines.push(`📅 *Data:* *${giornoSettimana} ${giornoNumero} ${meseNome} ${anno}*`);
+    lines.push(`🕒 *Orario:* *${booking.oraInizio} - ${booking.oraFine}* (${booking.durataOre}h)`);
+    lines.push(`🚪 *Sala:* *${roomName}*`);
+
+    if (booking.tariffaTotale > 0) {
+      const saldoStr = booking.statoPagamento === 'pagato' ? '✅ Già saldato' : '⏳ Da saldare in loco';
+      lines.push(`💶 *Quota:* €${booking.tariffaTotale} (${saldoStr})`);
+    }
+
+    if (booking.richiesteStrumentazione?.trim()) {
+      lines.push(`🎛️ *Dotazione richiesta:* _${booking.richiesteStrumentazione.trim()}_`);
+    }
+
+    if (customNote && customNote.trim()) {
+      lines.push(``);
+      lines.push(`💬 *Nota dello studio:* ${customNote.trim()}`);
+    }
+
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+    if (studioInfo.indirizzo?.trim()) {
+      lines.push(`📍 *Sede:* ${studioInfo.indirizzo.trim()}${studioInfo.citta ? ` (${studioInfo.citta.trim()})` : ''}`);
+    }
+    lines.push(`Buone prove e a presto! 🎶`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Invio effettivo del messaggio tramite Gateway WhatsApp (UltraMsg, Green API, Whapi o Webhook).
+ * Se targetRecipient è specificato, invia a quel numero telefonico invece che al gruppo staff predefinito.
  */
 export async function sendWhatsAppViaApi(
   config: WhatsAppNotificationConfig,
-  message: string
+  message: string,
+  targetRecipient?: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   if (!config.enabled) {
     return { success: false, error: 'Notifiche WhatsApp disabilitate nelle impostazioni.' };
   }
 
+  const rawRecipient = (targetRecipient && targetRecipient.trim()) || config.chatId;
+
   try {
     switch (config.provider) {
       case 'ultramsg': {
-        if (!config.instanceId || !config.token || !config.chatId) {
+        if (!config.instanceId || !config.token || !rawRecipient) {
           return {
             success: false,
-            error: 'Credenziali UltraMsg incomplete (Instance ID, Token o Chat/Group ID mancanti).',
+            error: 'Credenziali UltraMsg incomplete (Instance ID, Token o Destinatario mancanti).',
           };
         }
 
         const endpoint = `https://api.ultramsg.com/${config.instanceId}/messages/chat`;
         const params = new URLSearchParams();
         params.append('token', config.token);
-        params.append('to', config.chatId);
+        params.append('to', rawRecipient);
         params.append('body', message);
 
         const res = await fetch(endpoint, {
@@ -279,19 +439,24 @@ export async function sendWhatsAppViaApi(
       }
 
       case 'greenapi': {
-        if (!config.instanceId || !config.token || !config.chatId) {
+        if (!config.instanceId || !config.token || !rawRecipient) {
           return {
             success: false,
-            error: 'Credenziali Green API incomplete (idInstance, apiTokenInstance o ChatId mancanti).',
+            error: 'Credenziali Green API incomplete (idInstance, apiTokenInstance o Destinatario mancanti).',
           };
         }
+
+        // Green API: chatId individuale deve avere suffisso @c.us se è un numero telefonico
+        const cleanRec = rawRecipient.includes('@')
+          ? rawRecipient
+          : `${cleanPhoneNumberForWhatsApp(rawRecipient)}@c.us`;
 
         const endpoint = `https://api.green-api.com/waInstance${config.instanceId}/sendMessage/${config.token}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chatId: config.chatId,
+            chatId: cleanRec,
             message: message,
           }),
         });
@@ -304,9 +469,13 @@ export async function sendWhatsAppViaApi(
       }
 
       case 'whapi': {
-        if (!config.token || !config.chatId) {
-          return { success: false, error: 'Credenziali Whapi incomplete (Token o ChatId mancanti).' };
+        if (!config.token || !rawRecipient) {
+          return { success: false, error: 'Credenziali Whapi incomplete (Token o Destinatario mancanti).' };
         }
+
+        const cleanRec = rawRecipient.includes('@')
+          ? rawRecipient
+          : `${cleanPhoneNumberForWhatsApp(rawRecipient)}@s.whatsapp.net`;
 
         const endpoint = `https://gate.whapi.cloud/messages/text`;
         const res = await fetch(endpoint, {
@@ -316,7 +485,7 @@ export async function sendWhatsAppViaApi(
             Authorization: `Bearer ${config.token}`,
           },
           body: JSON.stringify({
-            to: config.chatId,
+            to: cleanRec,
             body: message,
           }),
         });
@@ -338,7 +507,7 @@ export async function sendWhatsAppViaApi(
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: message,
-            chatId: config.chatId,
+            chatId: rawRecipient,
             timestamp: new Date().toISOString(),
           }),
         });
@@ -371,9 +540,9 @@ export async function sendWhatsAppViaApi(
 export function getWhatsAppShareLinks(message: string, chatId?: string) {
   const encodedText = encodeURIComponent(message);
 
-  // Se chatId è un numero di telefono (solo cifre senza @g.us), possiamo passarlo in wa.me/
-  const isPhone = chatId && /^[0-9+]+$/.test(chatId.replace(/[\s-]/g, ''));
-  const cleanPhone = isPhone ? chatId.replace(/[^0-9]/g, '') : '';
+  // Normalizza il numero di telefono
+  const isPhone = chatId && /^[0-9+\s()-]+$/.test(chatId.trim());
+  const cleanPhone = isPhone ? cleanPhoneNumberForWhatsApp(chatId) : '';
 
   const universalUrl = cleanPhone
     ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
@@ -387,7 +556,7 @@ export function getWhatsAppShareLinks(message: string, chatId?: string) {
     ? `whatsapp://send?phone=${cleanPhone}&text=${encodedText}`
     : `whatsapp://send?text=${encodedText}`;
 
-  return { universalUrl, webUrl, appSchemeUrl };
+  return { universalUrl, webUrl, appSchemeUrl, cleanPhone };
 }
 
 /**

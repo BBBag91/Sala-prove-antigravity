@@ -185,10 +185,12 @@ export const MonthCalendarDropdown: React.FC<MonthCalendarDropdownProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 ml-1 rounded-lg text-slate-400 hover:text-red-500 dark:text-neutral-500 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-sm ml-1"
+            style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
             title="Chiudi"
+            aria-label="Chiudi finestra"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
           </button>
         </div>
       </div>

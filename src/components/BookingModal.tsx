@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { X, Calendar, AlertCircle, AlertTriangle, CheckCircle2, Check, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2 } from 'lucide-react';
+import { X, Calendar, AlertCircle, AlertTriangle, CheckCircle2, Check, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2, MessageSquare } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig, DeleteRecurringMode } from '../types';
@@ -11,6 +11,7 @@ import { SmartTimePicker } from './SmartTimePicker';
 import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
 import { checkOperatorsCoverageForTimeSlot } from '../utils/scheduler';
 import { RoomFloorPlanSelector } from './RoomFloorPlanSelector';
+import { BookingWhatsAppModal } from './BookingWhatsAppModal';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -124,6 +125,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [richiesteStrumentazione, setRichiesteStrumentazione] = useState(() => bookingToEdit?.richiesteStrumentazione || '');
   const [note, setNote] = useState(() => bookingToEdit?.note || '');
   const [isPastConfirmOpen, setIsPastConfirmOpen] = useState(false);
+  const [isWhatsAppReminderOpen, setIsWhatsAppReminderOpen] = useState(false);
 
   // Verifica se la data o l'orario della prenotazione è nel passato rispetto ad adesso
   const isEventInPast = useMemo(() => {
@@ -1011,6 +1013,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             )}
 
             <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+              {bookingToEdit && (
+                <button
+                  type="button"
+                  onClick={() => setIsWhatsAppReminderOpen(true)}
+                  className="px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                  title="Condividi promemoria su WhatsApp con allievo o band"
+                >
+                  <MessageSquare className="w-4 h-4 fill-emerald-600 dark:fill-emerald-400 stroke-none" />
+                  <span className="hidden sm:inline">Promemoria WhatsApp</span>
+                  <span className="sm:hidden">WhatsApp</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onClose}
@@ -1851,6 +1865,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           executeActualSave();
         }}
       />
+      {/* Modal Condivisione Promemoria WhatsApp */}
+      {isWhatsAppReminderOpen && (
+        <BookingWhatsAppModal
+          isOpen={isWhatsAppReminderOpen}
+          onClose={() => setIsWhatsAppReminderOpen(false)}
+          booking={bookingToEdit}
+        />
+      )}
     </div>
   );
 };

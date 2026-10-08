@@ -33,6 +33,7 @@ import {
   DollarSign,
   CreditCard,
   Banknote,
+  MessageSquare,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -62,6 +63,7 @@ const OperatorSchedulePrintModal = lazy(() => import('./OperatorSchedulePrintMod
 const ShiftQuickModal = lazy(() => import('./ShiftQuickModal').then(m => ({ default: m.ShiftQuickModal })));
 const ShiftsView = lazy(() => import('./ShiftsView').then(m => ({ default: m.ShiftsView })));
 const MorningBriefingModal = lazy(() => import('./MorningBriefingModal').then(m => ({ default: m.MorningBriefingModal })));
+const BookingWhatsAppModal = lazy(() => import('./BookingWhatsAppModal').then(m => ({ default: m.BookingWhatsAppModal })));
 
 // -- Constants ------------------------------------------------------------------
 const HOUR_START = 9;
@@ -165,6 +167,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isShiftsPanelOpen, setIsShiftsPanelOpen] = useState(false);
   const [isDailyBriefingOpen, setIsDailyBriefingOpen] = useState(false);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [whatsAppModalBooking, setWhatsAppModalBooking] = useState<Booking | null>(null);
   const [showShiftsInGrid, setShowShiftsInGrid] = useState<boolean>(() => {
     if (preferences.showShiftsInGrid !== undefined) return preferences.showShiftsInGrid;
     if (typeof window !== 'undefined') {
@@ -2879,7 +2883,19 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 </button>
               )}
 
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-2 ml-auto flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWhatsAppModalBooking(activeBookingDetail);
+                    setIsWhatsAppModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Condividi promemoria su WhatsApp con allievo o band"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 fill-white stroke-none" />
+                  <span>WhatsApp</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setActiveBookingDetail(null)}
@@ -2914,6 +2930,19 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             initialStartTime={selectedStartTimeForBooking}
             initialType={selectedTypeForBooking}
             bookingToEdit={bookingToEdit}
+          />
+        </Suspense>
+      )}
+
+      {isWhatsAppModalOpen && (
+        <Suspense fallback={null}>
+          <BookingWhatsAppModal
+            isOpen={isWhatsAppModalOpen}
+            onClose={() => {
+              setIsWhatsAppModalOpen(false);
+              setWhatsAppModalBooking(null);
+            }}
+            booking={whatsAppModalBooking}
           />
         </Suspense>
       )}

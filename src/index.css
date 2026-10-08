@@ -892,10 +892,16 @@ html {
    ========================================================================= */
 .modal-header-btn-blue,
 button.modal-header-btn-blue,
+.modal-close-btn-blue,
+button.modal-close-btn-blue,
 html.light .modal-header-btn-blue,
 html.light button.modal-header-btn-blue,
+html.light .modal-close-btn-blue,
+html.light button.modal-close-btn-blue,
 html.dark .modal-header-btn-blue,
 html.dark button.modal-header-btn-blue,
+html.dark .modal-close-btn-blue,
+html.dark button.modal-close-btn-blue,
 button[title*="Chiudi"],
 button[title*="chiudi"],
 button[aria-label*="Chiudi"],
@@ -903,6 +909,7 @@ button[aria-label*="chiudi"],
 button[aria-label*="Close"],
 button[aria-label*="close"],
 .modal-close-btn {
+  background: #2563eb !important;
   background-color: #2563eb !important; /* Royal Blue brillante visibile su qualsiasi sfondo */
   color: #ffffff !important;
   border: 1px solid #1d4ed8 !important;
@@ -917,10 +924,16 @@ button[aria-label*="close"],
 
 .modal-header-btn-blue svg,
 button.modal-header-btn-blue svg,
+.modal-close-btn-blue svg,
+button.modal-close-btn-blue svg,
 html.light .modal-header-btn-blue svg,
 html.light button.modal-header-btn-blue svg,
+html.light .modal-close-btn-blue svg,
+html.light button.modal-close-btn-blue svg,
 html.dark .modal-header-btn-blue svg,
 html.dark button.modal-header-btn-blue svg,
+html.dark .modal-close-btn-blue svg,
+html.dark button.modal-close-btn-blue svg,
 button[title*="Chiudi"] svg,
 button[title*="chiudi"] svg,
 button[aria-label*="Chiudi"] svg,

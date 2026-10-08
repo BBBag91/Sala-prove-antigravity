@@ -312,10 +312,12 @@ export const RoomFloorPlanSelector: React.FC<RoomFloorPlanSelectorProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="w-9 h-9 rounded-xl bg-slate-200/80 hover:bg-rose-600 hover:text-white dark:bg-neutral-700 text-slate-600 dark:text-neutral-300 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                  className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                  style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
                   title="Chiudi mappa"
+                  aria-label="Chiudi finestra"
                 >
-                  <X className="w-5 h-5 stroke-[2.5]" />
+                  <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
                 </button>
               </div>
 

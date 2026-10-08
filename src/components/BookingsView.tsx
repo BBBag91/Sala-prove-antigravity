@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   CreditCard,
   Printer,
+  MessageSquare,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +22,7 @@ import { formatDateItalian, formatCurrency, formatDateToISO } from '../utils/dat
 import { BookingModal } from './BookingModal';
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
+import { BookingWhatsAppModal } from './BookingWhatsAppModal';
 
 export const BookingsView: React.FC = () => {
   const { bookings, rooms, deleteBooking, updateBooking } = useApp();
@@ -35,6 +37,8 @@ export const BookingsView: React.FC = () => {
   const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
   const [isSchedulePrintOpen, setIsSchedulePrintOpen] = useState(false);
   const [recurringDeleteModalBooking, setRecurringDeleteModalBooking] = useState<Booking | null>(null);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [whatsAppModalBooking, setWhatsAppModalBooking] = useState<Booking | null>(null);
 
   // Filter bookings
   const filteredBookings = bookings
@@ -332,6 +336,18 @@ export const BookingsView: React.FC = () => {
 
                   <button
                     onClick={() => {
+                      setWhatsAppModalBooking(b);
+                      setIsWhatsAppModalOpen(true);
+                    }}
+                    className="w-11 h-11 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 flex items-center justify-center transition-all touch-manipulation touch-active cursor-pointer shrink-0"
+                    title="Condividi promemoria su WhatsApp con allievo o band"
+                    aria-label="Condividi promemoria su WhatsApp"
+                  >
+                    <MessageSquare className="w-4 h-4 fill-emerald-600 stroke-none" />
+                  </button>
+
+                  <button
+                    onClick={() => {
                       setBookingToEdit(b);
                       setIsModalOpen(true);
                     }}
@@ -490,6 +506,16 @@ export const BookingsView: React.FC = () => {
                       <td className="py-3.5 px-4 text-right space-x-1.5">
                         <button
                           onClick={() => {
+                            setWhatsAppModalBooking(b);
+                            setIsWhatsAppModalOpen(true);
+                          }}
+                          className="p-1.5 text-emerald-600 hover:text-emerald-700 rounded-md hover:bg-emerald-50 transition-colors"
+                          title="Condividi promemoria su WhatsApp"
+                        >
+                          <MessageSquare className="w-4 h-4 fill-emerald-600 stroke-none" />
+                        </button>
+                        <button
+                          onClick={() => {
                             setBookingToEdit(b);
                             setIsModalOpen(true);
                           }}
@@ -546,6 +572,15 @@ export const BookingsView: React.FC = () => {
         roomName={rooms.find(r => r.id === recurringDeleteModalBooking?.salaId)?.nome}
         onClose={() => setRecurringDeleteModalBooking(null)}
         onConfirm={handleConfirmRecurringDelete}
+      />
+
+      <BookingWhatsAppModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => {
+          setIsWhatsAppModalOpen(false);
+          setWhatsAppModalBooking(null);
+        }}
+        booking={whatsAppModalBooking}
       />
     </div>
   );
