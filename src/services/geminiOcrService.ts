@@ -272,6 +272,34 @@ export const extractMemberDataFromImage = async (
   // Rimuovi eventuale data URL header (es. data:image/jpeg;base64,)
   const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, '');
 
+  // 1. Tenta PRIMA tramite endpoint serverless dedicato /api/ocr-scan
+  // (100% immune da blocchi CSP del browser, Safari tracking prevention e CORS)
+  try {
+    const apiRes = await fetch('/api/ocr-scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64: base64Data,
+        mimeType: detectedMime,
+        customApiKey: initialKey !== verifiedDefaultKey ? initialKey : undefined,
+      }),
+    });
+
+    if (apiRes.ok) {
+      const apiData = await apiRes.json();
+      if (apiData.success && apiData.data) {
+        return apiData.data as ExtractedMemberData;
+      }
+    } else if (apiRes.status !== 404 && apiRes.status !== 405) {
+      const errData = await apiRes.json().catch(() => ({}));
+      if (errData?.error && !errData.error.includes('Metodo')) {
+        console.warn('Avviso da /api/ocr-scan:', errData.error);
+      }
+    }
+  } catch (apiErr: any) {
+    console.info('Endpoint /api/ocr-scan non raggiungibile (es. localhost senza proxy), fallback a chiamata diretta:', apiErr?.message);
+  }
+
   const prompt = `Sei un assistente IA specializzato nel riconoscimento ottico di moduli cartacei italiani di tesseramento e anagrafica compilati a mano con penna (HTR - Handwritten Text Recognition).
 Analizza attentamente l'immagine del modulo compilato a penna e dei suoi campi.
 
