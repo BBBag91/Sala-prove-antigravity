@@ -34,6 +34,7 @@ import {
   CreditCard,
   Banknote,
   MessageSquare,
+  Lock,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -43,6 +44,7 @@ import { Booking, BookingType, DailyShiftComputed, DeleteRecurringMode, PaymentM
 import { MonthCalendarView } from './MonthCalendarView';
 import { MonthCalendarDropdown } from './MonthCalendarDropdown';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
+import { checkTeacherBookingPermissions } from '../utils/bookingPermissions';
 import {
   formatDateToISO,
   parseISODate,
@@ -124,7 +126,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   onNavigateToTurni,
 }) => {
   const { rooms, staff, bookings, clients, runAutoAssignment, updateBooking, deleteBooking, refreshFromCloud, isAutoRefreshing, shifts } = useApp();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isTeacher, user } = useAuth();
   const { isDark } = useTheme();
   const { preferences, updatePreferences } = usePreferences();
 
@@ -628,6 +630,11 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
   const handleOpenEditBooking = (booking: Booking, e: React.MouseEvent) => {
     e.stopPropagation();
+    const perms = checkTeacherBookingPermissions(booking, user, staff);
+    if (perms.isOtherTeacherLesson) {
+      alert(perms.reason || 'Nel profilo insegnante puoi modificare solamente le tue lezioni.');
+      return;
+    }
     setSelectedDateForBooking(booking.data);
     setSelectedStartTimeForBooking(booking.oraInizio);
     setSelectedTypeForBooking(booking.tipo);
@@ -654,6 +661,11 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   };
 
   const handleDeleteBooking = (booking: Booking) => {
+    const perms = checkTeacherBookingPermissions(booking, user, staff);
+    if (perms.isOtherTeacherLesson) {
+      alert(perms.reason || 'Nel profilo insegnante puoi eliminare solamente le tue lezioni.');
+      return;
+    }
     // Nel profilo utente non è consentito cancellare eventi passati (solo giorno stesso o futuri)
     if (!isAdmin && booking.data < todayStr) {
       alert('Nel profilo utente non è consentito cancellare eventi passati. È possibile cancellare solo eventi del giorno stesso o futuri.');
@@ -2862,26 +2874,51 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               );
             })()}
 
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-yellow-500/20 flex-wrap">
-              {!isAdmin && activeBookingDetail.data < todayStr ? (
-                <div
-                  className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 text-slate-400 dark:text-neutral-500 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
-                  title="Nel profilo utente non è consentito cancellare eventi passati (solo giorno stesso o futuri)"
-                >
-                  <Trash2 className="w-3.5 h-3.5 opacity-50" />
-                  <span>Eliminazione disabilitata (evento passato)</span>
+            {/* Banner blocco per account insegnanti su lezioni altrui */}
+            {(() => {
+              const activePerms = checkTeacherBookingPermissions(activeBookingDetail, user, staff);
+              return activePerms.isOtherTeacherLesson ? (
+                <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Questa lezione è gestita da <strong>{activeBookingDetail.insegnanteNome}</strong>. Gli account insegnante possono modificare solo le proprie lezioni.</span>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleDeleteBooking(activeBookingDetail)}
-                  className="px-3.5 py-2 rounded-lg bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                  title="Elimina questa prenotazione"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Elimina Prenotazione</span>
-                </button>
-              )}
+              ) : null;
+            })()}
+
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-yellow-500/20 flex-wrap">
+              {(() => {
+                const activePerms = checkTeacherBookingPermissions(activeBookingDetail, user, staff);
+                if (activePerms.isOtherTeacherLesson) {
+                  return (
+                    <div
+                      className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 text-slate-400 dark:text-neutral-500 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
+                      title={activePerms.reason}
+                    >
+                      <Lock className="w-3.5 h-3.5 opacity-60 text-amber-500" />
+                      <span>Eliminazione riservata a {activeBookingDetail.insegnanteNome}</span>
+                    </div>
+                  );
+                }
+                return !isAdmin && activeBookingDetail.data < todayStr ? (
+                  <div
+                    className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 text-slate-400 dark:text-neutral-500 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
+                    title="Nel profilo utente non è consentito cancellare eventi passati (solo giorno stesso o futuri)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 opacity-50" />
+                    <span>Eliminazione disabilitata (evento passato)</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBooking(activeBookingDetail)}
+                    className="px-3.5 py-2 rounded-lg bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="Elimina questa prenotazione"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Elimina Prenotazione</span>
+                  </button>
+                );
+              })()}
 
               <div className="flex items-center gap-2 ml-auto flex-wrap">
                 <button
@@ -2903,13 +2940,29 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                 >
                   Chiudi
                 </button>
-                <button
-                  type="button"
-                  onClick={e => handleOpenEditBooking(activeBookingDetail, e)}
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black font-bold text-xs shadow-sm transition-all cursor-pointer"
-                >
-                  {isLessonBooking(activeBookingDetail) ? 'Modifica Lezione' : 'Modifica / Assegna Operatore'}
-                </button>
+                {(() => {
+                  const activePerms = checkTeacherBookingPermissions(activeBookingDetail, user, staff);
+                  if (activePerms.isOtherTeacherLesson) {
+                    return (
+                      <div
+                        className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 text-slate-500 dark:text-neutral-400 font-bold text-xs flex items-center gap-1.5 cursor-not-allowed select-none shadow-xs"
+                        title={activePerms.reason}
+                      >
+                        <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <span>Modifica Riservata ({activeBookingDetail.insegnanteNome || 'Altro Docente'})</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <button
+                      type="button"
+                      onClick={e => handleOpenEditBooking(activeBookingDetail, e)}
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black font-bold text-xs shadow-sm transition-all cursor-pointer"
+                    >
+                      {isLessonBooking(activeBookingDetail) ? 'Modifica Lezione' : 'Modifica / Assegna Operatore'}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           </div>

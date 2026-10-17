@@ -14,6 +14,7 @@ import {
   CreditCard,
   Printer,
   MessageSquare,
+  Lock,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -23,10 +24,11 @@ import { BookingModal } from './BookingModal';
 import { OperatorSchedulePrintModal } from './OperatorSchedulePrintModal';
 import { DeleteRecurringBookingModal } from './DeleteRecurringBookingModal';
 import { BookingWhatsAppModal } from './BookingWhatsAppModal';
+import { checkTeacherBookingPermissions } from '../utils/bookingPermissions';
 
 export const BookingsView: React.FC = () => {
-  const { bookings, rooms, deleteBooking, updateBooking } = useApp();
-  const { isAdmin } = useAuth();
+  const { bookings, rooms, staff, deleteBooking, updateBooking } = useApp();
+  const { isAdmin, isTeacher, user } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | BookingType>('all');
@@ -74,6 +76,12 @@ export const BookingsView: React.FC = () => {
   };
 
   const handleDelete = (booking: Booking) => {
+    const perms = checkTeacherBookingPermissions(booking, user, staff);
+    if (perms.isOtherTeacherLesson) {
+      alert(perms.reason || 'Nel profilo insegnante puoi eliminare solamente le tue lezioni.');
+      return;
+    }
+
     const todayIso = formatDateToISO(new Date());
     if (!isAdmin && booking.data < todayIso) {
       alert('Nel profilo utente non è consentito cancellare eventi passati. È possibile cancellare solo eventi del giorno stesso o futuri.');
@@ -346,26 +354,53 @@ export const BookingsView: React.FC = () => {
                     <MessageSquare className="w-4 h-4 fill-emerald-600 stroke-none" />
                   </button>
 
-                  <button
-                    onClick={() => {
-                      setBookingToEdit(b);
-                      setIsModalOpen(true);
-                    }}
-                    className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 flex items-center justify-center transition-all touch-manipulation touch-active cursor-pointer shrink-0"
-                    title="Modifica prenotazione"
-                    aria-label="Modifica prenotazione"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
+                  {(() => {
+                    const perms = checkTeacherBookingPermissions(b, user, staff);
+                    return (
+                      <>
+                        {perms.isOtherTeacherLesson ? (
+                          <div
+                            className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center cursor-not-allowed select-none shrink-0"
+                            title={perms.reason}
+                            aria-label={perms.reason}
+                          >
+                            <Lock className="w-4 h-4 text-amber-500" />
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setBookingToEdit(b);
+                              setIsModalOpen(true);
+                            }}
+                            className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 flex items-center justify-center transition-all touch-manipulation touch-active cursor-pointer shrink-0"
+                            title="Modifica prenotazione"
+                            aria-label="Modifica prenotazione"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
 
-                  <button
-                    onClick={() => handleDelete(b)}
-                    className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center transition-all touch-manipulation touch-active cursor-pointer shrink-0"
-                    title="Elimina prenotazione"
-                    aria-label="Elimina prenotazione"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                        {perms.isOtherTeacherLesson ? (
+                          <div
+                            className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center cursor-not-allowed select-none shrink-0"
+                            title={perms.reason}
+                            aria-label={perms.reason}
+                          >
+                            <Trash2 className="w-4 h-4 opacity-30" />
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleDelete(b)}
+                            className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center transition-all touch-manipulation touch-active cursor-pointer shrink-0"
+                            title="Elimina prenotazione"
+                            aria-label="Elimina prenotazione"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -514,32 +549,57 @@ export const BookingsView: React.FC = () => {
                         >
                           <MessageSquare className="w-4 h-4 fill-emerald-600 stroke-none" />
                         </button>
-                        <button
-                          onClick={() => {
-                            setBookingToEdit(b);
-                            setIsModalOpen(true);
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
-                          title="Modifica prenotazione"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        {!isAdmin && b.data < formatDateToISO(new Date()) ? (
-                          <span
-                            className="p-1.5 inline-block text-slate-300 dark:text-neutral-600 cursor-not-allowed select-none"
-                            title="Nel profilo utente non è consentito eliminare eventi passati"
-                          >
-                            <Trash2 className="w-4 h-4 opacity-40" />
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleDelete(b)}
-                            className="p-1.5 text-rose-500 hover:text-rose-700 rounded-md hover:bg-rose-50 transition-colors"
-                            title="Elimina"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                        {(() => {
+                          const perms = checkTeacherBookingPermissions(b, user, staff);
+                          if (perms.isOtherTeacherLesson) {
+                            return (
+                              <>
+                                <span
+                                  className="p-1.5 inline-block text-slate-300 dark:text-neutral-600 cursor-not-allowed select-none"
+                                  title={perms.reason}
+                                >
+                                  <Lock className="w-4 h-4 text-amber-500 opacity-60" />
+                                </span>
+                                <span
+                                  className="p-1.5 inline-block text-slate-300 dark:text-neutral-600 cursor-not-allowed select-none"
+                                  title={perms.reason}
+                                >
+                                  <Trash2 className="w-4 h-4 opacity-30" />
+                                </span>
+                              </>
+                            );
+                          }
+                          return (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setBookingToEdit(b);
+                                  setIsModalOpen(true);
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                                title="Modifica prenotazione"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              {!isAdmin && b.data < formatDateToISO(new Date()) ? (
+                                <span
+                                  className="p-1.5 inline-block text-slate-300 dark:text-neutral-600 cursor-not-allowed select-none"
+                                  title="Nel profilo utente non è consentito eliminare eventi passati"
+                                >
+                                  <Trash2 className="w-4 h-4 opacity-40" />
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleDelete(b)}
+                                  className="p-1.5 text-rose-500 hover:text-rose-700 rounded-md hover:bg-rose-50 transition-colors"
+                                  title="Elimina"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );

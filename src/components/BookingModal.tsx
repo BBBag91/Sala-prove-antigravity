@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { X, Calendar, AlertCircle, AlertTriangle, CheckCircle2, Check, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2, MessageSquare } from 'lucide-react';
+import { X, Calendar, AlertCircle, AlertTriangle, CheckCircle2, Check, RefreshCw, Music2, GraduationCap, Edit3, Users, Trash2, MessageSquare, Lock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { Booking, BookingType, PaymentMethod, PaymentStatus, RecurrenceConfig, DeleteRecurringMode } from '../types';
@@ -12,6 +12,7 @@ import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../ut
 import { checkOperatorsCoverageForTimeSlot } from '../utils/scheduler';
 import { RoomFloorPlanSelector } from './RoomFloorPlanSelector';
 import { BookingWhatsAppModal } from './BookingWhatsAppModal';
+import { checkTeacherBookingPermissions } from '../utils/bookingPermissions';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -34,6 +35,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 }) => {
   const { clients, rooms, staff, bookings, addBooking, updateBooking, updateMultipleBookings, deleteBooking } = useApp();
   const { isAdmin, isTeacher, user } = useAuth();
+
+  // Verifica permessi account insegnante: un insegnante può modificare solo le proprie lezioni
+  const teacherPerms = useMemo(
+    () => checkTeacherBookingPermissions(bookingToEdit, user, staff),
+    [bookingToEdit, user, staff]
+  );
+  const isOtherTeacherLesson = teacherPerms.isOtherTeacherLesson;
 
   // Scheda staff collegata al profilo utente se è un insegnante
   const currentTeacherStaff = useMemo(() => {
@@ -901,6 +909,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       return;
     }
 
+    // Controllo permessi account insegnante: un insegnante può modificare solamente le proprie lezioni
+    if (isOtherTeacherLesson) {
+      alert(teacherPerms.reason || 'Nel profilo insegnante puoi modificare solamente le tue lezioni.');
+      return;
+    }
+
     // Controllo bloccante univocità cliente: un cliente/allievo non può avere due prenotazioni contemporanee in sale diverse
     if (overlappingBookingsByClient.length > 0) {
       const first = overlappingBookingsByClient[0];
@@ -924,6 +938,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const handleDeleteCurrentBooking = () => {
     if (!bookingToEdit) return;
+
+    if (isOtherTeacherLesson) {
+      alert(teacherPerms.reason || 'Nel profilo insegnante puoi eliminare solamente le tue lezioni.');
+      return;
+    }
+
     const todayIso = formatDateToISO(new Date());
     if (!isAdmin && bookingToEdit.data < todayIso) {
       alert('Nel profilo utente non è consentito cancellare eventi passati. È possibile cancellare solo eventi del giorno stesso o futuri.');
@@ -950,8 +970,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden my-4 sm:my-8">
         {/* Header */}
         <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900/90 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
@@ -982,80 +1002,131 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col max-h-[86vh]">
           {/* Top Full-Width Action Bar */}
-          <div className="w-full px-5 sm:px-6 py-3 bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 flex items-center justify-between gap-3 shrink-0 shadow-xs">
-            {bookingToEdit ? (
-              !isAdmin && bookingToEdit.data < formatDateToISO(new Date()) ? (
-                <div
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
-                  title="Nel profilo utente non è consentito cancellare eventi passati (solo giorno stesso o futuri)"
-                >
-                  <Trash2 className="w-3.5 h-3.5 opacity-50" />
-                  <span className="hidden sm:inline">Eliminazione disabilitata (evento passato)</span>
-                  <span className="sm:hidden">Passato</span>
-                </div>
+          <div className="w-full px-3.5 sm:px-6 py-2.5 sm:py-3 bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 shrink-0 shadow-xs">
+            {/* Mobile Top Row / Desktop Left Side */}
+            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+              {bookingToEdit ? (
+                isOtherTeacherLesson ? (
+                  <div
+                    className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none shrink-0"
+                    title={teacherPerms.reason}
+                  >
+                    <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span className="hidden sm:inline">Eliminazione riservata a {bookingToEdit.insegnanteNome}</span>
+                    <span className="sm:hidden">Sola lettura</span>
+                  </div>
+                ) : !isAdmin && bookingToEdit.data < formatDateToISO(new Date()) ? (
+                  <div
+                    className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
+                    title="Nel profilo utente non è consentito cancellare eventi passati (solo giorno stesso o futuri)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 opacity-50" />
+                    <span className="hidden sm:inline">Eliminazione disabilitata (evento passato)</span>
+                    <span className="sm:hidden">Passato</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleDeleteCurrentBooking}
+                    className="px-3 sm:px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 hover:text-rose-400 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                    title="Elimina questa prenotazione"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Elimina Prenotazione</span>
+                    <span className="sm:hidden">Elimina</span>
+                  </button>
+                )
               ) : (
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-neutral-400">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                  <span className="hidden sm:inline">Nuova prenotazione sala</span>
+                  <span className="sm:hidden">Nuova prenotazione</span>
+                </div>
+              )}
+
+              {/* Mobile secondary actions: WhatsApp & Annulla alongside Elimina */}
+              <div className="flex items-center gap-2 sm:hidden ml-auto">
+                {bookingToEdit && (
+                  <button
+                    type="button"
+                    onClick={() => setIsWhatsAppReminderOpen(true)}
+                    className="px-2.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0"
+                    title="Condividi promemoria su WhatsApp con allievo o band"
+                  >
+                    <MessageSquare className="w-4 h-4 fill-emerald-600 dark:fill-emerald-400 stroke-none" />
+                    <span>WhatsApp</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={handleDeleteCurrentBooking}
-                  className="px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 hover:text-rose-400 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                  title="Elimina questa prenotazione"
+                  onClick={onClose}
+                  className="px-3 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 text-xs font-bold transition-all cursor-pointer shadow-xs shrink-0"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Elimina Prenotazione</span>
-                  <span className="sm:hidden">Elimina</span>
+                  Annulla
                 </button>
-              )
-            ) : (
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-neutral-400">
-                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                <span className="hidden sm:inline">Nuova prenotazione sala</span>
               </div>
-            )}
+            </div>
 
-            <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+            {/* Desktop Right Side & Mobile Confirm Button */}
+            <div className="flex items-center gap-2 sm:gap-3 sm:ml-auto w-full sm:w-auto">
               {bookingToEdit && (
                 <button
                   type="button"
                   onClick={() => setIsWhatsAppReminderOpen(true)}
-                  className="px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                  className="hidden sm:flex px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 text-xs sm:text-sm font-bold transition-all items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0"
                   title="Condividi promemoria su WhatsApp con allievo o band"
                 >
                   <MessageSquare className="w-4 h-4 fill-emerald-600 dark:fill-emerald-400 stroke-none" />
-                  <span className="hidden sm:inline">Promemoria WhatsApp</span>
-                  <span className="sm:hidden">WhatsApp</span>
+                  <span>Promemoria WhatsApp</span>
                 </button>
               )}
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 text-sm font-bold transition-all cursor-pointer shadow-xs"
+                className="hidden sm:inline-flex px-4 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 text-sm font-bold transition-all cursor-pointer shadow-xs shrink-0"
               >
                 Annulla
               </button>
               {(() => {
                 const isHolidayBlocked = holidayInfo.isHolidayOrSunday && tipo === 'prove';
                 const isCoverageBlocked = !operatorCoverage.hasCoverage && tipo === 'prove';
-                const isBookingBlocked = isHolidayBlocked || isCoverageBlocked;
+                const isActionBlocked = isHolidayBlocked || isCoverageBlocked || isOtherTeacherLesson;
 
                 return (
                   <button
                     type="submit"
-                    disabled={isBookingBlocked || isSubmitting}
-                    className={`px-5 py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center gap-2 ${
-                      isBookingBlocked
-                        ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
+                    disabled={isActionBlocked || isSubmitting}
+                    className={`w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 shrink-0 ${
+                      isOtherTeacherLesson
+                        ? 'bg-slate-400 dark:bg-neutral-700 text-white cursor-not-allowed opacity-80'
+                        : isActionBlocked
+                          ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
                     }`}
                     title={
-                      isHolidayBlocked
-                        ? `Sala prove chiusa per festività (${holidayInfo.name}). Seleziona "Lezione" per procedere con una lezione.`
-                        : isCoverageBlocked
-                          ? 'Sala prove chiusa: nessun operatore presente per lavoro primario. Seleziona "Lezione" per procedere con una lezione.'
-                          : ''
+                      isOtherTeacherLesson
+                        ? teacherPerms.reason
+                        : isHolidayBlocked
+                          ? `Sala prove chiusa per festività (${holidayInfo.name}). Seleziona "Lezione" per procedere con una lezione.`
+                          : isCoverageBlocked
+                            ? 'Sala prove chiusa: nessun operatore presente per lavoro primario. Seleziona "Lezione" per procedere con una lezione.'
+                            : ''
                     }
                   >
-                    {isBookingBlocked ? <AlertTriangle className="w-4 h-4 text-white" /> : <CheckCircle2 className="w-4 h-4" />}
-                    <span>{bookingToEdit ? 'Salva Modifiche' : 'Conferma Prenotazione'}</span>
+                    {isOtherTeacherLesson ? (
+                      <Lock className="w-4 h-4 text-white" />
+                    ) : isActionBlocked ? (
+                      <AlertTriangle className="w-4 h-4 text-white" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4" />
+                    )}
+                    <span>
+                      {bookingToEdit
+                        ? isOtherTeacherLesson
+                          ? 'Modifica Bloccata'
+                          : 'Conferma Modifica'
+                        : 'Conferma Prenotazione'}
+                    </span>
                   </button>
                 );
               })()}
@@ -1064,6 +1135,27 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
           {/* Form Scrollable Body */}
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
+            {/* Alert Lezione Assegnata ad Altro Docente (Sola Lettura) */}
+            {isOtherTeacherLesson && bookingToEdit && (
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-400 dark:border-amber-600 rounded-xl flex items-start gap-3 shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/60 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="text-xs text-amber-950 dark:text-amber-100 space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-black text-sm text-amber-900 dark:text-amber-200">
+                      🔒 Lezione del docente {bookingToEdit.insegnanteNome || 'un altro insegnante'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-600 text-white tracking-wide shadow-2xs">
+                      Sola Lettura
+                    </span>
+                  </div>
+                  <p className="text-amber-900 dark:text-amber-200/90 leading-relaxed font-medium">
+                    Nel profilo insegnante puoi modificare ed eliminare solamente le tue lezioni. Questa lezione appartiene al docente <strong>{bookingToEdit.insegnanteNome}</strong> e non può essere modificata né cancellata da altri docenti.
+                  </p>
+                </div>
+              </div>
+            )}
           {/* Alert Festività Nazionali & Domeniche */}
           {holidayInfo.isHolidayOrSunday && (
             tipo === 'prove' ? (
@@ -1808,6 +1900,60 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               placeholder="Note di sala, richieste particolari o saldo rimasto..."
               className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
             />
+          </div>
+
+          {/* Bottom Action Footer for convenience */}
+          <div className="pt-4 pb-2 border-t border-slate-200 dark:border-neutral-800 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 text-sm font-bold transition-all cursor-pointer shadow-xs"
+            >
+              Annulla
+            </button>
+            {(() => {
+              const isHolidayBlocked = holidayInfo.isHolidayOrSunday && tipo === 'prove';
+              const isCoverageBlocked = !operatorCoverage.hasCoverage && tipo === 'prove';
+              const isActionBlocked = isHolidayBlocked || isCoverageBlocked || isOtherTeacherLesson;
+
+              return (
+                <button
+                  type="submit"
+                  disabled={isActionBlocked || isSubmitting}
+                  className={`px-5 py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center gap-2 ${
+                    isOtherTeacherLesson
+                      ? 'bg-slate-400 dark:bg-neutral-700 text-white cursor-not-allowed opacity-80'
+                      : isActionBlocked
+                        ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
+                  }`}
+                  title={
+                    isOtherTeacherLesson
+                      ? teacherPerms.reason
+                      : isHolidayBlocked
+                        ? `Sala prove chiusa per festività (${holidayInfo.name}). Seleziona "Lezione" per procedere con una lezione.`
+                        : isCoverageBlocked
+                          ? 'Sala prove chiusa: nessun operatore presente per lavoro primario. Seleziona "Lezione" per procedere con una lezione.'
+                          : ''
+                  }
+                >
+                  {isOtherTeacherLesson ? (
+                    <Lock className="w-4 h-4 text-white" />
+                  ) : isActionBlocked ? (
+                    <AlertTriangle className="w-4 h-4 text-white" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4" />
+                  )}
+                  <span>
+                    {bookingToEdit
+                      ? isOtherTeacherLesson
+                        ? 'Modifica Bloccata'
+                        : 'Conferma Modifica'
+                      : 'Conferma Prenotazione'}
+                  </span>
+                </button>
+              );
+            })()}
           </div>
 
           </div>

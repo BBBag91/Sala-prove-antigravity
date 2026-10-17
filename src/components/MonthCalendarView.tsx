@@ -16,8 +16,11 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
+  Lock,
 } from 'lucide-react';
 import { Booking, Room, StaffMember, PaymentMethod, PaymentStatus } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { checkTeacherBookingPermissions } from '../utils/bookingPermissions';
 import {
   formatDateToISO,
   parseISODate,
@@ -73,6 +76,7 @@ export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
   onNextMonth,
   onGoToday,
 }) => {
+  const { user } = useAuth();
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const monthLabel = MESI_ITALIANI[month].toLowerCase();
@@ -525,25 +529,43 @@ export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
 
                       {/* Riga Azioni: Modifica ed Elimina */}
                       <div className="pt-2 border-t border-slate-200/60 dark:border-neutral-900 flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={(e) => onOpenEditBooking(b, e)}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 hover:border-blue-300 dark:hover:border-yellow-400 text-slate-700 dark:text-yellow-300 hover:text-blue-600 text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                          title="Modifica dettagli prenotazione"
-                        >
-                          <Pencil className="w-3 h-3" />
-                          <span>Modifica</span>
-                        </button>
+                        {(() => {
+                          const perms = checkTeacherBookingPermissions(b, user, staff);
+                          if (perms.isOtherTeacherLesson) {
+                            return (
+                              <div
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 text-slate-400 text-xs font-semibold select-none cursor-not-allowed"
+                                title={perms.reason}
+                              >
+                                <Lock className="w-3 h-3 text-amber-500" />
+                                <span>Riservata ({b.insegnanteNome})</span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <>
+                              <button
+                                type="button"
+                                onClick={(e) => onOpenEditBooking(b, e)}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 hover:border-blue-300 dark:hover:border-yellow-400 text-slate-700 dark:text-yellow-300 hover:text-blue-600 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                                title="Modifica dettagli prenotazione"
+                              >
+                                <Pencil className="w-3 h-3" />
+                                <span>Modifica</span>
+                              </button>
 
-                        <button
-                          type="button"
-                          onClick={() => onDeleteBooking(b)}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 hover:border-red-300 dark:hover:border-red-500/50 text-slate-500 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-400 text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                          title="Elimina prenotazione"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Elimina</span>
-                        </button>
+                              <button
+                                type="button"
+                                onClick={() => onDeleteBooking(b)}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 hover:border-red-300 dark:hover:border-red-500/50 text-slate-500 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-400 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                                title="Elimina prenotazione"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Elimina</span>
+                              </button>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
