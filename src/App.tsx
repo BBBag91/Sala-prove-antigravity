@@ -912,25 +912,6 @@ const AppContent: React.FC = () => {
                     )}
                   </button>
 
-                  {/* Analisi Statistiche Tab */}
-                  <button
-                    onClick={() => {
-                      setActiveTab('analytics');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-manipulation touch-active ${
-                      activeTab === 'analytics'
-                        ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
-                        : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <BarChart3 className="w-4 h-4 shrink-0" />
-                      <span>Analisi Statistiche &amp; Grafici</span>
-                    </div>
-                    {activeTab === 'analytics' && <Check className="w-4 h-4 stroke-[3]" />}
-                  </button>
-
                   {dropdownSections.map((item) => {
                     const isItemActive = activeTab === item.id;
                     return (
