@@ -10,6 +10,7 @@ import {
   Trash2,
   Edit2,
   Printer,
+  FileText,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Expense, ExpenseCategory } from '../types';
@@ -17,6 +18,7 @@ import { formatCurrency, formatDateItalian, MESI_ITALIANI } from '../utils/dateU
 import { EXPENSE_CATEGORIES, ExpenseModal } from './ExpenseModal';
 import { CompensiFineMeseSection } from './CompensiFineMeseSection';
 import { TeacherLessonsFinanceSection } from './TeacherLessonsFinanceSection';
+import { MonthlyFinanceReportModal } from './MonthlyFinanceReportModal';
 
 export const FinanceView: React.FC = () => {
   const { expenses, bookings, clients, deleteExpense, updateExpense } = useApp();
@@ -28,6 +30,7 @@ export const FinanceView: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Quote lezioni insegnanti (5€/h)
   const [teacherFees, setTeacherFees] = useState({
@@ -182,12 +185,13 @@ export const FinanceView: React.FC = () => {
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={handlePrint}
-            className="px-3.5 py-2.5 min-h-[44px] border border-slate-200 dark:border-yellow-500/30 hover:bg-slate-50 dark:hover:bg-yellow-400/10 text-slate-700 dark:text-yellow-300 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 touch-manipulation touch-active cursor-pointer"
-            title="Stampa report contabile del mese"
+            onClick={() => setIsReportModalOpen(true)}
+            className="px-3.5 py-2.5 min-h-[44px] bg-white dark:bg-neutral-900 border border-slate-200 dark:border-yellow-500/30 hover:bg-slate-50 dark:hover:bg-yellow-400/10 text-slate-800 dark:text-yellow-300 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs touch-manipulation touch-active cursor-pointer"
+            title="Visualizza, stampa o scarica in PDF il resoconto mensile contabile di entrate e uscite"
           >
             <Printer className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
-            <span className="hidden sm:inline">Stampa / Esporta</span>
+            <span className="hidden sm:inline">Resoconto per Stampa / PDF</span>
+            <span className="sm:hidden">Resoconto</span>
           </button>
 
           <button
@@ -560,6 +564,12 @@ export const FinanceView: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         expenseToEdit={expenseToEdit}
+      />
+
+      <MonthlyFinanceReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        initialMonthStr={monthStr}
       />
     </div>
   );

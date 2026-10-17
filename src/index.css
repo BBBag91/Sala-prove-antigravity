@@ -885,6 +885,58 @@ html {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
+
+  /* =========================================================================
+     ISOLAMENTO STAMPA REPORT FINANZIARIO (Elimina sfondi e pagine extra)
+     ========================================================================= */
+  body.printing-finance-report {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.printing-finance-report * {
+    visibility: hidden !important;
+  }
+
+  body.printing-finance-report #printable-monthly-finance-report,
+  body.printing-finance-report #printable-monthly-finance-report * {
+    visibility: visible !important;
+  }
+
+  body.printing-finance-report #printable-monthly-finance-report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  body.printing-finance-report #printable-monthly-finance-report table {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  body.printing-finance-report #printable-monthly-finance-report tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  body.printing-finance-report #printable-monthly-finance-report tfoot {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  body.printing-finance-report #printable-monthly-finance-report .note-box-container {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }
 
 /* =========================================================================
