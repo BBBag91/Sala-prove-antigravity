@@ -19,6 +19,7 @@ import {
   MessageSquare,
   GraduationCap,
   ChevronRight,
+  BarChart3,
 } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -43,6 +44,7 @@ const WhatsAppSettingsModal = lazy(() => import('./components/WhatsAppSettingsMo
 const TeacherProfileReportModal = lazy(() => import('./components/TeacherProfileReportModal').then(m => ({ default: m.TeacherProfileReportModal })));
 const TeachersReportView = lazy(() => import('./components/TeachersReportView').then(m => ({ default: m.TeachersReportView })));
 const PublicMembershipFormView = lazy(() => import('./components/PublicMembershipFormView').then(m => ({ default: m.PublicMembershipFormView })));
+const AnalyticsView = lazy(() => import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
 
 const ViewLoadingFallback: React.FC = () => (
   <div className="flex items-center justify-center min-h-[350px] w-full">
@@ -53,7 +55,7 @@ const ViewLoadingFallback: React.FC = () => (
   </div>
 );
 
-type TabType = 'calendar' | 'turni' | 'teachers' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica';
+type TabType = 'calendar' | 'turni' | 'teachers' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica' | 'analytics';
 
 interface NavSectionItem {
   id: TabType;
@@ -160,26 +162,11 @@ const AppContent: React.FC = () => {
 
   const dropdownSections: NavSectionItem[] = [
     {
-      id: 'anagrafica',
-      label: 'Anagrafica',
-      shortLabel: 'Anagrafica',
-      description: 'Nome sala prove, intestazione ufficiale, sede e recapiti della struttura',
-      icon: <Building2 className="w-4 h-4 text-yellow-400" />,
-    },
-    {
-      id: 'turni',
-      label: 'Turni Presidio Sala',
-      shortLabel: 'Turni Sala',
-      description: 'Pianificazione Lun-Ven (17-20 / 20-23) con adattamento dinamico automatico',
-      icon: <CalendarClock className="w-4 h-4 text-yellow-400" />,
-    },
-    {
-      id: 'staff',
-      label: 'Anagrafica Personale',
-      shortLabel: 'Operatori',
-      description: 'Staff, fasce orarie 24h, turni primari e assegnazione intelligente',
-      icon: <Users className="w-4 h-4 text-yellow-400" />,
-      badge: staff.length,
+      id: 'analytics',
+      label: 'Analisi Statistiche & Grafici',
+      shortLabel: 'Statistiche',
+      description: 'Grafici entrate docenti e gruppi, presenze mensili e trend annuale',
+      icon: <BarChart3 className="w-4 h-4 text-yellow-400" />,
     },
     {
       id: 'clients',
@@ -190,19 +177,26 @@ const AppContent: React.FC = () => {
       badge: clients.length,
     },
     {
+      id: 'staff',
+      label: 'Anagrafica Personale & Staff',
+      shortLabel: 'Staff',
+      description: 'Operatori, insegnanti, fasce orarie e turni di presidio',
+      icon: <Users className="w-4 h-4 text-yellow-400" />,
+      badge: staff.length,
+    },
+    {
       id: 'rooms',
-      label: 'Sale Prove',
+      label: 'Sale Prove & Tariffe',
       shortLabel: 'Sale',
       description: 'Tariffe orarie, dotazione amplificatori, mixer e capienza',
       icon: <DoorOpen className="w-4 h-4 text-yellow-400" />,
     },
     {
-      id: 'finance',
-      label: 'Spese & Conto Mensile',
-      shortLabel: 'Spese & Conto',
-      description: 'Bilancio entrate/uscite, canoni, bollette e saldo del mese',
-      icon: <Receipt className="w-4 h-4 text-yellow-400" />,
-      badge: expenses.length,
+      id: 'anagrafica',
+      label: 'Dati Struttura & Sede',
+      shortLabel: 'Anagrafica',
+      description: 'Nome sala prove, intestazione ufficiale, sede e recapiti',
+      icon: <Building2 className="w-4 h-4 text-yellow-400" />,
     },
   ];
 
@@ -212,26 +206,23 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-black text-yellow-50 flex flex-col antialiased selection:bg-yellow-400 selection:text-black print:min-h-0 print:bg-white print:text-black">
       {/* Top Header */}
       <header className="bg-neutral-950/95 border-b border-yellow-500/30 sticky top-0 z-40 shadow-lg shadow-black/80 backdrop-blur print:hidden">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="max-w-[1800px] w-full mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center h-14 justify-between gap-1.5 sm:gap-2 lg:gap-3">
 
             {/* ── Left: Brand & Desktop Navigation ── */}
-            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 lg:gap-3.5 min-w-0">
               {/* Logo / Brand */}
-              <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                <div className="w-11 h-9 sm:w-12 sm:h-10 rounded-xl bg-white/95 overflow-hidden shadow-md shadow-black/40 shrink-0 border border-yellow-500/40 flex items-center justify-center p-0.5">
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-9 rounded-xl bg-white overflow-hidden shadow-xs shrink-0 border border-yellow-500/30 flex items-center justify-center p-0.5">
                   <img src="/logo-header.png" alt="Logo" className="w-full h-full object-contain rounded-lg" />
                 </div>
-                <div className="min-w-0">
-                  <h1 className="text-xs sm:text-sm font-bold tracking-tight leading-tight flex items-center gap-1">
-                    <span className="hidden sm:inline shrink-0 bg-blue-600 text-white dark:bg-yellow-400 dark:text-black px-1.5 py-0.5 rounded-md">SALA PROVE</span>
-                    <span className="text-blue-600 dark:text-yellow-400 font-bold truncate max-w-[110px] sm:max-w-[150px] lg:max-w-[180px] 2xl:max-w-[240px]">
-                      <span className="sm:hidden">• </span>{studioInfo.nome}
-                    </span>
-                  </h1>
-                  <p className="text-[10px] text-yellow-400/60 leading-tight truncate hidden 2xl:block">
-                    {studioInfo.sottotitolo || 'Associazione Culturale Musicale • Centro Prove & Registrazione'}
-                  </p>
+                <div className="min-w-0 flex items-center gap-1.5">
+                  <span className="hidden sm:inline-flex shrink-0 text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white dark:bg-yellow-400 dark:text-black px-1.5 py-0.5 rounded shadow-2xs">
+                    SALA PROVE
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-yellow-400 whitespace-nowrap">
+                    {studioInfo.nome}
+                  </span>
                 </div>
               </div>
 
@@ -239,39 +230,40 @@ const AppContent: React.FC = () => {
               <div className="hidden md:block w-px h-5 bg-yellow-500/20 shrink-0" />
 
               {/* Desktop Navigation Tabs */}
-              <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 shrink-0">
+              <nav className="hidden md:flex items-center gap-1 xl:gap-1.5 shrink-0">
                 {/* Calendario tab */}
                 <button
                   onClick={() => {
                     setActiveTab('calendar');
                     setIsMenuOpen(false);
                   }}
-                  className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer select-none ${
                     activeTab === 'calendar'
-                      ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                      ? 'bg-yellow-400 text-black border border-yellow-400 shadow-sm shadow-yellow-500/20'
                       : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
                   }`}
+                  title="Calendario prenotazioni sale e lezioni"
                 >
                   <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
                   <span>Calendario</span>
                 </button>
 
-                {/* Schema Turni Settimana Tab (In primo piano per accesso immediato) */}
+                {/* Schema Turni Settimana Tab */}
                 <button
                   onClick={() => {
                     setActiveTab('turni');
                     setIsMenuOpen(false);
                   }}
-                  className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer select-none ${
                     activeTab === 'turni'
-                      ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                      ? 'bg-yellow-400 text-black border border-yellow-400 shadow-sm shadow-yellow-500/20'
                       : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
                   }`}
                   title="Schema riepilogativo settimanale dei turni di presidio"
                 >
                   <CalendarClock className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden xl:inline">Schema Turni</span>
-                  <span className="xl:hidden">Turni</span>
+                  <span className="hidden 2xl:inline">Schema Turni</span>
+                  <span className="2xl:hidden">Turni</span>
                 </button>
 
                 {/* Riepilogo Ore Insegnanti (insegnanti: solo il proprio monte ore; account generico: tutti) */}
@@ -281,9 +273,9 @@ const AppContent: React.FC = () => {
                       setActiveTab('teachers');
                       setIsMenuOpen(false);
                     }}
-                    className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer select-none ${
                       activeTab === 'teachers'
-                        ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                        ? 'bg-yellow-400 text-black border border-yellow-400 shadow-sm shadow-yellow-500/20'
                         : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
                     }`}
                     title="Riepilogo ore lezioni svolte dagli insegnanti e quote sala"
@@ -301,18 +293,18 @@ const AppContent: React.FC = () => {
                       setActiveTab('finance');
                       setIsMenuOpen(false);
                     }}
-                    className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer select-none ${
                       activeTab === 'finance'
-                        ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                        ? 'bg-yellow-400 text-black border border-yellow-400 shadow-sm shadow-yellow-500/20'
                         : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
                     }`}
                     title="Gestione conti del mese, uscite e bollette"
                   >
                     <Receipt className="w-3.5 h-3.5 shrink-0" />
-                    <span className="hidden xl:inline">Conti &amp; Bollette</span>
-                    <span className="xl:hidden">Conti</span>
+                    <span className="hidden 2xl:inline">Conti &amp; Bollette</span>
+                    <span className="2xl:hidden">Conti</span>
                     {expenses.length > 0 && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                      <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${
                         activeTab === 'finance' ? 'bg-black text-yellow-400' : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
                       }`}>
                         {expenses.length}
@@ -328,22 +320,19 @@ const AppContent: React.FC = () => {
                       onClick={() => setIsMenuOpen((prev) => !prev)}
                       aria-expanded={isMenuOpen}
                       aria-haspopup="true"
-                      className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        activeTab !== 'calendar' && activeTab !== 'finance' && activeTab !== 'turni'
-                          ? 'bg-yellow-400 text-black border border-yellow-400 shadow-md shadow-yellow-500/30'
+                      className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer select-none ${
+                        activeDropdownSection
+                          ? 'bg-yellow-400 text-black border border-yellow-400 shadow-sm shadow-yellow-500/20'
                           : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-yellow-500/30'
                       }`}
+                      title="Sezioni gestionali (Statistiche, Clienti, Staff, Sale, Anagrafica)"
                     >
-                      {activeDropdownSection && activeTab !== 'finance' && activeTab !== 'turni' && activeTab !== 'calendar' ? (
+                      {activeDropdownSection ? (
                         <>
                           {activeDropdownSection.icon}
                           <span>{activeDropdownSection.shortLabel}</span>
                           {activeDropdownSection.badge !== undefined && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                              activeTab !== 'calendar' && activeTab !== 'turni'
-                                ? 'bg-black text-yellow-400'
-                                : 'bg-yellow-400/20 text-yellow-300 border border-yellow-500/40'
-                            }`}>
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-black text-yellow-400">
                               {activeDropdownSection.badge}
                             </span>
                           )}
@@ -351,8 +340,7 @@ const AppContent: React.FC = () => {
                       ) : (
                         <>
                           <Layers className="w-3.5 h-3.5 shrink-0" />
-                          <span className="hidden xl:inline">Altre Sezioni</span>
-                          <span className="xl:hidden">Altre</span>
+                          <span>Gestionale</span>
                         </>
                       )}
                       <ChevronDown
@@ -364,16 +352,16 @@ const AppContent: React.FC = () => {
 
                     {/* Dropdown panel */}
                     {isMenuOpen && (
-                      <div className="absolute left-0 top-full mt-1.5 w-80 bg-neutral-950 rounded-xl shadow-2xl border border-yellow-500/40 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                        <div className="px-3.5 py-2 border-b border-yellow-500/20 flex items-center justify-between">
+                      <div className="absolute left-0 top-full mt-1.5 w-76 bg-neutral-950 rounded-xl shadow-2xl border border-yellow-500/40 py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="px-3 py-1.5 border-b border-yellow-500/20 flex items-center justify-between">
                           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-yellow-400 uppercase tracking-wider">
                             <Layers className="w-3.5 h-3.5 text-yellow-400" />
-                            <span>Sezioni Amministrative</span>
+                            <span>Sezioni Gestionali</span>
                           </div>
                           <span className="text-[10px] text-yellow-500/60">{dropdownSections.length} sezioni</span>
                         </div>
 
-                        <div className="p-1.5 space-y-0.5 max-h-[70vh] overflow-y-auto">
+                        <div className="p-1 space-y-0.5">
                           {dropdownSections.map((item) => {
                             const isItemActive = activeTab === item.id;
                             return (
@@ -383,7 +371,7 @@ const AppContent: React.FC = () => {
                                   setActiveTab(item.id);
                                   setIsMenuOpen(false);
                                 }}
-                                className={`w-full text-left px-2.5 py-2 rounded-lg flex items-start gap-3 transition-colors ${
+                                className={`w-full text-left px-2.5 py-2 rounded-lg flex items-start gap-2.5 transition-colors cursor-pointer ${
                                   isItemActive
                                     ? 'bg-yellow-400/15 border border-yellow-500/40 text-yellow-300'
                                     : 'hover:bg-neutral-900 border border-transparent text-neutral-300 hover:text-yellow-300'
@@ -397,7 +385,7 @@ const AppContent: React.FC = () => {
                                   {item.icon}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center justify-between gap-1.5">
                                     <span className={`text-xs font-semibold truncate ${
                                       isItemActive ? 'text-yellow-400 font-bold' : 'text-neutral-200'
                                     }`}>
@@ -405,7 +393,7 @@ const AppContent: React.FC = () => {
                                     </span>
                                     <div className="flex items-center gap-1 shrink-0">
                                       {item.badge !== undefined && (
-                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
                                           isItemActive ? 'bg-yellow-400 text-black' : 'bg-neutral-900 text-yellow-400 border border-yellow-500/30'
                                         }`}>
                                           {item.badge}
@@ -427,17 +415,17 @@ const AppContent: React.FC = () => {
               </nav>
             </div>
 
-            {/* ── Right: User Profile & Actions (Uncluttered, Elegant & Never Overlapping) ── */}
-            <div className="hidden md:flex items-center gap-1.5 lg:gap-2 shrink-0">
+            {/* ── Right: User Profile & Actions (Snellito, Elegante e Senza Sovrapposizioni) ── */}
+            <div className="hidden md:flex items-center gap-1.5 xl:gap-2 shrink-0">
 
-              {/* Theme Toggle (Versione Scura / Versione Chiara) */}
-              <ThemeToggle responsiveLabel={true} />
+              {/* Theme Toggle (Icona compatta) */}
+              <ThemeToggle compact={true} />
 
               {/* Profile Dropdown Menu */}
               <div className="relative shrink-0" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen((prev) => !prev)}
-                  className={`admin-header-btn-blue flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer shadow-sm ${
+                  className={`admin-header-btn-blue flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer shadow-xs select-none ${
                     isAdmin
                       ? '!bg-blue-600 hover:!bg-blue-700 !text-white border-blue-500 shadow-blue-500/25'
                       : isUserMenuOpen
@@ -448,7 +436,7 @@ const AppContent: React.FC = () => {
                   title={`Profilo: ${user.nome} (${user.email})`}
                 >
                   <div className="relative w-5 h-5 shrink-0">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] ${
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
                       isAdmin ? 'bg-white/20 text-white' : 'bg-yellow-400/20'
                     }`}>
                       {user.avatar || (isAdmin ? '👑' : '👤')}
@@ -457,17 +445,10 @@ const AppContent: React.FC = () => {
                     {isAdmin && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-neutral-900 animate-pulse" />}
                   </div>
                   <span
-                    className="font-bold text-white truncate max-w-[80px] lg:max-w-[110px] xl:max-w-[140px]"
+                    className="font-bold text-white text-xs whitespace-nowrap"
                     style={{ color: '#ffffff' }}
                   >
-                    {user.nome || (isAdmin ? 'Admin' : 'Utente')}
-                  </span>
-                  <span className={`admin-badge-pill hidden xl:inline-block text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded ${
-                    isAdmin ? 'bg-white text-blue-700 shadow-2xs' : 'bg-neutral-800 text-neutral-300'
-                  }`}
-                  style={isAdmin ? { backgroundColor: '#ffffff', color: '#1d4ed8' } : undefined}
-                  >
-                    {isAdmin ? 'ADMIN' : roleLabel}
+                    {isAdmin ? 'Admin' : user.nome}
                   </span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 shrink-0 ${isAdmin ? 'text-white' : 'text-neutral-400'} ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -931,7 +912,26 @@ const AppContent: React.FC = () => {
                     )}
                   </button>
 
-                  {dropdownSections.filter((s) => s.id !== 'finance').map((item) => {
+                  {/* Analisi Statistiche Tab */}
+                  <button
+                    onClick={() => {
+                      setActiveTab('analytics');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-manipulation touch-active ${
+                      activeTab === 'analytics'
+                        ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
+                        : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <BarChart3 className="w-4 h-4 shrink-0" />
+                      <span>Analisi Statistiche &amp; Grafici</span>
+                    </div>
+                    {activeTab === 'analytics' && <Check className="w-4 h-4 stroke-[3]" />}
+                  </button>
+
+                  {dropdownSections.map((item) => {
                     const isItemActive = activeTab === item.id;
                     return (
                       <button
@@ -1051,6 +1051,7 @@ const AppContent: React.FC = () => {
                 <RoomsView onNavigateToAnagrafica={() => setActiveTab('anagrafica')} />
               )}
               {activeTab === 'finance' && <FinanceView />}
+              {activeTab === 'analytics' && <AnalyticsView />}
             </>
           )}
         </Suspense>

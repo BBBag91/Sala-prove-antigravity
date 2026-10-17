@@ -971,7 +971,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden my-4 sm:my-8">
+      <div className="relative w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden my-4 sm:my-8">
         {/* Header */}
         <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900/90 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
@@ -1002,9 +1002,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col max-h-[86vh]">
           {/* Top Full-Width Action Bar */}
-          <div className="w-full px-3.5 sm:px-6 py-2.5 sm:py-3 bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 shrink-0 shadow-xs">
+          <div className="w-full px-3.5 sm:px-5 lg:px-6 py-2.5 sm:py-3 bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 shrink-0 shadow-xs">
             {/* Mobile Top Row / Desktop Left Side */}
-            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto shrink-0">
               {bookingToEdit ? (
                 isOtherTeacherLesson ? (
                   <div
@@ -1028,11 +1028,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <button
                     type="button"
                     onClick={handleDeleteCurrentBooking}
-                    className="px-3 sm:px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 hover:text-rose-400 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                    className="px-3 sm:px-3.5 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 hover:text-rose-400 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap"
                     title="Elimina questa prenotazione"
                   >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">Elimina Prenotazione</span>
+                    <Trash2 className="w-4 h-4 shrink-0" />
+                    <span className="hidden lg:inline">Elimina Prenotazione</span>
+                    <span className="hidden sm:inline lg:hidden">Elimina</span>
                     <span className="sm:hidden">Elimina</span>
                   </button>
                 )
@@ -1068,22 +1069,23 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
 
             {/* Desktop Right Side & Mobile Confirm Button */}
-            <div className="flex items-center gap-2 sm:gap-3 sm:ml-auto w-full sm:w-auto">
+            <div className="flex items-center gap-2 sm:gap-2.5 sm:ml-auto w-full sm:w-auto shrink-0 justify-end">
               {bookingToEdit && (
                 <button
                   type="button"
                   onClick={() => setIsWhatsAppReminderOpen(true)}
-                  className="hidden sm:flex px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 text-xs sm:text-sm font-bold transition-all items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0"
+                  className="hidden sm:flex px-3 sm:px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 text-xs sm:text-sm font-bold transition-all items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0 whitespace-nowrap"
                   title="Condividi promemoria su WhatsApp con allievo o band"
                 >
-                  <MessageSquare className="w-4 h-4 fill-emerald-600 dark:fill-emerald-400 stroke-none" />
-                  <span>Promemoria WhatsApp</span>
+                  <MessageSquare className="w-4 h-4 fill-emerald-600 dark:fill-emerald-400 stroke-none shrink-0" />
+                  <span className="hidden lg:inline">Promemoria WhatsApp</span>
+                  <span className="hidden sm:inline lg:hidden">WhatsApp</span>
                 </button>
               )}
               <button
                 type="button"
                 onClick={onClose}
-                className="hidden sm:inline-flex px-4 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 text-sm font-bold transition-all cursor-pointer shadow-xs shrink-0"
+                className="hidden sm:inline-flex px-3.5 sm:px-4 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 text-sm font-bold transition-all cursor-pointer shadow-xs shrink-0 whitespace-nowrap"
               >
                 Annulla
               </button>
@@ -1096,7 +1098,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <button
                     type="submit"
                     disabled={isActionBlocked || isSubmitting}
-                    className={`w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 shrink-0 ${
+                    className={`w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 shrink-0 whitespace-nowrap ${
                       isOtherTeacherLesson
                         ? 'bg-slate-400 dark:bg-neutral-700 text-white cursor-not-allowed opacity-80'
                         : isActionBlocked
