@@ -1321,10 +1321,10 @@ export const ShiftsView: React.FC = () => {
         <div className="border border-slate-300 bg-slate-50 p-2.5 rounded-lg mb-3 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase">
-              SALA PROVE • {studioInfo?.nome || 'SOUND STUDIO'}
+              SALA PROVE • {(studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'LA MUSICA FA...'}
             </h2>
             <p className="text-[11px] text-slate-600">
-              {studioInfo?.indirizzo ? `Sede: ${studioInfo.indirizzo}` : ''}
+              {(studioInfo?.indirizzo && studioInfo.indirizzo !== 'Via della Musica 42') ? `Sede: ${studioInfo.indirizzo}` : 'Sede: Via Secchia 36 ingresso da Via Quieto'}
               {studioInfo?.telefono ? ` • Tel: ${studioInfo.telefono}` : ''}
             </p>
           </div>
@@ -1438,7 +1438,7 @@ export const ShiftsView: React.FC = () => {
 
           <div className="space-y-4 text-right flex flex-col items-end">
             <p className="text-[11px] text-slate-500">
-              Per la Direzione: <strong className="text-slate-800">{studioInfo?.nome || 'Sound Studio'}</strong>
+              Per la Direzione: <strong className="text-slate-800">{(studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...'}</strong>
             </p>
             <div className="w-full flex flex-col items-end">
               <div className="border-b border-slate-400 w-44 mb-1"></div>

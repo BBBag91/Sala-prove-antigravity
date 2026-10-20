@@ -60,7 +60,7 @@ export function formatMorningBriefingMessage({
   const meseNome = MESI_ITALIANI[d.getMonth()];
   const anno = d.getFullYear();
 
-  const studioNome = studioInfo.nome || 'Sala Prove Musicale';
+  const studioNome = (studioInfo.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...';
 
   // Ordina prenotazioni per orario di inizio
   const sortedBookings = [...bookings].sort((a, b) => a.oraInizio.localeCompare(b.oraInizio));
@@ -288,9 +288,18 @@ export function formatBookingReminderMessage({
   const meseNome = MESI_ITALIANI[d.getMonth()];
   const anno = d.getFullYear();
 
-  const studioNome = studioInfo.nome || 'Sala Prove Musicale';
+  const studioNome = (studioInfo.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...';
   const isLesson = isLessonBooking(booking);
   const roomName = booking.salaNome || room?.nome || 'Sala Prove';
+
+  const effectiveIndirizzo =
+    studioInfo.indirizzo && studioInfo.indirizzo !== 'Via della Musica 42'
+      ? studioInfo.indirizzo
+      : 'Via Secchia 36 ingresso da Via Quieto';
+  const effectiveCitta =
+    studioInfo.citta && studioInfo.citta !== 'Milano'
+      ? studioInfo.citta
+      : 'Latina';
 
   const lines: string[] = [];
 
@@ -356,8 +365,8 @@ export function formatBookingReminderMessage({
     }
 
     lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
-    if (studioInfo.indirizzo?.trim()) {
-      lines.push(`📍 *Sede:* ${studioInfo.indirizzo.trim()}${studioInfo.citta ? ` (${studioInfo.citta.trim()})` : ''}`);
+    if (effectiveIndirizzo?.trim()) {
+      lines.push(`📍 *Sede:* ${effectiveIndirizzo.trim()}${effectiveCitta ? ` (${effectiveCitta.trim()})` : ''}`);
     }
     lines.push(`Ti aspettiamo! In caso di variazioni ti preghiamo di avvisarci con anticipo. A presto! 🎶`);
   } else {
@@ -385,8 +394,8 @@ export function formatBookingReminderMessage({
     }
 
     lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
-    if (studioInfo.indirizzo?.trim()) {
-      lines.push(`📍 *Sede:* ${studioInfo.indirizzo.trim()}${studioInfo.citta ? ` (${studioInfo.citta.trim()})` : ''}`);
+    if (effectiveIndirizzo?.trim()) {
+      lines.push(`📍 *Sede:* ${effectiveIndirizzo.trim()}${effectiveCitta ? ` (${effectiveCitta.trim()})` : ''}`);
     }
     lines.push(`Buone prove e a presto! 🎶`);
   }

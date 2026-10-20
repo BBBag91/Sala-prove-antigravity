@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Music2, Building2, MapPin, Phone, Mail, CheckCircle2, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { DEFAULT_STUDIO_INFO } from '../data/initialData';
 
 interface StudioSettingsModalProps {
   isOpen: boolean;
@@ -97,7 +98,7 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = ({ isOpen
                 required
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                placeholder="Es. Sound Studio, Garage 44, Il Cubo Sonoro..."
+                placeholder="Es. La musica fa..."
                 className="w-full px-3 py-2.5 rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden pl-9"
               />
               <Music2 className="w-4 h-4 text-indigo-500 absolute left-3 top-3" />
@@ -199,12 +200,12 @@ export const StudioSettingsModal: React.FC<StudioSettingsModalProps> = ({ isOpen
             <button
               type="button"
               onClick={() => {
-                setNome('Sound Studio');
-                setSottotitolo('Associazione Culturale Musicale • Centro Prove & Registrazione');
-                setIndirizzo('Via delle Note Musicali, 12');
-                setTelefono('02 9876543');
-                setEmail('info@soundstudio.it');
-                setCitta('Milano');
+                setNome(DEFAULT_STUDIO_INFO.nome);
+                setSottotitolo(DEFAULT_STUDIO_INFO.sottotitolo || '');
+                setIndirizzo(DEFAULT_STUDIO_INFO.indirizzo || '');
+                setTelefono(DEFAULT_STUDIO_INFO.telefono || '');
+                setEmail(DEFAULT_STUDIO_INFO.email || '');
+                setCitta(DEFAULT_STUDIO_INFO.citta || '');
               }}
               className="text-xs text-slate-500 hover:text-slate-800 font-medium"
             >

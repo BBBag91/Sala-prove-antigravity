@@ -159,9 +159,13 @@ export function deduplicateBookings(bookingsList: Booking[]): Booking[] {
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [studioInfo, setStudioInfo] = useState<StudioInfo>(() =>
-    safeLocalStorageGet(STORAGE_KEYS.STUDIO, DEFAULT_STUDIO_INFO)
-  );
+  const [studioInfo, setStudioInfo] = useState<StudioInfo>(() => {
+    const local = safeLocalStorageGet(STORAGE_KEYS.STUDIO, DEFAULT_STUDIO_INFO);
+    if (!local || local.nome === 'Shifts Store' || local.indirizzo === 'Via della Musica 42') {
+      return DEFAULT_STUDIO_INFO;
+    }
+    return local;
+  });
 
   const [rooms, setRooms] = useState<Room[]>(() =>
     safeLocalStorageGet(STORAGE_KEYS.ROOMS, INITIAL_ROOMS)
@@ -225,7 +229,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     supabaseService.fetchAll()
       .then((remote) => {
         if (remote) {
-          if (remote.rooms.length > 0) setRooms(remote.rooms);
+          if (remote.rooms.length > 0) {
+            setRooms((prevLocal) => {
+              const remoteIds = new Set(remote.rooms.map((r) => r.id));
+              const pendingLocal = prevLocal.filter((localR) => !remoteIds.has(localR.id));
+              return pendingLocal.length > 0 ? [...remote.rooms, ...pendingLocal] : remote.rooms;
+            });
+          }
           if (remote.staff.length > 0) {
             setStaff((prevLocal) => {
               const remoteIds = new Set(remote.staff.map((s) => s.id));
@@ -233,18 +243,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               return pendingLocal.length > 0 ? [...remote.staff, ...pendingLocal] : remote.staff;
             });
           }
-          if (remote.clients.length > 0) setClients(remote.clients);
+          if (remote.clients.length > 0) {
+            setClients((prevLocal) => {
+              const remoteIds = new Set(remote.clients.map((c) => c.id));
+              const pendingLocal = prevLocal.filter((localC) => !remoteIds.has(localC.id));
+              return pendingLocal.length > 0 ? [...remote.clients, ...pendingLocal] : remote.clients;
+            });
+          }
           if (remote.bookings.length > 0) setBookings(remote.bookings);
           if (remote.expenses.length > 0) setExpenses(remote.expenses);
           if (remote.incomes.length > 0) setIncomes(remote.incomes);
-          if (remote.studioInfo) {
+          if (remote.studioInfo && remote.studioInfo.nome !== 'Shifts Store') {
             setStudioInfo((prev) => {
-              if (!remote.studioInfo.whatsappConfig && prev?.whatsappConfig) {
-                const merged = { ...remote.studioInfo, whatsappConfig: prev.whatsappConfig };
+              const validIndirizzo =
+                remote.studioInfo.indirizzo && remote.studioInfo.indirizzo !== 'Via della Musica 42'
+                  ? remote.studioInfo.indirizzo
+                  : (prev?.indirizzo && prev.indirizzo !== 'Via della Musica 42' ? prev.indirizzo : DEFAULT_STUDIO_INFO.indirizzo);
+
+              const safeRemote = {
+                ...remote.studioInfo,
+                nome: remote.studioInfo.nome || DEFAULT_STUDIO_INFO.nome,
+                indirizzo: validIndirizzo,
+                citta: remote.studioInfo.citta && remote.studioInfo.citta !== 'Milano' ? remote.studioInfo.citta : DEFAULT_STUDIO_INFO.citta,
+              };
+
+              if (!safeRemote.whatsappConfig && prev?.whatsappConfig) {
+                const merged = { ...safeRemote, whatsappConfig: prev.whatsappConfig };
                 supabaseService.upsertStudioInfo(merged).catch(console.error);
                 return merged;
               }
-              return remote.studioInfo;
+              return safeRemote;
             });
           }
           if (remote.shifts && remote.shifts.length > 0) setShifts(remote.shifts);
@@ -307,7 +335,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const remote = await supabaseService.fetchAll();
       if (remote) {
-        if (remote.rooms.length > 0) setRooms(remote.rooms);
+        if (remote.rooms.length > 0) {
+          setRooms((prevLocal) => {
+            const remoteIds = new Set(remote.rooms.map((r) => r.id));
+            const pendingLocal = prevLocal.filter((localR) => !remoteIds.has(localR.id));
+            return pendingLocal.length > 0 ? [...remote.rooms, ...pendingLocal] : remote.rooms;
+          });
+        }
         if (remote.staff.length > 0) {
           const sanitizedStaff = remote.staff.map((s) => {
             if (s.id === 'staff-1' || s.nome?.toLowerCase() === 'marco' || (s.email && s.email.includes('marco.bellini'))) {
@@ -340,17 +374,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
           setBookings(deduplicateBookings(sanitized));
         }
-        if (remote.clients && remote.clients.length > 0) setClients(remote.clients);
+        if (remote.clients && remote.clients.length > 0) {
+          setClients((prevLocal) => {
+            const remoteIds = new Set(remote.clients.map((c) => c.id));
+            const pendingLocal = prevLocal.filter((localC) => !remoteIds.has(localC.id));
+            return pendingLocal.length > 0 ? [...remote.clients, ...pendingLocal] : remote.clients;
+          });
+        }
         if (remote.expenses.length > 0) setExpenses(remote.expenses);
         if (remote.incomes.length > 0) setIncomes(remote.incomes);
-        if (remote.studioInfo) {
+        if (remote.studioInfo && remote.studioInfo.nome !== 'Shifts Store') {
           setStudioInfo((prev) => {
-            if (!remote.studioInfo.whatsappConfig && prev?.whatsappConfig) {
-              const merged = { ...remote.studioInfo, whatsappConfig: prev.whatsappConfig };
+            const validIndirizzo =
+              remote.studioInfo.indirizzo && remote.studioInfo.indirizzo !== 'Via della Musica 42'
+                ? remote.studioInfo.indirizzo
+                : (prev?.indirizzo && prev.indirizzo !== 'Via della Musica 42' ? prev.indirizzo : DEFAULT_STUDIO_INFO.indirizzo);
+
+            const safeRemote = {
+              ...remote.studioInfo,
+              nome: remote.studioInfo.nome || DEFAULT_STUDIO_INFO.nome,
+              indirizzo: validIndirizzo,
+              citta: remote.studioInfo.citta && remote.studioInfo.citta !== 'Milano' ? remote.studioInfo.citta : DEFAULT_STUDIO_INFO.citta,
+            };
+
+            if (!safeRemote.whatsappConfig && prev?.whatsappConfig) {
+              const merged = { ...safeRemote, whatsappConfig: prev.whatsappConfig };
               supabaseService.upsertStudioInfo(merged).catch(console.error);
               return merged;
             }
-            return remote.studioInfo;
+            return safeRemote;
           });
         }
         if (remote.shifts !== undefined) {
@@ -408,9 +460,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'studio_info' },
-          (payload) => {
-            console.log('[Supabase Realtime] Modifica turni/studio_info rilevata da altro client:', payload);
-            refreshFromCloud();
+          (payload: any) => {
+            console.log('[Supabase Realtime] Modifica turni/studio_info rilevata:', payload);
+            if (payload?.new?.id === 'shifts_store' || payload?.old?.id === 'shifts_store') {
+              supabaseService.getShiftsFromStore().then((sh) => {
+                if (sh && sh.length > 0) setShifts(sh);
+              });
+              return;
+            }
           }
         )
         .on(

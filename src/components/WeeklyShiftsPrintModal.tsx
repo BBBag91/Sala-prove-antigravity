@@ -226,10 +226,10 @@ export const WeeklyShiftsPrintModal: React.FC<WeeklyShiftsPrintModalProps> = ({
             <div className="border-b-2 border-slate-900 pb-3 mb-4 flex items-end justify-between">
               <div>
                 <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 uppercase">
-                  SALA PROVE &bull; {studioInfo?.nome || 'SOUND STUDIO'}
+                  SALA PROVE &bull; {(studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'LA MUSICA FA...'}
                 </h1>
                 <p className="text-[11px] text-slate-600 mt-0.5">
-                  {studioInfo?.indirizzo ? `Sede: ${studioInfo.indirizzo}` : 'Centro Prove & Registrazione'}
+                  {(studioInfo?.indirizzo && studioInfo.indirizzo !== 'Via della Musica 42') ? `Sede: ${studioInfo.indirizzo}` : 'Sede: Via Secchia 36 ingresso da Via Quieto'}
                   {studioInfo?.telefono ? ` • Tel: ${studioInfo.telefono}` : ''}
                 </p>
               </div>
@@ -420,7 +420,7 @@ export const WeeklyShiftsPrintModal: React.FC<WeeklyShiftsPrintModalProps> = ({
                   </div>
                 </div>
                 <div className="space-y-4 text-right flex flex-col items-end">
-                  <div>Per la Direzione: <strong>{studioInfo?.nome || 'Sound Studio'}</strong></div>
+                  <div>Per la Direzione: <strong>{(studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...'}</strong></div>
                   <div>
                     <div className="border-b border-slate-400 w-36 mb-1"></div>
                     <span className="text-[9px] text-slate-500">Timbro Sala &amp; Firma Responsabile</span>

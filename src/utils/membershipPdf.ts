@@ -21,10 +21,10 @@ export function generateClientMembershipPDF(
  * Generates an official A4 Italian Membership Application & Fee Receipt
  */
 function generateMembershipFormA4PDF(client: Client, studioInfo?: StudioInfo): void {
-  const studioName = studioInfo?.nome || 'Sound Studio';
+  const studioName = (studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...';
   const studioSub = studioInfo?.sottotitolo || 'Associazione Culturale e Centro Musicale Polivalente';
   const studioContacts = [
-    studioInfo?.indirizzo ? `Sede: ${studioInfo.indirizzo}` : 'Via delle Note Musicali, 12',
+    studioInfo?.indirizzo && studioInfo.indirizzo !== 'Via della Musica 42' ? `Sede: ${studioInfo.indirizzo}` : 'Sede: Via Secchia 36 ingresso da Via Quieto',
     studioInfo?.telefono ? `Tel: ${studioInfo.telefono}` : '',
     studioInfo?.email ? `Email: ${studioInfo.email}` : '',
   ].filter(Boolean).join(' • ');
@@ -195,7 +195,7 @@ function generateMembershipFormA4PDF(client: Client, studioInfo?: StudioInfo): v
  * Generates a compact Pocket Badge Card PDF (Credit Card / Badge format 85.6mm x 54mm)
  */
 function generateMembershipCardBadgePDF(client: Client, studioInfo?: StudioInfo): void {
-  const studioName = studioInfo?.nome || 'Sound Studio';
+  const studioName = (studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...';
   // ISO/IEC 7810 ID-1 card dimensions: 85.6mm x 53.98mm
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -322,7 +322,7 @@ export function generateMembersRegistryPDF(clients: Client[]): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(67, 56, 202);
-  doc.text('REGISTRO GENERALE TESSERATI • SOUND STUDIO', margin, y);
+  doc.text('REGISTRO GENERALE TESSERATI • LA MUSICA FA...', margin, y);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);

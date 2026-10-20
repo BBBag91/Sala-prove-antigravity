@@ -173,10 +173,10 @@ export function generateMasterSummarySinglePagePDF(
   const contentWidth = pageWidth - margin * 2; // 186mm
   let y = 12;
 
-  const studioName = studioInfo?.nome || 'Sound Studio';
-  const studioSub = studioInfo?.sottotitolo || 'Gestionale Sala Prove Musicale';
+  const studioName = (studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...';
+  const studioSub = studioInfo?.sottotitolo || 'Scuola di Musica • Sale Prova • Studio di Registrazione';
   const contacts = [
-    studioInfo?.indirizzo ? `Sede: ${studioInfo.indirizzo}` : '',
+    (studioInfo?.indirizzo && studioInfo.indirizzo !== 'Via della Musica 42') ? `Sede: ${studioInfo.indirizzo}` : 'Sede: Via Secchia 36 ingresso da Via Quieto',
     studioInfo?.telefono ? `Tel: ${studioInfo.telefono}` : '',
     studioInfo?.email ? `Email: ${studioInfo.email}` : '',
   ]
@@ -451,10 +451,10 @@ function renderMasterCatalogCoverPage(
   periodLabel: string,
   studioInfo?: StudioInfo
 ): void {
-  const studioName = studioInfo?.nome || 'Sound Studio';
-  const studioSub = studioInfo?.sottotitolo || 'Gestionale Sala Prove Musicale';
+  const studioName = (studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...';
+  const studioSub = studioInfo?.sottotitolo || 'Scuola di Musica • Sale Prova • Studio di Registrazione';
   const contacts = [
-    studioInfo?.indirizzo ? `Sede: ${studioInfo.indirizzo}` : '',
+    (studioInfo?.indirizzo && studioInfo.indirizzo !== 'Via della Musica 42') ? `Sede: ${studioInfo.indirizzo}` : 'Sede: Via Secchia 36 ingresso da Via Quieto',
     studioInfo?.telefono ? `Tel: ${studioInfo.telefono}` : '',
     studioInfo?.email ? `Email: ${studioInfo.email}` : '',
   ].filter(Boolean).join(' • ');
@@ -620,10 +620,10 @@ function renderOperatorScheduleToDoc(
   addStandalonePageNumbers: boolean = true,
   omitStudioHeader: boolean = true
 ): void {
-  const studioName = studioInfo?.nome || 'Sound Studio';
-  const studioSub = studioInfo?.sottotitolo || 'Gestionale Sala Prove Musicale';
+  const studioName = (studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...';
+  const studioSub = studioInfo?.sottotitolo || 'Scuola di Musica • Sale Prova • Studio di Registrazione';
   const contacts = [
-    studioInfo?.indirizzo ? `Sede: ${studioInfo.indirizzo}` : '',
+    (studioInfo?.indirizzo && studioInfo.indirizzo !== 'Via della Musica 42') ? `Sede: ${studioInfo.indirizzo}` : 'Sede: Via Secchia 36 ingresso da Via Quieto',
     studioInfo?.telefono ? `Tel: ${studioInfo.telefono}` : '',
     studioInfo?.email ? `Email: ${studioInfo.email}` : '',
   ].filter(Boolean).join(' • ');

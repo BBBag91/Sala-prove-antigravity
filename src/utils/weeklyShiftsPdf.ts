@@ -222,10 +222,10 @@ export function buildWeeklyShiftsHtml(options: WeeklyShiftsPrintOptions): string
     <div style="border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end;">
       <div>
         <div style="font-size: 14px; font-weight: 900; letter-spacing: -0.2px; text-transform: uppercase; color: #0f172a;">
-          SALA PROVE • ${studioInfo?.nome || 'SOUND STUDIO'}
+          SALA PROVE • ${(studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...'}
         </div>
         <div style="font-size: 9.5px; color: #475569; margin-top: 1px;">
-          ${studioInfo?.indirizzo ? `Sede: ${studioInfo.indirizzo}` : 'Centro Prove & Registrazione'}
+          ${(studioInfo?.indirizzo && studioInfo.indirizzo !== 'Via della Musica 42') ? `Sede: ${studioInfo.indirizzo}` : 'Sede: Via Secchia 36 ingresso da Via Quieto'}
           ${studioInfo?.telefono ? ` &bull; Tel: ${studioInfo.telefono}` : ''}
           ${studioInfo?.email ? ` &bull; Email: ${studioInfo.email}` : ''}
         </div>
@@ -318,7 +318,7 @@ export function buildWeeklyShiftsHtml(options: WeeklyShiftsPrintOptions): string
       </div>
       <div style="width: 45%; text-align: right; display: flex; flex-col; align-items: flex-end;">
         <div style="width: 100%;">
-          <div>Per la Direzione: <strong>${studioInfo?.nome || 'Sound Studio'}</strong></div>
+          <div>Per la Direzione: <strong>${(studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...'}</strong></div>
           <div style="margin-top: 24px; border-bottom: 1px solid #94a3b8; width: 170px; margin-left: auto;"></div>
           <div style="font-size: 8.5px; color: #64748b; margin-top: 2px;">Timbro Sala &amp; Firma Responsabile</div>
         </div>
@@ -423,13 +423,13 @@ export function generateWeeklyShiftsPDF(options: WeeklyShiftsPrintOptions & { do
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(15, 23, 42);
-  doc.text(`SALA PROVE • ${studioInfo?.nome?.toUpperCase() || 'SOUND STUDIO'}`, margin + 4, y + 6);
+  doc.text(`SALA PROVE • ${((studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...').toUpperCase()}`, margin + 4, y + 6);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
   doc.text(
-    `${studioInfo?.indirizzo ? `Sede: ${studioInfo.indirizzo}` : 'Centro Prove & Registrazione'}${
+    `${(studioInfo?.indirizzo && studioInfo.indirizzo !== 'Via della Musica 42') ? `Sede: ${studioInfo.indirizzo}` : 'Sede: Via Secchia 36 ingresso da Via Quieto'}${
       studioInfo?.telefono ? ` • Tel: ${studioInfo.telefono}` : ''
     }`,
     margin + 4,
@@ -715,7 +715,7 @@ export function generateWeeklyShiftsPDF(options: WeeklyShiftsPrintOptions & { do
 
     const rightColX = pageWidth - margin - 55;
     doc.setFontSize(7.5);
-    doc.text(`Per la Direzione: ${studioInfo?.nome || 'Sound Studio'}`, rightColX, y + 4);
+    doc.text(`Per la Direzione: ${(studioInfo?.nome && studioInfo.nome !== 'Shifts Store') ? studioInfo.nome : 'La musica fa...'}`, rightColX, y + 4);
     doc.line(rightColX, y + 16, pageWidth - margin, y + 16);
     doc.setFontSize(7);
     doc.text('Timbro Sala & Firma Responsabile', rightColX, y + 19.5);

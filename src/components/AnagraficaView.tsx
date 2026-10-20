@@ -87,7 +87,7 @@ export const AnagraficaView: React.FC<AnagraficaViewProps> = ({ onNavigateTab })
   };
 
   const handleReset = () => {
-    if (window.confirm('Vuoi ripristinare i dati anagrafici predefiniti di Sound Studio?')) {
+    if (window.confirm('Vuoi ripristinare i dati anagrafici predefiniti di La musica fa...?')) {
       updateStudioInfo(DEFAULT_STUDIO_INFO);
       setNome(DEFAULT_STUDIO_INFO.nome);
       setSottotitolo(DEFAULT_STUDIO_INFO.sottotitolo || '');
@@ -194,7 +194,7 @@ export const AnagraficaView: React.FC<AnagraficaViewProps> = ({ onNavigateTab })
                     required
                     value={nome}
                     onChange={(e) => handleFieldChange(setNome, e.target.value)}
-                    placeholder="Es. Sound Studio, Garage 44, Il Cubo Sonoro..."
+                    placeholder="Es. La musica fa..."
                     className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                   />
                   <Music2 className="w-4 h-4 text-indigo-500 absolute left-3 top-3" />
@@ -251,7 +251,7 @@ export const AnagraficaView: React.FC<AnagraficaViewProps> = ({ onNavigateTab })
                     type="text"
                     value={indirizzo}
                     onChange={(e) => handleFieldChange(setIndirizzo, e.target.value)}
-                    placeholder="Es. Via delle Note Musicali, 12"
+                    placeholder="Es. Via Secchia 36 ingresso da Via Quieto"
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                   />
                 </div>
@@ -264,7 +264,7 @@ export const AnagraficaView: React.FC<AnagraficaViewProps> = ({ onNavigateTab })
                     type="text"
                     value={citta}
                     onChange={(e) => handleFieldChange(setCitta, e.target.value)}
-                    placeholder="Es. Milano"
+                    placeholder="Es. Latina"
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                   />
                 </div>
@@ -277,7 +277,7 @@ export const AnagraficaView: React.FC<AnagraficaViewProps> = ({ onNavigateTab })
                     type="text"
                     value={cap}
                     onChange={(e) => handleFieldChange(setCap, e.target.value)}
-                    placeholder="Es. 20100"
+                    placeholder="Es. 04100"
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden font-mono"
                   />
                 </div>

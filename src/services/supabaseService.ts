@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Booking, Client, Expense, ManualIncome, PrimaryWorkShift, PrimaryWorkShiftDate, Room, StaffMember, StudioInfo, WorkShift, isLessonBooking } from '../types';
+import { DEFAULT_STUDIO_INFO } from '../data/initialData';
 
 // =========================================================================
 // MAPPERS: TypeScript (camelCase) <-> Supabase PostgreSQL (snake_case)
@@ -390,6 +391,9 @@ export const extractShiftsFromNote = (note?: string): WorkShift[] => {
 };
 
 export const mapStudioInfoFromDb = (s: any): StudioInfo => {
+  if (!s || s.id === 'shifts_store' || s.nome === 'Shifts Store') {
+    return DEFAULT_STUDIO_INFO;
+  }
   let waConfig = s.whatsapp_config || undefined;
   let cleanNote = s.note || '';
   if (!waConfig && cleanNote.includes('__WA_CFG__:')) {
@@ -407,16 +411,21 @@ export const mapStudioInfoFromDb = (s: any): StudioInfo => {
     .replace(/__SHIFTS__:[\s\S]*?__END_SHIFTS__/g, '')
     .trim();
 
+  const validNome = (s.nome && s.nome !== 'Shifts Store') ? s.nome : DEFAULT_STUDIO_INFO.nome;
+  const validIndirizzo = (s.indirizzo && s.indirizzo !== 'Via della Musica 42') ? s.indirizzo : DEFAULT_STUDIO_INFO.indirizzo;
+  const validCitta = (s.citta && s.citta !== 'Milano') ? s.citta : DEFAULT_STUDIO_INFO.citta;
+  const validCap = s.cap || DEFAULT_STUDIO_INFO.cap;
+
   return {
-    nome: s.nome || 'Sala Prove Antigravity',
-    sottotitolo: s.sottotitolo || '',
-    indirizzo: s.indirizzo || '',
-    telefono: s.telefono || '',
-    email: s.email || '',
-    citta: s.citta || '',
-    cap: s.cap || '',
-    codiceFiscalePiva: s.codice_fiscale_piva || '',
-    sitoWeb: s.sito_web || '',
+    nome: validNome,
+    sottotitolo: s.sottotitolo || DEFAULT_STUDIO_INFO.sottotitolo || '',
+    indirizzo: validIndirizzo,
+    telefono: s.telefono || DEFAULT_STUDIO_INFO.telefono || '',
+    email: s.email || DEFAULT_STUDIO_INFO.email || '',
+    citta: validCitta,
+    cap: validCap,
+    codiceFiscalePiva: s.codice_fiscale_piva || DEFAULT_STUDIO_INFO.codiceFiscalePiva || '',
+    sitoWeb: s.sito_web || DEFAULT_STUDIO_INFO.sitoWeb || '',
     note: cleanNote,
     whatsappConfig: waConfig,
   };
@@ -560,16 +569,29 @@ export const supabaseService = {
       this.fetchAllBookings(),
       supabase.from('expenses').select('*').order('data', { ascending: false }),
       supabase.from('incomes').select('*').order('data', { ascending: false }),
-      supabase.from('studio_info').select('*').limit(1).maybeSingle(),
+      supabase.from('studio_info').select('*').eq('id', 'main').maybeSingle(),
       supabase.from('shifts').select('*').order('data', { ascending: true }),
     ]);
+
+    let studioData = studioRes.data;
+    if (!studioData || studioData.id === 'shifts_store') {
+      const { data: fallbackStudio } = await supabase
+        .from('studio_info')
+        .select('*')
+        .neq('id', 'shifts_store')
+        .limit(1)
+        .maybeSingle();
+      if (fallbackStudio && fallbackStudio.id !== 'shifts_store') {
+        studioData = fallbackStudio;
+      }
+    }
 
     let shifts = (shiftsRes.data || []).map(mapShiftFromDb);
     if (shifts.length === 0) {
       shifts = await this.getShiftsFromStore();
     }
-    if (shifts.length === 0 && studioRes.data?.note) {
-      shifts = extractShiftsFromNote(studioRes.data.note);
+    if (shifts.length === 0 && studioData?.note) {
+      shifts = extractShiftsFromNote(studioData.note);
     }
 
     return {
@@ -579,7 +601,7 @@ export const supabaseService = {
       bookings: bookingsList,
       expenses: (expensesRes.data || []).map(mapExpenseFromDb),
       incomes: (incomesRes.data || []).map(mapIncomeFromDb),
-      studioInfo: studioRes.data ? mapStudioInfoFromDb(studioRes.data) : null,
+      studioInfo: studioData ? mapStudioInfoFromDb(studioData) : DEFAULT_STUDIO_INFO,
       shifts,
     };
   },
@@ -748,7 +770,12 @@ export const supabaseService = {
         .from('studio_info')
         .upsert({
           id: 'shifts_store',
-          nome: 'Shifts Store',
+          nome: DEFAULT_STUDIO_INFO.nome,
+          indirizzo: DEFAULT_STUDIO_INFO.indirizzo,
+          citta: DEFAULT_STUDIO_INFO.citta,
+          cap: DEFAULT_STUDIO_INFO.cap,
+          telefono: DEFAULT_STUDIO_INFO.telefono,
+          email: DEFAULT_STUDIO_INFO.email,
           note: JSON.stringify(dbRows),
           updated_at: new Date().toISOString(),
         });
@@ -859,11 +886,35 @@ export const supabaseService = {
   // Studio Info
   async upsertStudioInfo(info: StudioInfo) {
     if (!supabase) return;
-    const dbObj = mapStudioInfoToDb(info, true);
+    // Blocca qualsiasi salvataggio accidentale con nome errato
+    if (info.nome === 'Shifts Store') {
+      console.warn('[Supabase] Tentativo di salvare Shifts Store come studio_info bloccato');
+      return;
+    }
+
+    // Preserva sempre la cronologia turni salvata in note se presente nel DB
+    let infoToSave = { ...info };
+    try {
+      const { data: existing } = await supabase
+        .from('studio_info')
+        .select('note')
+        .eq('id', 'main')
+        .maybeSingle();
+      if (existing?.note && existing.note.includes('__SHIFTS__:') && (!infoToSave.note || !infoToSave.note.includes('__SHIFTS__:'))) {
+        const match = existing.note.match(/__SHIFTS__:[\s\S]*?__END_SHIFTS__/);
+        if (match) {
+          infoToSave.note = infoToSave.note ? `${infoToSave.note}\n${match[0]}` : match[0];
+        }
+      }
+    } catch (e) {
+      console.warn('[upsertStudioInfo] Errore salvaguardia shifts in note:', e);
+    }
+
+    const dbObj = mapStudioInfoToDb(infoToSave, true);
     const { error } = await supabase.from('studio_info').upsert(dbObj);
     if (error) {
       if (error.code === 'PGRST204' || error.message?.includes('whatsapp_config')) {
-        const fallbackObj = mapStudioInfoToDb(info, false);
+        const fallbackObj = mapStudioInfoToDb(infoToSave, false);
         const { error: err2 } = await supabase.from('studio_info').upsert(fallbackObj);
         if (err2) console.error('[Supabase] Errore fallback upsertStudioInfo:', err2);
       } else {
