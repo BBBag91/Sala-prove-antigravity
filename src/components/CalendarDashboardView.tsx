@@ -1176,31 +1176,33 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               </button>
 
               {/* Dropdown rapido del mese stile screenshot (l m m g v s d con pallini stato) */}
-              <MonthCalendarDropdown
-                isOpen={isMonthDropdownOpen}
-                onClose={() => setIsMonthDropdownOpen(false)}
-                currentDate={currentDate}
-                onSelectDate={(newDate) => {
-                  setCurrentDate(newDate);
-                  setSelectedDateForBooking(formatDateToISO(newDate));
-                }}
-                onOpenNewBooking={(dateStr) => {
-                  setSelectedDateForBooking(dateStr);
-                  setSelectedStartTimeForBooking('18:00');
-                  setSelectedTypeForBooking(undefined);
-                  setBookingToEdit(null);
-                  setIsBookingModalOpen(true);
-                }}
-                onSwitchToMonthView={() => {
-                  handleSetViewMode('month');
-                }}
-                onSwitchToDayView={(targetDate) => {
-                  setCurrentDate(targetDate);
-                  handleSetViewMode('day');
-                }}
-                bookings={filteredBookings}
-                subtitle="La musica fa..."
-              />
+              {isMonthDropdownOpen && (
+                <MonthCalendarDropdown
+                  isOpen={isMonthDropdownOpen}
+                  onClose={() => setIsMonthDropdownOpen(false)}
+                  currentDate={currentDate}
+                  onSelectDate={(newDate) => {
+                    setCurrentDate(newDate);
+                    setSelectedDateForBooking(formatDateToISO(newDate));
+                  }}
+                  onOpenNewBooking={(dateStr) => {
+                    setSelectedDateForBooking(dateStr);
+                    setSelectedStartTimeForBooking('18:00');
+                    setSelectedTypeForBooking(undefined);
+                    setBookingToEdit(null);
+                    setIsBookingModalOpen(true);
+                  }}
+                  onSwitchToMonthView={() => {
+                    handleSetViewMode('month');
+                  }}
+                  onSwitchToDayView={(targetDate) => {
+                    setCurrentDate(targetDate);
+                    handleSetViewMode('day');
+                  }}
+                  bookings={filteredBookings}
+                  subtitle="La musica fa..."
+                />
+              )}
             </div>
           </div>
 

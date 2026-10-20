@@ -81,8 +81,6 @@ export const MonthCalendarDropdown: React.FC<MonthCalendarDropdownProps> = ({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   const year = viewingDate.getFullYear();
   const month = viewingDate.getMonth();
   const monthLabel = MESI_ITALIANI[month].toLowerCase();
@@ -105,6 +103,8 @@ export const MonthCalendarDropdown: React.FC<MonthCalendarDropdownProps> = ({
   const calendarDays = useMemo(() => {
     return getMonthCalendarGrid(year, month);
   }, [year, month]);
+
+  if (!isOpen) return null;
 
   const handlePrevMonth = (e: React.MouseEvent) => {
     e.stopPropagation();
