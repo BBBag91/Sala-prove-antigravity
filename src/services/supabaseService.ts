@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Booking, Client, Expense, ManualIncome, PrimaryWorkShift, PrimaryWorkShiftDate, Room, StaffMember, StudioInfo, WorkShift, isLessonBooking } from '../types';
+import { Booking, Client, Expense, ManualIncome, PrimaryWorkShift, PrimaryWorkShiftDate, Room, StaffMember, StudioInfo, WorkShift, isLessonBooking, TeacherBillingCycle } from '../types';
 import { DEFAULT_STUDIO_INFO } from '../data/initialData';
 
 // =========================================================================
@@ -52,6 +52,12 @@ export const mapStaffToDb = (s: StaffMember, includeIndisponibilitaCol: boolean 
     });
   }
 
+  let cleanStaffNote = s.note || '';
+  cleanStaffNote = cleanStaffNote.replace(/\[CICLO_FATTURAZIONE:(mese_corrente|mese_precedente_posticipato)\]\s*/g, '').trim();
+  const staffNoteWithMeta = s.cicloFatturazioneLezioni
+    ? `${cleanStaffNote ? cleanStaffNote + ' ' : ''}[CICLO_FATTURAZIONE:${s.cicloFatturazioneLezioni}]`.trim()
+    : cleanStaffNote;
+
   const result: any = {
     id: s.id,
     nome: s.nome,
@@ -64,7 +70,7 @@ export const mapStaffToDb = (s: StaffMember, includeIndisponibilitaCol: boolean 
     colore_badge: s.coloreBadge || '#eab308',
     attivo: s.attivo ?? true,
     tariffa_oraria_rimborso: s.tariffaOrariaRimborso != null ? s.tariffaOrariaRimborso : null,
-    note: s.note || '',
+    note: staffNoteWithMeta,
     updated_at: new Date().toISOString(),
   };
 
@@ -118,6 +124,17 @@ export const mapStaffFromDb = (s: any): StaffMember => {
     email = 'gabriele.piva@salaprove.it';
   }
 
+  const rawStaffNote = s.note || '';
+  let cicloFatturazione: TeacherBillingCycle = 'mese_corrente';
+  if (rawStaffNote.includes('[CICLO_FATTURAZIONE:mese_precedente_posticipato]')) {
+    cicloFatturazione = 'mese_precedente_posticipato';
+  } else if (rawStaffNote.includes('[CICLO_FATTURAZIONE:mese_corrente]')) {
+    cicloFatturazione = 'mese_corrente';
+  } else if (s.id === 'staff-1790952691190' || (nome && nome.toLowerCase().includes('michael'))) {
+    cicloFatturazione = 'mese_precedente_posticipato';
+  }
+  const cleanStaffNote = rawStaffNote.replace(/\[CICLO_FATTURAZIONE:(mese_corrente|mese_precedente_posticipato)\]\s*/g, '').trim();
+
   return {
     id: s.id,
     nome,
@@ -131,7 +148,8 @@ export const mapStaffFromDb = (s: any): StaffMember => {
     coloreBadge: s.colore_badge || '#f59e0b',
     attivo: Boolean(s.attivo),
     tariffaOrariaRimborso: s.tariffa_oraria_rimborso ? Number(s.tariffa_oraria_rimborso) : undefined,
-    note: s.note || '',
+    note: cleanStaffNote,
+    cicloFatturazioneLezioni: cicloFatturazione,
   };
 };
 
@@ -141,8 +159,27 @@ let hasClientQuotaColumn: boolean | null = null;
 export const mapClientToDb = (c: Client, includeQuotaCol?: boolean) => {
   const isPaid = c.quotaPagata !== undefined ? c.quotaPagata : (c.statoQuota !== 'da_saldare');
   let cleanNote = c.note || '';
-  cleanNote = cleanNote.replace(/\[QUOTA_PAGAMENTO:(pagato|da_saldare)\]\s*/g, '').trim();
-  const noteWithMeta = `${cleanNote ? cleanNote + ' ' : ''}[QUOTA_PAGAMENTO:${isPaid ? 'pagato' : 'da_saldare'}]`.trim();
+  cleanNote = cleanNote
+    .replace(/\[QUOTA_PAGAMENTO:(pagato|da_saldare)\]\s*/g, '')
+    .replace(/\[ALLIEVO_DATA:(\{.*?\})\]\s*/g, '')
+    .trim();
+
+  const allievoMeta = (c.isAllievo || c.insegnanteRiferimentoId || c.insegnanteRiferimentoNome)
+    ? `[ALLIEVO_DATA:${JSON.stringify({
+        isAllievo: Boolean(c.isAllievo),
+        insegnanteId: c.insegnanteRiferimentoId || '',
+        insegnanteNome: c.insegnanteRiferimentoNome || '',
+        corsoDidattico: c.corsoDidattico || '',
+      })}]`
+    : '';
+
+  const noteParts = [
+    cleanNote,
+    `[QUOTA_PAGAMENTO:${isPaid ? 'pagato' : 'da_saldare'}]`,
+    allievoMeta
+  ].filter(Boolean);
+
+  const noteWithMeta = noteParts.join(' ').trim();
 
   const result: any = {
     id: c.id,
@@ -187,7 +224,26 @@ export const mapClientFromDb = (c: any): Client => {
     isQuotaPagata = c.stato_quota === 'pagato';
   }
 
-  const displayNote = rawNote.replace(/\[QUOTA_PAGAMENTO:(pagato|da_saldare)\]\s*/g, '').trim();
+  let isAllievo = Boolean(c.is_allievo);
+  let insegnanteRiferimentoId = c.insegnante_riferimento_id || undefined;
+  let insegnanteRiferimentoNome = c.insegnante_riferimento_nome || undefined;
+  let corsoDidattico = c.corso_didattico || undefined;
+
+  const allievoMatch = rawNote.match(/\[ALLIEVO_DATA:(\{.*?\})\]/);
+  if (allievoMatch && allievoMatch[1]) {
+    try {
+      const parsed = JSON.parse(allievoMatch[1]);
+      if (parsed.isAllievo !== undefined) isAllievo = Boolean(parsed.isAllievo);
+      if (parsed.insegnanteId) insegnanteRiferimentoId = parsed.insegnanteId;
+      if (parsed.insegnanteNome) insegnanteRiferimentoNome = parsed.insegnanteNome;
+      if (parsed.corsoDidattico || parsed.corso) corsoDidattico = parsed.corsoDidattico || parsed.corso;
+    } catch {}
+  }
+
+  const displayNote = rawNote
+    .replace(/\[QUOTA_PAGAMENTO:(pagato|da_saldare)\]\s*/g, '')
+    .replace(/\[ALLIEVO_DATA:(\{.*?\})\]\s*/g, '')
+    .trim();
 
   return {
     id: c.id,
@@ -210,6 +266,10 @@ export const mapClientFromDb = (c: any): Client => {
     descrizioneStrumentazione: c.descrizione_strumentazione || '',
     gruppoBand: c.gruppo_band || '',
     note: displayNote,
+    isAllievo: isAllievo || undefined,
+    insegnanteRiferimentoId,
+    insegnanteRiferimentoNome,
+    corsoDidattico,
   };
 };
 

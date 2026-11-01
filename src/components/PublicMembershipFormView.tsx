@@ -20,8 +20,11 @@ import {
   FileText,
   X,
   AlertTriangle,
+  GraduationCap,
 } from 'lucide-react';
 import { Client } from '../types';
+import { useApp } from '../context/AppContext';
+import { INITIAL_STAFF } from '../data/initialData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { supabaseService } from '../services/supabaseService';
 import {
@@ -48,7 +51,18 @@ export const PublicMembershipFormView: React.FC = () => {
   const [comuneResidenza, setComuneResidenza] = useState('');
   const [telefono, setTelefono] = useState('');
   const [email, setEmail] = useState('');
-  const [discipline, setDiscipline] = useState('Musica / Sala Prove');
+  const { staff, addClient } = useApp();
+
+  // Elenco docenti/insegnanti disponibili per la scelta allievo
+  const availableTeachers = React.useMemo(() => {
+    const list = staff && staff.length > 0 ? staff : INITIAL_STAFF;
+    return list.filter((s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi'));
+  }, [staff]);
+
+  // Tipo di iscrizione: 'allievo' | 'band' (default allievo per agevolare le nuove iscrizioni ai corsi)
+  const [tipoIscrizione, setTipoIscrizione] = useState<'allievo' | 'band'>('allievo');
+  const [insegnanteId, setInsegnanteId] = useState('');
+  const [discipline, setDiscipline] = useState('Chitarra');
   const [gruppoBand, setGruppoBand] = useState('');
   const [accettaRegolamento, setAccettaRegolamento] = useState(true);
   const [accettaPrivacyGdpr, setAccettaPrivacyGdpr] = useState(true);
@@ -108,6 +122,12 @@ export const PublicMembershipFormView: React.FC = () => {
       return;
     }
 
+    // Se allievo, verifica che abbia scelto un insegnante
+    if (tipoIscrizione === 'allievo' && !insegnanteId) {
+      setErrorMsg('Seleziona il tuo insegnante di riferimento dal menù a tendina.');
+      return;
+    }
+
     // 6. Sanitizzazione XSS di tutti i campi testuali
     const safeNome = sanitizeInput(nome).toUpperCase();
     const safeCognome = sanitizeInput(cognome).toUpperCase();
@@ -117,7 +137,7 @@ export const PublicMembershipFormView: React.FC = () => {
     const safeComune = sanitizeInput(comuneResidenza).toUpperCase();
     const safeTelefono = sanitizePhoneNumber(telefono);
     const safeEmail = sanitizeInput(email).toLowerCase();
-    const safeDiscipline = sanitizeInput(discipline);
+    const safeDiscipline = sanitizeInput(discipline) || (tipoIscrizione === 'allievo' ? 'Corso di Musica' : 'Musica / Sala Prove');
     const safeBand = sanitizeInput(gruppoBand);
     const safeNazioneNascita = sanitizeInput(nazioneNascita) || 'Italia';
     const safeNazioneCittadinanza = sanitizeInput(nazioneCittadinanza) || 'Italia';
@@ -195,6 +215,19 @@ export const PublicMembershipFormView: React.FC = () => {
         discipline: safeDiscipline,
       });
 
+      const isAllievoSelected = tipoIscrizione === 'allievo';
+      const selectedTeacher = isAllievoSelected ? availableTeachers.find((t) => t.id === insegnanteId) : null;
+      const teacherName = selectedTeacher ? `${selectedTeacher.nome} ${selectedTeacher.cognome}`.trim() : '';
+
+      const allievoMetadata = isAllievoSelected && selectedTeacher
+        ? ` [ALLIEVO_DATA:${JSON.stringify({
+            isAllievo: true,
+            insegnanteId: selectedTeacher.id,
+            insegnanteNome: teacherName,
+            corsoDidattico: safeDiscipline,
+          })}]`
+        : '';
+
       const newClient: Client = {
         id: `cli-${Date.now()}`,
         nome: safeNome,
@@ -215,8 +248,14 @@ export const PublicMembershipFormView: React.FC = () => {
         statoQuota: 'da_saldare',
         quotaPagata: false,
         descrizioneStrumentazione: safeDiscipline,
-        gruppoBand: safeBand || undefined,
-        note: `Iscrizione inviata online via modulo il ${new Date().toLocaleDateString('it-IT')} ore ${new Date().toLocaleTimeString('it-IT')}. [QUOTA_PAGAMENTO:da_saldare] [META_RESIDENZA:${residenzaMetadata}]`,
+        gruppoBand: isAllievoSelected
+          ? (safeBand ? `${safeBand} (Docente: ${teacherName})` : `Allievo (${teacherName})`)
+          : (safeBand || undefined),
+        isAllievo: isAllievoSelected,
+        insegnanteRiferimentoId: selectedTeacher?.id,
+        insegnanteRiferimentoNome: teacherName || undefined,
+        corsoDidattico: isAllievoSelected ? safeDiscipline : undefined,
+        note: `Iscrizione inviata online via modulo il ${new Date().toLocaleDateString('it-IT')} ore ${new Date().toLocaleTimeString('it-IT')}. [QUOTA_PAGAMENTO:da_saldare] [META_RESIDENZA:${residenzaMetadata}]${allievoMetadata}`,
       };
 
       // 1. Salva direttamente su Supabase Cloud (con gestione fallback e schema cache)
@@ -240,6 +279,11 @@ export const PublicMembershipFormView: React.FC = () => {
       } catch (err) {
         console.warn('Errore salvataggio localStorage client:', err);
       }
+
+      // 3. Sincronizza stato in AppContext se presente
+      try {
+        if (addClient) addClient(newClient);
+      } catch {}
 
       setSubmittedClient(newClient);
       setIsSuccess(true);
@@ -330,8 +374,20 @@ export const PublicMembershipFormView: React.FC = () => {
             </p>
             <p><strong className="text-slate-900" style={{ color: '#0f172a' }}>Nominativo:</strong> <span className="text-slate-800 font-medium" style={{ color: '#1e293b' }}>{submittedClient.nome} {submittedClient.cognome}</span></p>
             <p><strong className="text-slate-900" style={{ color: '#0f172a' }}>Codice Fiscale:</strong> <span className="font-mono text-slate-800 font-bold" style={{ color: '#1e293b' }}>{submittedClient.codiceFiscale}</span></p>
-            <p><strong className="text-slate-900" style={{ color: '#0f172a' }}>Residenza:</strong> <span className="text-slate-800 font-medium" style={{ color: '#1e293b' }}>{submittedClient.residenza}</span></p>
             {submittedClient.telefono && <p><strong className="text-slate-900" style={{ color: '#0f172a' }}>Telefono:</strong> <span className="text-slate-800 font-medium" style={{ color: '#1e293b' }}>{submittedClient.telefono}</span></p>}
+            {submittedClient.isAllievo ? (
+              <>
+                <p><strong className="text-slate-900" style={{ color: '#0f172a' }}>Tipologia:</strong> <span className="text-purple-700 font-bold">Allievo / Corsista Scuola di Musica</span></p>
+                {submittedClient.insegnanteRiferimentoNome && (
+                  <p><strong className="text-slate-900" style={{ color: '#0f172a' }}>Insegnante Assegnato:</strong> <span className="text-blue-700 font-bold">{submittedClient.insegnanteRiferimentoNome}</span></p>
+                )}
+                {submittedClient.corsoDidattico && (
+                  <p><strong className="text-slate-900" style={{ color: '#0f172a' }}>Corso / Strumento:</strong> <span className="text-slate-800 font-medium">{submittedClient.corsoDidattico}</span></p>
+                )}
+              </>
+            ) : submittedClient.gruppoBand ? (
+              <p><strong className="text-slate-900" style={{ color: '#0f172a' }}>Band / Progetto:</strong> <span className="text-slate-800 font-bold">{submittedClient.gruppoBand}</span></p>
+            ) : null}
           </div>
 
           <div className="pt-2">
@@ -662,36 +718,150 @@ export const PublicMembershipFormView: React.FC = () => {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <label className="block mb-2" style={labelStyle}>
-                    Discipline / Strumenti Praticati *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={discipline}
-                    onChange={(e) => setDiscipline(e.target.value)}
-                    placeholder="Es. Batteria, Chitarra, Canto, Basso, ecc."
-                    style={inputStyle}
-                    className="w-full px-4 py-3 rounded-xl focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all placeholder:text-slate-400"
-                  />
-                </div>
+              {/* Scelta Allievo vs Membro Band */}
+              <div>
+                <label className="block mb-2" style={labelStyle}>
+                  Sei un Allievo della Scuola di Musica o il Membro di una Band? *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTipoIscrizione('allievo');
+                      if (discipline === 'Musica / Sala Prove') setDiscipline('Chitarra');
+                    }}
+                    className={`p-3.5 rounded-2xl border-2 text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      tipoIscrizione === 'allievo'
+                        ? 'border-blue-600 bg-blue-50/80 text-blue-950 shadow-xs ring-2 ring-blue-500/20'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      tipoIscrizione === 'allievo' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      <GraduationCap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-sm sm:text-base text-slate-900">Allievo / Corsista</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Iscrizione ai corsi musicali con docente</div>
+                    </div>
+                  </button>
 
-                <div>
-                  <label className="block mb-2" style={labelStyle}>
-                    Nome Band o Gruppo Musicale (se presente)
-                  </label>
-                  <input
-                    type="text"
-                    value={gruppoBand}
-                    onChange={(e) => setGruppoBand(e.target.value)}
-                    placeholder="Es. The Velvet Echoes"
-                    style={inputStyle}
-                    className="w-full px-4 py-3 rounded-xl focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all placeholder:text-slate-400"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTipoIscrizione('band');
+                      setInsegnanteId('');
+                      if (!discipline) setDiscipline('Musica / Sala Prove');
+                    }}
+                    className={`p-3.5 rounded-2xl border-2 text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      tipoIscrizione === 'band'
+                        ? 'border-blue-600 bg-blue-50/80 text-blue-950 shadow-xs ring-2 ring-blue-500/20'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      tipoIscrizione === 'band' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      <Music2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-sm sm:text-base text-slate-900">Membro di una Band</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Gruppo musicale o utilizzo sala prove</div>
+                    </div>
+                  </button>
                 </div>
               </div>
+
+              {/* Se Allievo: Menù a tendina Insegnante di Riferimento */}
+              {tipoIscrizione === 'allievo' && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/50 border-2 border-blue-200 space-y-4 animate-in fade-in duration-150">
+                  <div>
+                    <label className="block mb-2 font-black text-blue-950 text-sm sm:text-base flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <GraduationCap className="w-4 h-4 text-blue-600" />
+                        Scegli il tuo Insegnante / Docente *
+                      </span>
+                      <span className="text-[11px] font-bold text-blue-700 bg-blue-100 border border-blue-300 px-2.5 py-0.5 rounded-full">
+                        Menù Obbligatorio
+                      </span>
+                    </label>
+                    <select
+                      required
+                      value={insegnanteId}
+                      onChange={(e) => {
+                        const tId = e.target.value;
+                        setInsegnanteId(tId);
+                        const foundTeacher = availableTeachers.find((t) => t.id === tId);
+                        if (foundTeacher && foundTeacher.materieInsegnamento) {
+                          setDiscipline(foundTeacher.materieInsegnamento);
+                        }
+                      }}
+                      style={inputStyle}
+                      className="w-full px-4 py-3.5 rounded-xl border-2 border-blue-400 bg-white text-slate-900 font-bold text-sm sm:text-base focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all cursor-pointer shadow-sm"
+                    >
+                      <option value="">-- Seleziona il tuo insegnante dal menù a tendina --</option>
+                      {availableTeachers.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          🎓 {t.nome} {t.cognome} {t.materieInsegnamento ? `(Corso: ${t.materieInsegnamento})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-blue-800/80 mt-1.5 font-medium">
+                      La tua iscrizione verrà registrata automaticamente sotto il docente selezionato.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2" style={labelStyle}>
+                      Strumento / Corso Praticato *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={discipline}
+                      onChange={(e) => setDiscipline(e.target.value)}
+                      placeholder="Es. Chitarra moderna, Canto, Batteria, Basso, Tastiere..."
+                      style={inputStyle}
+                      className="w-full px-4 py-3 rounded-xl focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Se Membro di una Band */}
+              {tipoIscrizione === 'band' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 animate-in fade-in duration-150">
+                  <div>
+                    <label className="block mb-2" style={labelStyle}>
+                      Discipline / Strumenti Praticati *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={discipline}
+                      onChange={(e) => setDiscipline(e.target.value)}
+                      placeholder="Es. Batteria, Chitarra, Canto, Basso, Tastiere..."
+                      style={inputStyle}
+                      className="w-full px-4 py-3 rounded-xl focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-2" style={labelStyle}>
+                      Nome Band o Gruppo Musicale (se presente)
+                    </label>
+                    <input
+                      type="text"
+                      value={gruppoBand}
+                      onChange={(e) => setGruppoBand(e.target.value)}
+                      placeholder="Es. The Velvet Echoes"
+                      style={inputStyle}
+                      className="w-full px-4 py-3 rounded-xl focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Consenso & Quota & GDPR Compliance (UE 2016/679) */}

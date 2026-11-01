@@ -204,7 +204,20 @@ export interface StaffMember {
   tariffaOrariaRimborso?: number;
   /** Note interne sul collaboratore */
   note?: string;
+  /**
+   * Ciclo di contabilizzazione delle quote lezioni dovute alla sala:
+   * - 'mese_corrente': lezioni svolte nel mese M saldate e contabilizzate nel mese M (es. Luca Di Chiara)
+   * - 'mese_precedente_posticipato': lezioni svolte nel mese M saldate e contabilizzate nel mese M+1 (es. Michael Bertin)
+   */
+  cicloFatturazioneLezioni?: TeacherBillingCycle;
 }
+
+/**
+ * Regime di contabilizzazione delle quote lezioni dell'insegnante alla sala:
+ * - 'mese_corrente': Salda e contabilizza nello stesso mese (in corso)
+ * - 'mese_precedente_posticipato': Salda e contabilizza a consuntivo nel mese successivo
+ */
+export type TeacherBillingCycle = 'mese_corrente' | 'mese_precedente_posticipato';
 
 /**
  * Stato della tessera associativa/iscrizione del cliente.

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, UserCheck, ShieldCheck, Music, CheckCircle2, Clock } from 'lucide-react';
+import { X, UserCheck, ShieldCheck, Music, CheckCircle2, Clock, GraduationCap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
 import { formatDateToISO } from '../utils/dateUtils';
@@ -17,7 +17,7 @@ interface ClientModalProps {
 }
 
 export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clientToEdit }) => {
-  const { clients, addClient, updateClient } = useApp();
+  const { clients, staff, addClient, updateClient } = useApp();
 
   const [nome, setNome] = useState('');
   const [cognome, setCognome] = useState('');
@@ -37,6 +37,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [descrizioneStrumentazione, setDescrizioneStrumentazione] = useState('');
   const [gruppoBand, setGruppoBand] = useState('');
   const [note, setNote] = useState('');
+  const [isAllievo, setIsAllievo] = useState(false);
+  const [insegnanteRiferimentoId, setInsegnanteRiferimentoId] = useState('');
+  const [corsoDidattico, setCorsoDidattico] = useState('');
 
   useEffect(() => {
     if (clientToEdit) {
@@ -58,6 +61,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       setDescrizioneStrumentazione(clientToEdit.descrizioneStrumentazione);
       setGruppoBand(clientToEdit.gruppoBand || '');
       setNote(clientToEdit.note || '');
+      setIsAllievo(Boolean(clientToEdit.isAllievo || clientToEdit.insegnanteRiferimentoNome));
+      setInsegnanteRiferimentoId(clientToEdit.insegnanteRiferimentoId || '');
+      setCorsoDidattico(clientToEdit.corsoDidattico || '');
     } else {
       setNome('');
       setCognome('');
@@ -70,6 +76,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       setEmail('');
       setStatoTesseramento('da_tesserare');
       setStatoQuota('da_saldare');
+      setIsAllievo(false);
+      setInsegnanteRiferimentoId('');
+      setCorsoDidattico('');
       let maxProg = 0;
       const curYear = new Date().getFullYear();
       for (const cl of clients) {
@@ -129,6 +138,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
     e.preventDefault();
     if (!nome || !cognome) return;
 
+    const assignedTeacher = staff.find((s) => s.id === insegnanteRiferimentoId);
+    const teacherName = assignedTeacher
+      ? `${assignedTeacher.nome} ${assignedTeacher.cognome}`.trim()
+      : (clientToEdit?.insegnanteRiferimentoNome || undefined);
+
     if (clientToEdit) {
       updateClient({
         ...clientToEdit,
@@ -151,6 +165,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         descrizioneStrumentazione,
         gruppoBand: gruppoBand.trim() || undefined,
         note: note.trim() || undefined,
+        isAllievo,
+        insegnanteRiferimentoId: isAllievo ? insegnanteRiferimentoId : undefined,
+        insegnanteRiferimentoNome: isAllievo ? teacherName : undefined,
+        corsoDidattico: isAllievo ? (corsoDidattico || undefined) : undefined,
       });
     } else {
       addClient({
@@ -173,6 +191,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
         descrizioneStrumentazione,
         gruppoBand: gruppoBand.trim() || undefined,
         note: note.trim() || undefined,
+        isAllievo,
+        insegnanteRiferimentoId: isAllievo ? insegnanteRiferimentoId : undefined,
+        insegnanteRiferimentoNome: isAllievo ? teacherName : undefined,
+        corsoDidattico: isAllievo ? (corsoDidattico || undefined) : undefined,
       });
     }
 
@@ -343,6 +365,71 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 />
               </div>
+            </div>
+
+            {/* Sezione Tipologia Allievo / Docente */}
+            <div className="p-3.5 bg-purple-50/60 border border-purple-200 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-purple-900 flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isAllievo}
+                    onChange={(e) => setIsAllievo(e.target.checked)}
+                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer"
+                  />
+                  <GraduationCap className="w-4 h-4 text-purple-600" />
+                  <span>È un Allievo della Scuola di Musica?</span>
+                </label>
+                {isAllievo && (
+                  <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                    Visibile in Stato Allievi
+                  </span>
+                )}
+              </div>
+
+              {isAllievo && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Insegnante di Riferimento
+                    </label>
+                    <select
+                      value={insegnanteRiferimentoId}
+                      onChange={(e) => {
+                        const tId = e.target.value;
+                        setInsegnanteRiferimentoId(tId);
+                        const assignedTeacher = staff.find((s) => s.id === tId);
+                        if (assignedTeacher && assignedTeacher.materieInsegnamento && !corsoDidattico) {
+                          setCorsoDidattico(assignedTeacher.materieInsegnamento);
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-purple-300 bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-purple-500 focus:outline-hidden"
+                    >
+                      <option value="">-- Nessun docente assegnato --</option>
+                      {staff
+                        .filter((s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi'))
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            🎓 {t.nome} {t.cognome} {t.materieInsegnamento ? `(${t.materieInsegnamento})` : ''}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Corso / Strumento Didattico
+                    </label>
+                    <input
+                      type="text"
+                      value={corsoDidattico}
+                      onChange={(e) => setCorsoDidattico(e.target.value)}
+                      placeholder="Es. Chitarra, Canto, Batteria..."
+                      className="w-full px-3 py-2 rounded-lg border border-purple-300 bg-white text-xs font-medium text-slate-800 focus:ring-2 focus:ring-purple-500 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

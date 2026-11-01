@@ -114,17 +114,41 @@ export function compileMonthlyFinanceData(
   } catch {}
 
   const teachers = staff.filter((s) => s.ruolo === 'insegnante');
-  const monthlyLessons = bookings.filter(
-    (b) => b.data && b.data.startsWith(monthStr) && b.tipo === 'lezione'
-  );
+
+  const getPrevMonthStr = (mStr: string): string => {
+    const [y, m] = mStr.split('-').map(Number);
+    const prevDate = new Date(y, m - 2, 1);
+    return `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const getMonthNameFromStr = (mStr: string): string => {
+    const [y, m] = mStr.split('-').map(Number);
+    const MONTH_NAMES_ITA = [
+      'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+      'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+    ];
+    return `${MONTH_NAMES_ITA[m - 1]} ${y}`;
+  };
 
   let teacherFeesSaldatoTotal = 0;
   teachers.forEach((t) => {
     const tFullName = `${t.nome} ${t.cognome}`.trim().toLowerCase();
-    const tLessons = monthlyLessons.filter(
+    const cycle = t.cicloFatturazioneLezioni || (
+      tFullName.includes('michael') ? 'mese_precedente_posticipato' : 'mese_corrente'
+    );
+    const isPosticipato = cycle === 'mese_precedente_posticipato';
+    const targetMonthStr = isPosticipato ? getPrevMonthStr(monthStr) : monthStr;
+    const periodLabel = isPosticipato
+      ? `lezioni consuntivo ${getMonthNameFromStr(targetMonthStr)}`
+      : `lezioni ${monthName} ${year}`;
+
+    const tLessons = bookings.filter(
       (b) =>
-        (b.insegnanteId && b.insegnanteId === t.id) ||
-        (b.insegnanteNome && b.insegnanteNome.trim().toLowerCase() === tFullName)
+        b.data &&
+        b.data.startsWith(targetMonthStr) &&
+        b.tipo === 'lezione' &&
+        ((b.insegnanteId && b.insegnanteId === t.id) ||
+          (b.insegnanteNome && b.insegnanteNome.trim().toLowerCase() === tFullName))
     );
 
     const totalHours = tLessons.reduce((sum, b) => {
@@ -142,7 +166,7 @@ export function compileMonthlyFinanceData(
       rawMovements.push({
         id: `teacher-${t.id}`,
         date: lastDayStr,
-        description: `Quota Sala Lezioni: ${t.nome} ${t.cognome} (${totalHours.toFixed(1)}h a 5€/h)`,
+        description: `Quota Sala Lezioni: ${t.nome} ${t.cognome} (${totalHours.toFixed(1)}h a 5€/h - ${periodLabel})`,
         type: 'entrata',
         income: totalFee,
         expense: 0,

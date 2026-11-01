@@ -15,6 +15,7 @@ import {
   Clock,
   MessageSquare,
   QrCode,
+  GraduationCap,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
@@ -63,6 +64,7 @@ export const ClientsView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | MembershipStatus>('all');
   const [quotaFilter, setQuotaFilter] = useState<'all' | 'pagato' | 'da_saldare'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'allievi' | 'band'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
 
@@ -80,15 +82,25 @@ export const ClientsView: React.FC = () => {
 
   const filteredClients = useMemo(() => {
     const list = clients.filter((c) => {
-      const fullText = `${c.nome} ${c.cognome} ${c.codiceFiscale} ${c.gruppoBand || ''} ${c.residenza}`.toLowerCase();
+      const fullText = `${c.nome} ${c.cognome} ${c.codiceFiscale} ${c.gruppoBand || ''} ${c.insegnanteRiferimentoNome || ''} ${c.corsoDidattico || ''} ${c.residenza}`.toLowerCase();
       const matchSearch = fullText.includes(searchTerm.toLowerCase());
       const matchStatus = statusFilter === 'all' || c.statoTesseramento === statusFilter;
       const isPaid = c.quotaPagata !== undefined ? c.quotaPagata : (c.statoQuota !== 'da_saldare');
       const matchQuota = quotaFilter === 'all' || (quotaFilter === 'pagato' ? isPaid : !isPaid);
-      return matchSearch && matchStatus && matchQuota;
+      const isStudent = Boolean(c.isAllievo || c.insegnanteRiferimentoNome);
+      const matchType =
+        typeFilter === 'all'
+          ? true
+          : typeFilter === 'allievi'
+          ? isStudent
+          : !isStudent;
+      return matchSearch && matchStatus && matchQuota && matchType;
     });
     return sortClientsChronologically(list);
-  }, [clients, searchTerm, statusFilter, quotaFilter]);
+  }, [clients, searchTerm, statusFilter, quotaFilter, typeFilter]);
+
+  const allieviCount = clients.filter((c) => c.isAllievo || !!c.insegnanteRiferimentoNome).length;
+  const bandCount = clients.filter((c) => !c.isAllievo && !c.insegnanteRiferimentoNome && !!c.gruppoBand).length;
 
   const daTesserareCount = clients.filter((c) => c.statoTesseramento === 'da_tesserare').length;
   const activeCount = clients.filter((c) => c.statoTesseramento === 'attivo').length;
@@ -311,10 +323,14 @@ export const ClientsView: React.FC = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-xs">
-          <p className="text-[11px] font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
-            Totale Clienti
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider flex items-center justify-between">
+            <span>Totale Tesserati</span>
+            <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400">({allieviCount} allievi)</span>
           </p>
           <p className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-yellow-100 mt-1">{clients.length}</p>
+          <span className="text-[10px] text-slate-500 dark:text-neutral-400 font-medium block">
+            {allieviCount} allievi • {bandCount} band
+          </span>
         </div>
 
         <div className={`p-3.5 sm:p-4 rounded-xl border shadow-xs ${
@@ -390,6 +406,16 @@ export const ClientsView: React.FC = () => {
             <option value="in_attesa">📤 Inviati all&apos;Ente ({pendingCount})</option>
             <option value="attivo">✅ Tessere Attive ({activeCount})</option>
             <option value="scaduto">⚠️ Tessere Scadute ({expiredCount})</option>
+          </select>
+
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as any)}
+            className="px-3.5 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl border border-slate-200 dark:border-yellow-500/30 bg-slate-50 dark:bg-neutral-900 text-slate-700 dark:text-yellow-200 focus:outline-hidden touch-manipulation cursor-pointer"
+          >
+            <option value="all">Tutte le tipologie ({clients.length})</option>
+            <option value="allievi">🎓 Solo Allievi Scuola ({allieviCount})</option>
+            <option value="band">🎸 Solo Membri Band / Musicisti ({clients.length - allieviCount})</option>
           </select>
 
           <select
@@ -520,9 +546,34 @@ export const ClientsView: React.FC = () => {
                     </span>
                   </div>
 
-                  {client.gruppoBand && (
-                    <p className="text-xs font-semibold text-indigo-600 mt-0.5">
-                      Band: {client.gruppoBand}
+                  {/* Specificazione Tipologia nel resoconto: Allievo (con Docente) vs Band vs Musicista */}
+                  {client.isAllievo || client.insegnanteRiferimentoNome ? (
+                    <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-purple-100 text-purple-900 border border-purple-300 shadow-2xs">
+                        <GraduationCap className="w-3.5 h-3.5 text-purple-700 shrink-0" />
+                        <span>Allievo Scuola di Musica</span>
+                      </span>
+                      {client.insegnanteRiferimentoNome && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black bg-blue-100 text-blue-900 border border-blue-300 shadow-2xs">
+                          <span>Docente: {client.insegnanteRiferimentoNome}</span>
+                        </span>
+                      )}
+                      {client.corsoDidattico && (
+                        <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                          {client.corsoDidattico}
+                        </span>
+                      )}
+                    </div>
+                  ) : client.gruppoBand ? (
+                    <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-900 border border-indigo-200">
+                        <Music className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                        <span>Membro Band: <strong>{client.gruppoBand}</strong></span>
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 mt-1 italic">
+                      Musicista Ordinario / Sala Prove
                     </p>
                   )}
                 </div>

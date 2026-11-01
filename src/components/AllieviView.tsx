@@ -601,7 +601,6 @@ export const AllieviView: React.FC = () => {
       'Date Lezioni Svolte',
       'Stato Quota',
       'Data & Ora Pagamento',
-      'Importo Quota (EUR)',
     ];
 
     const rows = filteredStudents.map((item, idx) => {
@@ -627,7 +626,6 @@ export const AllieviView: React.FC = () => {
         `"${datesStr || 'Nessuna lezione svolta finora'}"`,
         item.isPaid ? 'SALDATO' : 'DA SALDARE',
         `"${paymentTimestampStr}"`,
-        item.importo.toFixed(2).replace('.', ','),
       ].join(';');
     });
 
@@ -643,7 +641,6 @@ export const AllieviView: React.FC = () => {
       '',
       `Saldati: ${paidStudentsCount} / ${filteredCount}`,
       '',
-      totalCollectedEuros.toFixed(2).replace('.', ','),
     ].join(';');
 
     const csvContent = '\uFEFF' + [headers.join(';'), ...rows, summaryRow].join('\r\n');
@@ -965,6 +962,23 @@ export const AllieviView: React.FC = () => {
         </div>
       </div>
 
+      {/* Info Ciclo Posticipato se filtrato Michael Bertin */}
+      {selectedTeacherObj && (selectedTeacherObj.cicloFatturazioneLezioni === 'mese_precedente_posticipato' || selectedTeacherObj.nome.toLowerCase().includes('michael')) && (
+        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-300 dark:border-amber-700/60 text-xs flex items-center justify-between gap-3 text-amber-950 dark:text-amber-200 animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <span className="text-base">⏳</span>
+            <div>
+              <strong className="font-extrabold uppercase tracking-wide">
+                Nota Contabile Docente ({selectedTeacherObj.nome} {selectedTeacherObj.cognome}):
+              </strong>
+              <span className="ml-1.5 opacity-90">
+                Questo insegnante adotta la liquidazione posticipata (il mese precedente viene saldato a inizio mese successivo). Per visualizzare le quote sala prova (5€/h) e lo stato del saldo, apri la scheda <strong>"Ore Insegnanti"</strong> o <strong>"Finanze"</strong>.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── 4. CONTENUTO PRINCIPALE: TABELLA EXCEL o SCHEDE ── */}
       {filteredStudents.length === 0 ? (
         <div className="p-12 text-center bg-white dark:bg-neutral-900 border border-dashed border-slate-200 dark:border-neutral-800 rounded-2xl space-y-3">
@@ -1020,7 +1034,6 @@ export const AllieviView: React.FC = () => {
                   <th className="p-2.5 px-3 border-r border-slate-200 dark:border-neutral-800 min-w-[160px]">
                     Data &amp; Ora Registrazione Saldo
                   </th>
-                  <th className="p-2.5 px-3 border-r border-slate-200 dark:border-neutral-800 text-right min-w-[95px]">Quota</th>
                   <th className="p-2.5 px-3 text-center w-20 print:hidden">Dossier</th>
                 </tr>
               </thead>
@@ -1180,17 +1193,12 @@ export const AllieviView: React.FC = () => {
                         )}
                       </td>
 
-                      {/* 9. Quota (€) */}
-                      <td className="p-2.5 px-3 border-r border-slate-200 dark:border-neutral-800 text-right font-mono font-black text-slate-900 dark:text-white text-sm">
-                        {formatCurrency(importo)}
-                      </td>
-
-                      {/* 10. Azioni: Dettaglio / Dossier PDF */}
+                      {/* 9. Azioni: Dettaglio / Dossier PDF */}
                       <td className="p-2.5 px-3 text-center print:hidden">
                         <button
                           type="button"
                           onClick={() => handleOpenDetail(student)}
-                          className="p-1.5 rounded-lg bg-slate-100 dark:bg-neutral-800 hover:bg-amber-400 hover:text-slate-950 text-slate-700 dark:text-neutral-200 border border-slate-200 dark:border-neutral-700 transition-colors cursor-pointer inline-flex items-center justify-center"
+                          className="p-1.5 px-2 rounded-xl bg-slate-100 hover:bg-amber-400 hover:text-slate-950 text-slate-700 border border-slate-300 dark:bg-neutral-800 dark:hover:bg-amber-400 dark:hover:text-slate-950 dark:text-neutral-200 dark:border-neutral-700 transition-colors cursor-pointer inline-flex items-center justify-center gap-1 text-xs font-bold shadow-2xs"
                           title="Apri Dossier Completo dell'Allievo"
                         >
                           <Eye className="w-4 h-4" />
@@ -1224,9 +1232,6 @@ export const AllieviView: React.FC = () => {
                   </td>
                   <td className="p-3 px-3 border-r border-slate-200 dark:border-neutral-800 text-xs text-slate-500 dark:text-neutral-400">
                     -
-                  </td>
-                  <td className="p-3 px-3 border-r border-slate-200 dark:border-neutral-800 text-right font-mono font-black text-sm text-slate-900 dark:text-yellow-300">
-                    {formatCurrency(totalCollectedEuros)}
                   </td>
                   <td className="p-3 px-3 text-center print:hidden" />
                 </tr>
@@ -1302,9 +1307,6 @@ export const AllieviView: React.FC = () => {
                             <span className="uppercase tracking-wide font-black">Quota Da Saldare</span>
                           </>
                         )}
-                        <span className="text-xs font-mono font-black text-slate-900 dark:text-white">
-                          ({formatCurrency(importo)})
-                        </span>
                       </div>
 
                       <p className="text-[11px] mt-1 text-slate-600 dark:text-neutral-300">
@@ -1328,10 +1330,10 @@ export const AllieviView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleQuickTogglePayment(item)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-black shadow-2xs cursor-pointer transition-all shrink-0 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-2xs cursor-pointer transition-all shrink-0 ${
                         isPaid
-                          ? 'bg-slate-200 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300 hover:bg-slate-300'
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                          ? 'bg-slate-200 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300 hover:bg-slate-300 border border-slate-300 dark:border-neutral-700'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs'
                       }`}
                     >
                       {isPaid ? 'Riapri' : 'Salda Ora'}

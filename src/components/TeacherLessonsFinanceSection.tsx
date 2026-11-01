@@ -18,7 +18,7 @@ import {
   formatDateToISO,
   timeToMinutes,
 } from '../utils/dateUtils';
-import { Booking } from '../types';
+import { Booking, TeacherBillingCycle } from '../types';
 
 interface TeacherLessonsFinanceSectionProps {
   currentMonthName: string;
@@ -28,6 +28,22 @@ interface TeacherLessonsFinanceSectionProps {
 }
 
 type SettlementStatus = 'da_saldare' | 'saldato';
+
+const MONTH_NAMES_ITA = [
+  'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+  'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+];
+
+function getPreviousMonthStr(mStr: string): string {
+  const [y, m] = mStr.split('-').map(Number);
+  const prevDate = new Date(y, m - 2, 1);
+  return `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getMonthNameFromStr(mStr: string): string {
+  const [y, m] = mStr.split('-').map(Number);
+  return `${MONTH_NAMES_ITA[m - 1]} ${y}`;
+}
 
 export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSectionProps> = ({
   currentMonthName,
@@ -57,6 +73,9 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
     } catch {}
     return {};
   });
+
+  // Override temporaneo del ciclo di visualizzazione per ciascun insegnante (on-the-fly)
+  const [cycleOverrides, setCycleOverrides] = useState<Record<string, TeacherBillingCycle>>({});
 
   // Traccia quale insegnante ha il dettaglio lezioni aperto
   const [expandedTeacherId, setExpandedTeacherId] = useState<string | null>(null);
@@ -90,25 +109,37 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
     return false;
   };
 
-  // Tutte le prenotazioni didattiche registrate nel mese selezionato
-  const monthlyLessons = useMemo(() => {
-    return bookings.filter(
-      (b) => b.data.startsWith(monthStr) && b.tipo === 'lezione'
-    );
-  }, [bookings, monthStr]);
+  const prevMonthStr = useMemo(() => getPreviousMonthStr(monthStr), [monthStr]);
+  const prevMonthLabel = useMemo(() => getMonthNameFromStr(prevMonthStr), [prevMonthStr]);
 
-  // Lezioni effettivamente svolte nel mese fino al giorno odierno
-  const monthlyCompletedLessons = useMemo(() => {
-    return monthlyLessons.filter((b) => isLessonCompleted(b));
-  }, [monthlyLessons, todayISO, nowMinutes]);
+  const toggleCycleOverride = (teacherId: string, currentActiveCycle: TeacherBillingCycle) => {
+    setCycleOverrides((prev) => ({
+      ...prev,
+      [teacherId]: currentActiveCycle === 'mese_corrente' ? 'mese_precedente_posticipato' : 'mese_corrente',
+    }));
+  };
 
-  // Calcolo statistiche per ciascun insegnante
+  // Calcolo statistiche per ciascun insegnante in base al rispettivo ciclo di contabilizzazione
   const teacherStats = teachersExclusively.map((t) => {
     const tFullName = `${t.nome} ${t.cognome}`.trim().toLowerCase();
-    const allTeacherLessons = monthlyLessons.filter(
+    
+    // Default dal profilo o fallback intelligente (Michael Bertin -> posticipato)
+    const defaultCycle: TeacherBillingCycle = t.cicloFatturazioneLezioni || (
+      tFullName.includes('michael') ? 'mese_precedente_posticipato' : 'mese_corrente'
+    );
+    const activeCycle: TeacherBillingCycle = cycleOverrides[t.id] || defaultCycle;
+    const isPosticipato = activeCycle === 'mese_precedente_posticipato';
+    const targetMonthStr = isPosticipato ? prevMonthStr : monthStr;
+    const targetMonthLabel = isPosticipato ? prevMonthLabel : `${currentMonthName} ${currentYear}`;
+
+    // Lezioni didattiche del periodo di competenza
+    const allTeacherLessons = bookings.filter(
       (b) =>
-        (b.insegnanteId && b.insegnanteId === t.id) ||
-        (b.insegnanteNome && b.insegnanteNome.trim().toLowerCase() === tFullName)
+        b.tipo === 'lezione' &&
+        b.data &&
+        b.data.startsWith(targetMonthStr) &&
+        ((b.insegnanteId && b.insegnanteId === t.id) ||
+          (b.insegnanteNome && b.insegnanteNome.trim().toLowerCase() === tFullName))
     );
 
     const completedTeacherLessons = allTeacherLessons.filter((b) => isLessonCompleted(b));
@@ -140,6 +171,12 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
 
     return {
       teacher: t,
+      activeCycle,
+      defaultCycle,
+      isPosticipato,
+      isOverridden: !!cycleOverrides[t.id],
+      targetMonthStr,
+      targetMonthLabel,
       lessons,
       allTeacherLessons,
       completedCount: completedTeacherLessons.length,
@@ -162,6 +199,8 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
   const overallDaSaldare = teacherStats
     .filter((s) => s.stato === 'da_saldare')
     .reduce((sum, s) => sum + s.costoDovuto, 0);
+  const overallLessonsCount = teacherStats.reduce((sum, s) => sum + s.lessons.length, 0);
+  const overallTotalBookedCount = teacherStats.reduce((sum, s) => sum + s.totalBookedCount, 0);
 
   // Notifica la vista padre (FinanceView) del cambio totali
   useEffect(() => {
@@ -205,7 +244,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Conteggio ore lezioni {onlyCompleted ? 'svolte fino ad oggi' : 'prenotate nel mese'} per {currentMonthName} {currentYear} • Quota sala = Ore {onlyCompleted ? 'Svolte' : 'Totali'} × 5€
+              Contabilizzazione per {currentMonthName} {currentYear} secondo il ciclo di ciascun docente (Mese Corrente o Consuntivo Mese Precedente) • Quota sala = Ore {onlyCompleted ? 'Svolte' : 'Totali'} × 5€
             </p>
           </div>
         </div>
@@ -239,6 +278,30 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
               <Calendar className="w-3.5 h-3.5" />
               <span>Tutte le Prenotate (mese)</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Avviso Regole Contabili Docenti (Michael Posticipato / Luca Corrente) */}
+      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-300 text-xs flex flex-col md:flex-row md:items-center justify-between gap-2.5 shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 text-sm shadow-xs">
+            ⏳
+          </div>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <strong className="text-amber-950 font-bold">
+                Cicli di Liquidazione Quote Insegnanti (5€/h):
+              </strong>
+              <span className="px-2 py-0.5 rounded bg-amber-200 text-amber-900 font-extrabold text-[10px] uppercase tracking-wider">
+                Michael Bertin: Posticipato a inizio {currentMonthName}
+              </span>
+            </div>
+            <p className="text-amber-900 text-[11.5px] leading-relaxed">
+              • <strong>Luca Di Chiara:</strong> lezioni di <strong>{currentMonthName}</strong> saldate e contabilizzate nel mese stesso.
+              <br />
+              • <strong>Michael Bertin:</strong> lezioni svolte a <strong>{prevMonthLabel}</strong> saldate e contabilizzate a inizio <strong>{currentMonthName} {currentYear}</strong>.
+            </p>
           </div>
         </div>
       </div>
@@ -286,7 +349,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
           <span className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider flex items-center justify-between">
             <span>{onlyCompleted ? 'Ore Lezioni Svolte' : 'Ore Lezioni Prenotate'}</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-800 font-bold">
-              {onlyCompleted ? 'fino a oggi' : 'mese intero'}
+              {onlyCompleted ? 'fino a oggi' : 'periodo'}
             </span>
           </span>
           <p className="text-2xl font-bold font-mono text-purple-900">
@@ -294,8 +357,8 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
           </p>
           <span className="text-[10px] text-purple-600 block">
             {onlyCompleted
-              ? `${monthlyCompletedLessons.length} lezioni svolte (su ${monthlyLessons.length} prenotate nel mese)`
-              : `${monthlyLessons.length} lezioni registrate nel mese`}
+              ? `${overallLessonsCount} lezioni svolte (su ${overallTotalBookedCount} prenotate)`
+              : `${overallTotalBookedCount} lezioni conteggiate`}
           </span>
         </div>
 
@@ -343,7 +406,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase tracking-wider font-semibold">
-                    <th className="py-3 px-4">Docente / Insegnante</th>
+                    <th className="py-3 px-4">Docente / Insegnante & Ciclo</th>
                     <th className="py-3 px-4">Materia Insegnata</th>
                     <th className="py-3 px-4 text-center">
                       {onlyCompleted ? 'Lezioni Svolte' : 'N° Lezioni'}
@@ -357,30 +420,65 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {teacherStats.map(({ teacher, lessons, completedCount, totalBookedCount, totalOre, totalOrePrenotate, costoDovuto, stato }) => {
+                  {teacherStats.map(({ teacher, activeCycle, isPosticipato, targetMonthLabel, lessons, completedCount, totalBookedCount, totalOre, totalOrePrenotate, costoDovuto, stato }) => {
                     const isExpanded = expandedTeacherId === teacher.id;
                     const isPaid = stato === 'saldato';
 
                     return (
                       <React.Fragment key={teacher.id}>
-                        <tr className={`hover:bg-slate-50/80 transition-colors ${isExpanded ? 'bg-purple-50/30' : ''}`}>
+                        <tr className={`hover:bg-slate-50/80 transition-colors ${isExpanded ? 'bg-purple-50/30' : ''} ${isPosticipato ? 'bg-amber-50/30 border-l-4 border-l-amber-500' : ''}`}>
                           <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-start gap-3">
                               <div
-                                className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-2xs"
+                                className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-2xs mt-0.5"
                                 style={{ backgroundColor: teacher.coloreBadge || '#8b5cf6' }}
                               >
                                 {teacher.nome[0]}{teacher.cognome[0]}
                               </div>
                               <div>
-                                <span className="font-bold text-slate-900 text-sm block">
-                                  {teacher.nome} {teacher.cognome}
-                                </span>
-                                {teacher.telefono && (
-                                  <span className="text-[11px] text-slate-500">
-                                    {teacher.telefono}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-bold text-slate-900 text-sm">
+                                    {teacher.nome} {teacher.cognome}
                                   </span>
-                                )}
+                                  {isPosticipato && (
+                                    <span className="text-[9.5px] px-1.5 py-0.2 rounded font-black bg-amber-200 text-amber-900 border border-amber-400 uppercase tracking-wider">
+                                      Posticipato
+                                    </span>
+                                  )}
+                                  {teacher.telefono && (
+                                    <span className="text-[11px] text-slate-400">
+                                      • {teacher.telefono}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Badge ciclo di contabilizzazione e toggle rapido */}
+                                <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                                      isPosticipato
+                                        ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                        : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                    }`}
+                                    title={
+                                      isPosticipato
+                                        ? `Liquidazione posticipata: lezioni di ${targetMonthLabel} contabilizzate a ${currentMonthName} ${currentYear}`
+                                        : `Liquidazione corrente: lezioni di ${targetMonthLabel} contabilizzate nel mese stesso`
+                                    }
+                                  >
+                                    <span>{isPosticipato ? '⏳ Posticipato' : '📅 Mese Corrente'}</span>
+                                    <span className="opacity-80 font-medium">({targetMonthLabel})</span>
+                                  </span>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleCycleOverride(teacher.id, activeCycle)}
+                                    className="text-[10px] font-medium text-purple-700 hover:text-purple-900 hover:underline px-1.5 py-0.5 rounded bg-purple-50/70 hover:bg-purple-100 transition-colors cursor-pointer"
+                                    title="Clicca per commutare temporaneamente la vista tra Mese Corrente e Mese Precedente"
+                                  >
+                                    {isPosticipato ? '⇄ Vedi mese corrente' : '⇄ Vedi mese prec.'}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -484,7 +582,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
                                   <div className="flex items-center gap-2">
                                     <CalendarCheck2 className="w-4 h-4 text-purple-600" />
                                     <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                                      Dettaglio Lezioni di {teacher.nome} {teacher.cognome} ({currentMonthName} {currentYear})
+                                      Dettaglio Lezioni di {teacher.nome} {teacher.cognome} • Riferimento: {targetMonthLabel} ({isPosticipato ? 'Posticipato a consuntivo' : 'Mese corrente'})
                                     </span>
                                   </div>
                                   <span className="text-xs font-bold font-mono text-purple-700">

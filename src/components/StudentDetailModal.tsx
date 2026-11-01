@@ -311,30 +311,30 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-4xl bg-neutral-950 border border-yellow-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh]">
+      <div className="relative w-full max-w-4xl bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh]">
 
         {/* ── 1. MODAL HEADER: Info Allievo e Chiusura ── */}
-        <div className="bg-neutral-900/90 border-b border-neutral-800 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-black text-lg shrink-0 shadow-xs">
-              {student.nome[0]}{student.cognome[0]}
+            <div className="w-12 h-12 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center justify-center font-black text-lg shrink-0 shadow-xs">
+              {student.nome[0]}{(student.cognome && student.cognome[0]) || ''}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-extrabold text-white truncate">
+                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white truncate">
                   {student.nome} {student.cognome}
                 </h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-400/20 text-amber-300 border border-amber-500/30">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-100 text-amber-800 dark:bg-amber-400/20 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">
                   Allievo
                 </span>
                 {student.corsoDidattico && (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold text-slate-300 bg-neutral-800 border border-neutral-700">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700">
                     {student.corsoDidattico}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-neutral-400 flex items-center gap-2 mt-0.5 flex-wrap">
-                <span>Docente: <strong className="text-yellow-400 font-semibold">{student.insegnanteRiferimentoNome || 'Insegnante Assegnato'}</strong></span>
+              <p className="text-xs text-slate-600 dark:text-neutral-400 flex items-center gap-2 mt-0.5 flex-wrap">
+                <span>Docente: <strong className="text-purple-700 dark:text-yellow-400 font-bold">{student.insegnanteRiferimentoNome || 'Insegnante Assegnato'}</strong></span>
                 {student.telefono && (
                   <>
                     <span>•</span>
@@ -345,59 +345,60 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Quick contact buttons & Close */}
+          {/* Quick contact buttons & Close (tutti uniformi con stessa altezza, raggio e bordi) */}
           <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
             {waUrl && (
               <a
                 href={waUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-800 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                 title="Apri chat WhatsApp con l'allievo"
               >
-                <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden sm:inline">WhatsApp</span>
+                <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>WhatsApp</span>
               </a>
             )}
 
             <button
               type="button"
               onClick={handleExportPdf}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
               title="Scarica scheda e resoconto in PDF"
             >
-              <Download className="w-3.5 h-3.5 text-blue-400" />
-              <span className="hidden sm:inline">PDF</span>
+              <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>PDF</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 hover:border-rose-300 dark:bg-neutral-800 dark:hover:bg-rose-950/40 dark:text-neutral-200 dark:hover:text-rose-300 dark:border-neutral-700 dark:hover:border-rose-800 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
               title="Chiudi dettaglio (Esc)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-3.5 h-3.5 text-slate-600 dark:text-neutral-300" />
+              <span>Chiudi</span>
             </button>
           </div>
         </div>
 
         {/* ── 2. SELETTORE MESE & NAVIGAZIONE TABS ── */}
-        <div className="bg-neutral-900/50 border-b border-neutral-800 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-slate-100 dark:bg-neutral-900/50 border-b border-slate-200 dark:border-neutral-800 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Tabs */}
-          <div className="flex items-center gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-800 shrink-0">
+          <div className="flex items-center gap-1 bg-white dark:bg-neutral-950 p-1 rounded-xl border border-slate-200 dark:border-neutral-800 shrink-0 shadow-2xs">
             <button
               type="button"
               onClick={() => setActiveTab('lezioni')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'lezioni'
-                  ? 'bg-yellow-400 text-black shadow-xs'
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-amber-400 text-slate-950 shadow-xs'
+                  : 'text-slate-600 dark:text-neutral-400 hover:text-slate-950 dark:hover:text-white'
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
               <span>Lezioni &amp; Orari</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                activeTab === 'lezioni' ? 'bg-black text-yellow-400' : 'bg-neutral-800 text-neutral-300'
+                activeTab === 'lezioni' ? 'bg-black text-amber-300' : 'bg-slate-200 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300'
               }`}>
                 {monthlyLessons.length}
               </span>
@@ -408,14 +409,14 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               onClick={() => setActiveTab('pagamento')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'pagamento'
-                  ? 'bg-yellow-400 text-black shadow-xs'
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-amber-400 text-slate-950 shadow-xs'
+                  : 'text-slate-600 dark:text-neutral-400 hover:text-slate-950 dark:hover:text-white'
               }`}
             >
               <DollarSign className="w-3.5 h-3.5" />
-              <span>Pagamento Mese</span>
+              <span>Stato Pagamento</span>
               <span className={`w-2 h-2 rounded-full ${
-                paymentRecord?.stato === 'pagato' ? 'bg-emerald-400' : 'bg-rose-400 animate-pulse'
+                paymentRecord?.stato === 'pagato' ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'
               }`} />
             </button>
 
@@ -424,8 +425,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               onClick={() => setActiveTab('anagrafica')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'anagrafica'
-                  ? 'bg-yellow-400 text-black shadow-xs'
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-amber-400 text-slate-950 shadow-xs'
+                  : 'text-slate-600 dark:text-neutral-400 hover:text-slate-950 dark:hover:text-white'
               }`}
             >
               <User className="w-3.5 h-3.5" />
@@ -435,22 +436,22 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
 
           {/* Month Navigator */}
           <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
-            <div className="flex items-center bg-neutral-950 rounded-lg p-0.5 border border-neutral-800">
+            <div className="flex items-center bg-white dark:bg-neutral-950 rounded-xl p-0.5 border border-slate-200 dark:border-neutral-800 shadow-2xs">
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                className="p-1 rounded text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="p-1 rounded-lg text-slate-600 dark:text-neutral-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
                 title="Mese precedente"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="px-3 text-xs font-bold text-yellow-100 min-w-[110px] text-center">
+              <span className="px-3 text-xs font-bold text-slate-900 dark:text-yellow-100 min-w-[110px] text-center">
                 {monthName} {currentYear}
               </span>
               <button
                 type="button"
                 onClick={handleNextMonth}
-                className="p-1 rounded text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="p-1 rounded-lg text-slate-600 dark:text-neutral-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
                 title="Mese successivo"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -460,7 +461,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             <button
               type="button"
               onClick={handleGoCurrentMonth}
-              className="px-2 py-1 rounded-lg text-xs font-medium bg-neutral-950 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-neutral-950 hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-700 dark:text-neutral-300 border border-slate-200 dark:border-neutral-800 transition-colors cursor-pointer shadow-2xs"
             >
               Oggi
             </button>
@@ -512,7 +513,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                     <button
                       type="button"
                       onClick={handleQuickMarkPaid}
-                      className="px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold cursor-pointer transition-colors"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 dark:text-emerald-300 dark:border-emerald-500/40 text-xs font-bold cursor-pointer transition-colors shadow-2xs"
                       title="Registra saldo rapido per oggi"
                     >
                       Salda
@@ -535,7 +536,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                     <button
                       type="button"
                       onClick={() => onOpenBookingModalForStudent(student)}
-                      className="px-2.5 py-1 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-black text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
+                      className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Nuova Lezione</span>
@@ -658,10 +659,10 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setFormStato('pagato')}
-                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-2xs ${
                           formStato === 'pagato'
                             ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm shadow-emerald-500/20'
-                            : 'bg-neutral-950 text-neutral-400 border-neutral-800 hover:text-white'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:text-neutral-300 dark:border-neutral-800'
                         }`}
                       >
                         <CheckCircle2 className="w-4 h-4" />
@@ -671,10 +672,10 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setFormStato('da_saldare')}
-                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-2xs ${
                           formStato === 'da_saldare'
                             ? 'bg-rose-600 text-white border-rose-500 shadow-sm shadow-rose-500/20'
-                            : 'bg-neutral-950 text-neutral-400 border-neutral-800 hover:text-white'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:text-neutral-300 dark:border-neutral-800'
                         }`}
                       >
                         <AlertCircle className="w-4 h-4" />
@@ -684,10 +685,10 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setFormStato('parziale')}
-                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-2xs ${
                           formStato === 'parziale'
-                            ? 'bg-amber-600 text-white border-amber-500 shadow-sm shadow-amber-500/20'
-                            : 'bg-neutral-950 text-neutral-400 border-neutral-800 hover:text-white'
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm shadow-amber-500/20 font-black'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:text-neutral-300 dark:border-neutral-800'
                         }`}
                       >
                         <Clock className="w-4 h-4" />

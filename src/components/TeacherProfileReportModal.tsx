@@ -130,14 +130,40 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
     setCurrentDate(today);
   };
 
-  // Lezioni prenotate per l'insegnante selezionato nel mese
+  // Mese precedente
+  const prevDate = useMemo(() => new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1), [currentDate]);
+  const prevMonthStr = useMemo(() => {
+    const y = prevDate.getFullYear();
+    const m = String(prevDate.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }, [prevDate]);
+  const prevMonthName = MESI_ITALIANI[prevDate.getMonth()];
+  const prevYear = prevDate.getFullYear();
+  const prevMonthLabel = `${prevMonthName} ${prevYear}`;
+
+  const isPosticipato = useMemo(() => {
+    if (!selectedTeacher) return false;
+    return (
+      selectedTeacher.cicloFatturazioneLezioni === 'mese_precedente_posticipato' ||
+      selectedTeacher.nome.toLowerCase().includes('michael')
+    );
+  }, [selectedTeacher]);
+
+  // Switch periodo per insegnante posticipato: 'precedente' (default) oppure 'corrente'
+  const [viewOverride, setViewOverride] = useState<'precedente' | 'corrente'>('precedente');
+
+  const isViewingPrevious = isPosticipato && viewOverride === 'precedente';
+  const targetMonthStr = isViewingPrevious ? prevMonthStr : monthStr;
+  const targetMonthLabel = isViewingPrevious ? prevMonthLabel : `${monthName} ${year}`;
+
+  // Lezioni prenotate per l'insegnante selezionato nel periodo di competenza
   const teacherMonthlyBookings = useMemo(() => {
     if (!selectedTeacher) return [];
     const teacherFullName = `${selectedTeacher.nome} ${selectedTeacher.cognome}`.trim().toLowerCase();
 
     return bookings
       .filter((b) => {
-        if (!b.data.startsWith(monthStr)) return false;
+        if (!b.data.startsWith(targetMonthStr)) return false;
         if (b.tipo !== 'lezione') return false;
 
         const matchId = b.insegnanteId === selectedTeacher.id;
@@ -149,7 +175,7 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
         if (dateDiff !== 0) return dateDiff;
         return a.oraInizio.localeCompare(b.oraInizio);
       });
-  }, [bookings, selectedTeacher, monthStr]);
+  }, [bookings, selectedTeacher, targetMonthStr]);
 
   // Conteggio ore totali e compenso dovuto (5€/ora)
   const totalHours = useMemo(() => {
@@ -244,11 +270,22 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
                     <span className="font-bold">
                       Docente attivo: <strong className="font-black text-blue-900 dark:text-blue-300 underline underline-offset-2">{selectedTeacher.nome} {selectedTeacher.cognome}</strong>
                     </span>
-                    {selectedTeacher.materieInsegnamento && (
-                      <span className="text-xs font-mono font-bold bg-blue-600 text-white px-2.5 py-0.5 rounded-md shadow-xs">
-                        {selectedTeacher.materieInsegnamento}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {selectedTeacher.cicloFatturazioneLezioni === 'mese_precedente_posticipato' ? (
+                        <span className="text-[11px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-md shadow-xs" title="Liquidazione a consuntivo a inizio mese successivo">
+                          ⏳ Posticipato a consuntivo
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-md shadow-xs" title="Liquidazione nel mese corrente">
+                          📅 Saldo mese corrente
+                        </span>
+                      )}
+                      {selectedTeacher.materieInsegnamento && (
+                        <span className="text-xs font-mono font-bold bg-blue-600 text-white px-2.5 py-0.5 rounded-md shadow-xs">
+                          {selectedTeacher.materieInsegnamento}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -291,6 +328,42 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
                 </button>
               </div>
 
+              {/* Banner Pagamento Posticipato (se docente abilitato come Michael) */}
+              {isPosticipato && (
+                <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 text-sm">
+                      ⏳
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong className="text-amber-200 font-bold">
+                          Liquidazione Posticipata • {selectedTeacher.nome} {selectedTeacher.cognome}
+                        </strong>
+                        <span className="px-2 py-0.2 rounded bg-amber-400/20 text-amber-300 font-extrabold text-[10px] uppercase">
+                          Competenza: {targetMonthLabel}
+                        </span>
+                      </div>
+                      <p className="text-amber-300/90 text-[11px] mt-0.5">
+                        {isViewingPrevious
+                          ? `Nel mese di ${monthName} ${year} vengono saldate e contabilizzate le lezioni di ${prevMonthLabel}.`
+                          : `Stai visualizzando le lezioni in corso di ${monthName} ${year} (da saldare a inizio mese prossimo).`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setViewOverride((prev) => (prev === 'precedente' ? 'corrente' : 'precedente'))}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-500/50 transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
+                  >
+                    {isViewingPrevious
+                      ? `Mostra lezioni in corso (${monthName})`
+                      : `Mostra lezioni da saldare (${prevMonthName})`}
+                  </button>
+                </div>
+              )}
+
               {/* KPI Cards di Sintesi */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* 1. Monte Ore Prenotate */}
@@ -303,7 +376,7 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
                     <span className="text-xs font-semibold text-neutral-400">ore totali</span>
                   </div>
                   <p className="text-[10.5px] text-neutral-400 pt-1">
-                    {teacherMonthlyBookings.length} {teacherMonthlyBookings.length === 1 ? 'lezione' : 'lezioni'} registrate a {monthName}
+                    {teacherMonthlyBookings.length} {teacherMonthlyBookings.length === 1 ? 'lezione' : 'lezioni'} ({targetMonthLabel})
                   </p>
                 </div>
 

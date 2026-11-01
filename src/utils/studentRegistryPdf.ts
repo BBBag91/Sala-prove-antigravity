@@ -60,17 +60,16 @@ export function generateStudentRegistryPdf({
   const colorGreen = [16, 185, 129]; // emerald-500
   const colorAmber = [217, 119, 6]; // amber-600
 
-  // Definizione larghezze colonne (Totale = 277mm)
+  // Definizione larghezze colonne (Totale = 277mm) - Senza quota (focalizzato su lezioni e saldo)
   const colWidths = {
     idx: 8,
-    allievo: 42,
-    corso: 36,
-    docente: 32,
-    lezioni: 75,
-    ore: 16,
+    allievo: 44,
+    corso: 38,
+    docente: 34,
+    lezioni: 82,
+    ore: 17,
     stato: 26,
-    dataSaldo: 26,
-    quota: 16,
+    dataSaldo: 28,
   };
 
   const colPositions = {
@@ -82,7 +81,6 @@ export function generateStudentRegistryPdf({
     ore: marginX + colWidths.idx + colWidths.allievo + colWidths.corso + colWidths.docente + colWidths.lezioni,
     stato: marginX + colWidths.idx + colWidths.allievo + colWidths.corso + colWidths.docente + colWidths.lezioni + colWidths.ore,
     dataSaldo: marginX + colWidths.idx + colWidths.allievo + colWidths.corso + colWidths.docente + colWidths.lezioni + colWidths.ore + colWidths.stato,
-    quota: marginX + colWidths.idx + colWidths.allievo + colWidths.corso + colWidths.docente + colWidths.lezioni + colWidths.ore + colWidths.stato + colWidths.dataSaldo,
   };
 
   let currentPage = 1;
@@ -104,7 +102,6 @@ export function generateStudentRegistryPdf({
     doc.text('ORE', colPositions.ore + 2, y + 5);
     doc.text('STATO QUOTA', colPositions.stato + 2, y + 5);
     doc.text('DATA SALDO', colPositions.dataSaldo + 2, y + 5);
-    doc.text('QUOTA', colPositions.quota + 2, y + 5);
 
     return y + 7;
   };
@@ -132,11 +129,13 @@ export function generateStudentRegistryPdf({
       23
     );
 
-    // Box KPI riepilogativi a destra dell'header
+    // Box KPI riepilogativi a destra dell'header (conteggio lezioni e stato pagamento)
+    const paidCount = items.filter((i) => i.isPaid).length;
+    const unpaidCount = items.length - paidCount;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(colorDark[0], colorDark[1], colorDark[2]);
-    const kpiText = `Allievi: ${totalStudents}  |  Ore Svolte: ${totalCompletedHours}h (${totalCompletedLessons} lez.)  |  Incassato: ${formatCurrency(totalCollected)}  |  Da Saldare: ${formatCurrency(totalPending)}`;
+    const kpiText = `Allievi: ${totalStudents}  |  Ore Svolte: ${totalCompletedHours}h (${totalCompletedLessons} lez.)  |  Saldati: ${paidCount}  |  Da Saldare: ${unpaidCount}`;
     doc.text(kpiText, pageWidth - marginX - doc.getTextWidth(kpiText) - 5, 20);
   };
 
@@ -237,11 +236,6 @@ export function generateStudentRegistryPdf({
     }
     doc.text(saldoStr, colPositions.dataSaldo + 2, currentY + 5);
 
-    // Quota
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${item.importo.toFixed(2)} €`, colPositions.quota + 2, currentY + 5);
-    doc.setFont('helvetica', 'normal');
-
     currentY += rowHeight;
   });
 
@@ -259,13 +253,13 @@ export function generateStudentRegistryPdf({
   doc.line(marginX, currentY, marginX + contentWidth, currentY);
   doc.line(marginX, currentY + 8, marginX + contentWidth, currentY + 8);
 
+  const totalPaid = items.filter((i) => i.isPaid).length;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(colorDark[0], colorDark[1], colorDark[2]);
   doc.text('TOTALI MESE', colPositions.allievo + 2, currentY + 5.5);
   doc.text(`${totalCompletedHours}h`, colPositions.ore + 2, currentY + 5.5);
-  doc.text(`Incassati: ${formatCurrency(totalCollected)}`, colPositions.stato + 2, currentY + 5.5);
-  doc.text(`${(totalCollected + totalPending).toFixed(2)} €`, colPositions.quota + 2, currentY + 5.5);
+  doc.text(`Saldati: ${totalPaid} / ${items.length}`, colPositions.stato + 2, currentY + 5.5);
 
   // Footer ultima pagina
   doc.setFont('helvetica', 'normal');

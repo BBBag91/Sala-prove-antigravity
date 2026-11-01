@@ -9,9 +9,14 @@ import {
   User,
   DoorOpen,
   Filter,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRightLeft,
+  Sparkles,
+  Info,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Booking } from '../types';
+import { Booking, TeacherBillingCycle } from '../types';
 import {
   MESI_ITALIANI,
   formatCurrency,
@@ -24,6 +29,22 @@ import {
 interface TeachersReportViewProps {
   initialTeacherId?: string;
   lockedTeacherId?: string;
+}
+
+type SettlementStatus = 'da_saldare' | 'saldato';
+
+function getPreviousMonthDate(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth() - 1, 1);
+}
+
+function getNextMonthDate(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 1);
+}
+
+function formatYearMonth(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
 }
 
 export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
@@ -43,14 +64,66 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
   // Filtro: solo lezioni già svolte fino ad oggi/ora
   const [onlyCompleted, setOnlyCompleted] = useState<boolean>(true);
 
-  const monthStr = useMemo(() => {
-    const y = currentDate.getFullYear();
-    const m = String(currentDate.getMonth() + 1).padStart(2, '0');
-    return `${y}-${m}`;
-  }, [currentDate]);
-
+  const monthStr = useMemo(() => formatYearMonth(currentDate), [currentDate]);
   const monthName = MESI_ITALIANI[currentDate.getMonth()];
   const year = currentDate.getFullYear();
+
+  // Mese precedente e successivo
+  const prevDate = useMemo(() => getPreviousMonthDate(currentDate), [currentDate]);
+  const prevMonthStr = useMemo(() => formatYearMonth(prevDate), [prevDate]);
+  const prevMonthName = MESI_ITALIANI[prevDate.getMonth()];
+  const prevYear = prevDate.getFullYear();
+  const prevMonthLabel = `${prevMonthName} ${prevYear}`;
+
+  const nextDate = useMemo(() => getNextMonthDate(currentDate), [currentDate]);
+  const nextMonthName = MESI_ITALIANI[nextDate.getMonth()];
+
+  // Stato Saldo quote (sincronizzato con Finanze e PDF tramite localStorage)
+  const settlementStorageKey = `salaprove_quote_insegnanti_v1_${monthStr}`;
+  const [statusMap, setStatusMap] = useState<Record<string, SettlementStatus>>(() => {
+    try {
+      const saved = localStorage.getItem(settlementStorageKey);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {};
+  });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(settlementStorageKey);
+      if (saved) {
+        setStatusMap(JSON.parse(saved));
+        return;
+      }
+    } catch {}
+    setStatusMap({});
+  }, [settlementStorageKey]);
+
+  const toggleSettlement = (teacherId: string) => {
+    setStatusMap((prev) => {
+      const current = prev[teacherId] || 'da_saldare';
+      const updated: SettlementStatus = current === 'saldato' ? 'da_saldare' : 'saldato';
+      const nextMap = { ...prev, [teacherId]: updated };
+      try {
+        localStorage.setItem(settlementStorageKey, JSON.stringify(nextMap));
+      } catch {}
+      return nextMap;
+    });
+  };
+
+  // Switch vista periodo per singolo insegnante posticipato (se vedere mese prec. da saldare o mese in corso)
+  // Default: per insegnanti posticipati (es. Michael) mostra le lezioni del mese precedente
+  const [viewOverrides, setViewOverrides] = useState<Record<string, 'precedente' | 'corrente'>>({});
+
+  const toggleViewPeriod = (teacherId: string) => {
+    setViewOverrides((prev) => {
+      const current = prev[teacherId] || 'precedente';
+      return {
+        ...prev,
+        [teacherId]: current === 'precedente' ? 'corrente' : 'precedente',
+      };
+    });
+  };
 
   // Navigazione mesi
   const handlePrevMonth = () => {
@@ -78,14 +151,22 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
     return staff
       .filter((s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi'))
       .filter((s) => (lockedTeacherId ? s.id === lockedTeacherId : true))
-      .map((s) => ({
-        id: s.id,
-        nome: s.nome,
-        cognome: s.cognome,
-        materie: s.materieInsegnamento,
-        telefono: s.telefono,
-        coloreBadge: s.coloreBadge || '#8b5cf6',
-      }))
+      .map((s) => {
+        const isMichael = `${s.nome} ${s.cognome}`.toLowerCase().includes('michael');
+        const ciclo: TeacherBillingCycle = s.cicloFatturazioneLezioni || (
+          isMichael ? 'mese_precedente_posticipato' : 'mese_corrente'
+        );
+        return {
+          id: s.id,
+          nome: s.nome,
+          cognome: s.cognome,
+          materie: s.materieInsegnamento,
+          telefono: s.telefono,
+          coloreBadge: s.coloreBadge || '#8b5cf6',
+          cicloFatturazioneLezioni: ciclo,
+          isPosticipato: ciclo === 'mese_precedente_posticipato',
+        };
+      })
       .sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`));
   }, [staff, lockedTeacherId]);
 
@@ -124,17 +205,21 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
     return teachersList.find((t) => t.id === selectedTeacherId) || teachersList[0] || null;
   }, [teachersList, selectedTeacherId]);
 
-  // Tutte le lezioni didattiche del mese
-  const allMonthlyLessons = useMemo(() => {
-    return bookings.filter((b) => b.data.startsWith(monthStr) && b.tipo === 'lezione');
-  }, [bookings, monthStr]);
-
-  // Calcolo statistiche per ciascun docente nel mese
+  // Calcolo statistiche per ciascun docente nel mese (tenendo conto del ciclo posticipato se abilitato)
   const teachersStats = useMemo(() => {
     return teachersList.map((t) => {
       const tFullName = `${t.nome} ${t.cognome}`.trim().toLowerCase();
+      const isPosticipato = t.isPosticipato;
 
-      const teacherAllLessons = allMonthlyLessons.filter((b) => {
+      // Periodo visualizzato per questo docente
+      const activePeriodMode = viewOverrides[t.id] || (isPosticipato ? 'precedente' : 'corrente');
+      const isViewingPrevious = isPosticipato && activePeriodMode === 'precedente';
+      const targetMonthStr = isViewingPrevious ? prevMonthStr : monthStr;
+      const targetMonthLabel = isViewingPrevious ? prevMonthLabel : `${monthName} ${year}`;
+
+      const teacherAllLessons = bookings.filter((b) => {
+        if (b.tipo !== 'lezione') return false;
+        if (!b.data || !b.data.startsWith(targetMonthStr)) return false;
         if (b.insegnanteId && b.insegnanteId === t.id) return true;
         if (b.insegnanteNome && b.insegnanteNome.trim().toLowerCase() === tFullName) return true;
         return false;
@@ -160,6 +245,7 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
 
       const costoDovuto = Math.round(totalOre * 5 * 100) / 100;
       const futureCount = teacherAllLessons.filter((b) => !isLessonCompleted(b)).length;
+      const isSettled = (statusMap[t.id] || 'da_saldare') === 'saldato';
 
       return {
         teacher: t,
@@ -167,9 +253,27 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
         totalOre,
         costoDovuto,
         futureCount,
+        isPosticipato,
+        isViewingPrevious,
+        targetMonthStr,
+        targetMonthLabel,
+        isSettled,
       };
     });
-  }, [teachersList, allMonthlyLessons, onlyCompleted, todayISO, nowMinutes]);
+  }, [
+    teachersList,
+    bookings,
+    viewOverrides,
+    prevMonthStr,
+    prevMonthLabel,
+    monthStr,
+    monthName,
+    year,
+    onlyCompleted,
+    statusMap,
+    todayISO,
+    nowMinutes,
+  ]);
 
   const selectedTeacherStats = useMemo(() => {
     if (!currentTeacher) return null;
@@ -262,26 +366,46 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
                 <User className="w-3.5 h-3.5" /> Insegnante:
               </span>
               {teachersList.length === 1 ? (
-                <span className="font-bold text-slate-900 dark:text-white px-2 py-1 rounded bg-slate-100 dark:bg-neutral-800">
-                  {teachersList[0].nome} {teachersList[0].cognome}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-900 dark:text-white px-2 py-1 rounded bg-slate-100 dark:bg-neutral-800">
+                    {teachersList[0].nome} {teachersList[0].cognome}
+                  </span>
+                  {teachersList[0].isPosticipato && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                      ⏳ Posticipato
+                    </span>
+                  )}
+                </div>
               ) : (
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {teachersList.map((t) => {
                     const isSelected = selectedTeacherId === t.id;
                     const stat = teachersStats.find((s) => s.teacher.id === t.id);
+                    const isPaid = (statusMap[t.id] || 'da_saldare') === 'saldato';
                     return (
                       <button
                         key={t.id}
                         type="button"
                         onClick={() => setSelectedTeacherId(t.id)}
-                        className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                        className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-2 ${
                           isSelected
                             ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-black font-semibold shadow-2xs'
                             : 'bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-300'
                         }`}
                       >
-                        <span>{t.nome} {t.cognome}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span>{t.nome} {t.cognome}</span>
+                          {t.isPosticipato && (
+                            <span className={`text-[9.5px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider ${
+                              isSelected
+                                ? 'bg-amber-400 text-amber-950 dark:bg-amber-500 dark:text-black'
+                                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
+                            }`} title="Liquidazione posticipata a consuntivo">
+                              ⏳ Posticipato
+                            </span>
+                          )}
+                        </div>
+
                         {stat && (
                           <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
                             isSelected ? 'bg-black/15 dark:bg-black/20' : 'bg-slate-200 dark:bg-neutral-700 text-slate-600 dark:text-neutral-300'
@@ -289,6 +413,15 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
                             {stat.totalOre.toFixed(1)}h
                           </span>
                         )}
+
+                        {/* Badge stato saldo sul selettore */}
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                          isPaid
+                            ? 'bg-emerald-500 text-white dark:bg-emerald-600'
+                            : 'bg-amber-500 text-white dark:bg-amber-600'
+                        }`}>
+                          {isPaid ? 'Saldato' : 'Da Saldare'}
+                        </span>
                       </button>
                     );
                   })}
@@ -316,10 +449,65 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
             </div>
           </div>
 
+          {/* ── 2.1 Banner Specifico Pagamento Posticipato (per docenti come Michael Bertin) ── */}
+          {currentTeacher && selectedTeacherStats && selectedTeacherStats.isPosticipato && (
+            <div className="p-4 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border-2 border-amber-400/70 dark:border-amber-500/50 text-amber-950 dark:text-amber-100 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs animate-in fade-in">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 font-black text-lg shadow-xs">
+                  ⏳
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-sm font-extrabold text-amber-900 dark:text-amber-200">
+                      Liquidazione Posticipata • {currentTeacher.nome} {currentTeacher.cognome}
+                    </h4>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-200 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                      Competenza: {selectedTeacherStats.targetMonthLabel}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                      selectedTeacherStats.isSettled
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
+                        : 'bg-amber-200 text-amber-900 border border-amber-400 dark:bg-amber-900 dark:text-amber-200'
+                    }`}>
+                      {selectedTeacherStats.isSettled ? '✅ Saldato' : '⚠️ Da Saldare'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                    {selectedTeacherStats.isViewingPrevious ? (
+                      <>
+                        <strong>Regola attiva:</strong> a inizio <strong>{monthName} {year}</strong> Michael salda e contabilizza le lezioni svolte a <strong>{prevMonthLabel}</strong> ({selectedTeacherStats.totalOre.toFixed(1)} ore = {formatCurrency(selectedTeacherStats.costoDovuto)}).
+                      </>
+                    ) : (
+                      <>
+                        <strong>Vista mese in corso:</strong> stai visualizzando le lezioni svolte a <strong>{monthName} {year}</strong>. Per accordo, queste verranno saldate e contabilizzate a inizio <strong>{nextMonthName}</strong>.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start md:self-auto shrink-0 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => toggleViewPeriod(currentTeacher.id)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-200/90 hover:bg-amber-300 dark:bg-amber-900/80 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 border border-amber-400 dark:border-amber-600 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                  title="Commuta tra il mese di competenza da saldare (precedente) e il mese corrente"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                  <span>
+                    {selectedTeacherStats.isViewingPrevious
+                      ? `Mostra lezioni in corso (${monthName})`
+                      : `Mostra lezioni da saldare (${prevMonthName})`}
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ── 3. Scheda Sintetica Unificata Docente & KPI ── */}
           {currentTeacher && selectedTeacherStats && (
             <div className="bg-white dark:bg-neutral-900 rounded-xl border border-slate-200 dark:border-neutral-800 p-4 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 {/* Info Docente */}
                 <div className="flex items-center gap-3">
                   <div
@@ -339,17 +527,28 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5 flex items-center gap-3">
+                    <div className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5 flex items-center gap-3 flex-wrap">
                       {currentTeacher.telefono && (
                         <span>Tel: <span className="text-slate-700 dark:text-neutral-300 font-medium">{currentTeacher.telefono}</span></span>
                       )}
-                      <span>Mese: <span className="font-semibold text-slate-700 dark:text-neutral-300">{monthName} {year}</span></span>
+                      <span>
+                        Periodo conteggiato: <strong className="text-slate-800 dark:text-neutral-200">{selectedTeacherStats.targetMonthLabel}</strong>
+                      </span>
+                      {selectedTeacherStats.isPosticipato ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800" title="Saldo a consuntivo a inizio mese successivo">
+                          ⏳ Posticipato a consuntivo
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800" title="Saldo nel mese corrente">
+                          📅 Saldo mese corrente
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* 3 Metriche Compatte in Linea */}
-                <div className="flex items-center gap-4 sm:gap-6 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 dark:border-neutral-800">
+                {/* Metriche Compatte in Linea & Pulsante Stato Saldo */}
+                <div className="flex items-center gap-4 sm:gap-6 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-100 dark:border-neutral-800 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
                   <div className="text-left sm:text-right">
                     <span className="text-[10.5px] font-medium text-slate-400 dark:text-neutral-500 uppercase tracking-wider block">
                       Lezioni
@@ -380,6 +579,41 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
                       {formatCurrency(selectedTeacherStats.costoDovuto)}
                     </span>
                   </div>
+
+                  <div className="h-7 w-px bg-slate-200 dark:bg-neutral-800 hidden sm:block" />
+
+                  {/* Pulsante Interattivo Stato Saldo */}
+                  <div className="text-left sm:text-right">
+                    <span className="text-[10.5px] font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-1">
+                      Stato Saldo Quota
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => toggleSettlement(currentTeacher.id)}
+                      className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs touch-manipulation active:scale-95 ${
+                        selectedTeacherStats.isSettled
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-500/20'
+                          : 'bg-amber-500 hover:bg-amber-600 text-white border-amber-400 shadow-amber-500/25 animate-pulse'
+                      }`}
+                      title={
+                        selectedTeacherStats.isSettled
+                          ? 'Segnato come SALDATO. Clicca per cambiare in Da Saldare'
+                          : 'Segnato come DA SALDARE. Clicca per segnare la quota come SALDATA'
+                      }
+                    >
+                      {selectedTeacherStats.isSettled ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                          <span>SALDATO</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-4 h-4 stroke-[2.5]" />
+                          <span>DA SALDARE</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -388,11 +622,11 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
           {/* ── 4. Tabella Dettaglio Lezioni ── */}
           {currentTeacher && selectedTeacherStats && (
             <div className="bg-white dark:bg-neutral-900 rounded-xl border border-slate-200 dark:border-neutral-800 overflow-hidden shadow-xs">
-              <div className="px-4 py-3 border-b border-slate-200 dark:border-neutral-800 flex items-center justify-between">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-neutral-800 flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-slate-500 dark:text-neutral-400" />
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                    Dettaglio Lezioni Svolte ({selectedTeacherStats.lessons.length})
+                    Dettaglio Lezioni Svolte • {selectedTeacherStats.targetMonthLabel} ({selectedTeacherStats.lessons.length})
                   </h4>
                 </div>
                 {selectedTeacherStats.futureCount > 0 && onlyCompleted && (
