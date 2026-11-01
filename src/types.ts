@@ -208,11 +208,12 @@ export interface StaffMember {
 
 /**
  * Stato della tessera associativa/iscrizione del cliente.
- * - 'attivo': Tesseramento valido e in corso.
+ * - 'da_tesserare': Nuova iscrizione arrivata da modulo online, presente nel file Excel da inviare all'ente.
+ * - 'in_attesa': Tessere inviate all'ente (scaricate nel file Excel), in attesa di ricezione tessere.
+ * - 'attivo': Tessera valida e attiva ricevuta dall'ente.
  * - 'scaduto': Tesseramento annuale scaduto (richiede rinnovo).
- * - 'in_attesa': Richiesta inviata in attesa di approvazione o pagamento.
  */
-export type MembershipStatus = 'attivo' | 'scaduto' | 'in_attesa';
+export type MembershipStatus = 'da_tesserare' | 'in_attesa' | 'attivo' | 'scaduto';
 
 /**
  * Cliente registrato della sala prove (musicista o referente della band).

@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Clock,
   MessageSquare,
+  QrCode,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Client, MembershipStatus } from '../types';
@@ -21,6 +22,7 @@ import { formatDateItalian, formatDateToISO, formatCurrency } from '../utils/dat
 
 const ClientModal = React.lazy(() => import('./ClientModal').then(m => ({ default: m.ClientModal })));
 const MembershipCardPrintModal = React.lazy(() => import('./MembershipCardPrintModal').then(m => ({ default: m.MembershipCardPrintModal })));
+const MembershipQrCodeModal = React.lazy(() => import('./MembershipQrCodeModal').then(m => ({ default: m.MembershipQrCodeModal })));
 
 // Ordina i tesserati ESATTAMENTE in ordine di inserimento cronologico (dal primo tesserato al più recente)
 export const sortClientsChronologically = (list: Client[]): Client[] => {
@@ -68,6 +70,9 @@ export const ClientsView: React.FC = () => {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [clientToPrint, setClientToPrint] = useState<Client | null>(null);
 
+  // QR Code Modal state
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+
   const handleOpenPrint = (client: Client | null) => {
     setClientToPrint(client);
     setIsPrintModalOpen(true);
@@ -85,6 +90,7 @@ export const ClientsView: React.FC = () => {
     return sortClientsChronologically(list);
   }, [clients, searchTerm, statusFilter, quotaFilter]);
 
+  const daTesserareCount = clients.filter((c) => c.statoTesseramento === 'da_tesserare').length;
   const activeCount = clients.filter((c) => c.statoTesseramento === 'attivo').length;
   const expiredCount = clients.filter((c) => c.statoTesseramento === 'scaduto').length;
   const pendingCount = clients.filter((c) => c.statoTesseramento === 'in_attesa').length;
@@ -100,14 +106,10 @@ export const ClientsView: React.FC = () => {
     .reduce((sum, c) => sum + (c.quotaTesseramento || 10), 0);
 
   // Tesserati da inserire nel file Excel per l'ente:
-  // Esclusivamente quelli non ancora inviati all'ente (statoTesseramento !== 'in_attesa')
-  // e con quota "da saldare" (o non saldata).
+  // Esclusivamente quelli in stato "da_tesserare" (in ordine cronologico di inserimento)
   const pendingForEnte = useMemo(() => {
     return sortClientsChronologically(
-      clients.filter((c) => {
-        const isPaid = c.quotaPagata !== undefined ? c.quotaPagata : (c.statoQuota !== 'da_saldare');
-        return !isPaid && c.statoTesseramento !== 'in_attesa';
-      })
+      clients.filter((c) => c.statoTesseramento === 'da_tesserare')
     );
   }, [clients]);
 
@@ -159,7 +161,7 @@ export const ClientsView: React.FC = () => {
       listToExport = pendingForEnte;
       if (listToExport.length === 0) {
         alert(
-          'Nessun tesserato "Da saldare" presente da inviare all\'ente.\n\nTutti i tesserati risultano già contrassegnati come "Tessera in attesa" (già inviati all\'ente) oppure hanno la tessera già attiva e saldata.\n\nSe desideri scaricare comunque l\'intero registro dei soci, seleziona "Scarica Registro Completo".'
+          'Nessun tesserato "Da tesserare" presente da inviare all\'ente.\n\nTutti i tesserati risultano già contrassegnati come "Inviato all\'Ente" o hanno la tessera attiva.\n\nI nuovi tesserati inseriti online appariranno qui automaticamente in stato "Da tesserare".'
         );
         return;
       }
@@ -288,20 +290,18 @@ export const ClientsView: React.FC = () => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    // Se esportato per l'ente, chiedi all'utente se impostarli automaticamente su "In Attesa"
+    // Se esportato per l'ente, tutti quelli che erano all'interno passano in stato "inviato all'ente" ed escono dal file Excel
     if (isEnteExport && sortedForExport.length > 0) {
+      sortedForExport.forEach((c) => {
+        updateClient({
+          ...c,
+          statoTesseramento: 'in_attesa',
+        });
+      });
       setTimeout(() => {
-        const askMark = window.confirm(
-          `📄 File Excel scaricato con ${sortedForExport.length} tesserati in ordine di inserimento cronologico!\n\nVuoi impostare automaticamente questi ${sortedForExport.length} tesserati come "Tessera in attesa" (inviata all'ente)?\n\nIn questo modo verranno rimossi dai prossimi file Excel da inviare all'ente.`
+        alert(
+          `📄 File Excel scaricato con successo (${sortedForExport.length} tesserati).\n\nTutti i ${sortedForExport.length} tesserati sono passati automaticamente allo stato "Inviato all'Ente" e sono usciti dal file Excel.\n\nQuando riceverai le tessere fisiche dall'ente, potrai impostarle manualmente su "Tessera Attiva".`
         );
-        if (askMark) {
-          sortedForExport.forEach((c) => {
-            updateClient({
-              ...c,
-              statoTesseramento: 'in_attesa',
-            });
-          });
-        }
       }, 400);
     }
   };
@@ -317,19 +317,35 @@ export const ClientsView: React.FC = () => {
           <p className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-yellow-100 mt-1">{clients.length}</p>
         </div>
 
-        <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-xs">
+        <div className={`p-3.5 sm:p-4 rounded-xl border shadow-xs ${
+          daTesserareCount > 0
+            ? 'bg-amber-50/80 dark:bg-amber-950/25 border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200'
+            : 'bg-white dark:bg-[#0e0e0e] border-slate-200 dark:border-yellow-500/25 text-slate-700 dark:text-yellow-100'
+        }`}>
+          <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center justify-between">
+            <span>Da Tesserare</span>
+            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 font-mono">({daTesserareCount})</span>
+          </p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-amber-700 dark:text-amber-300 mt-1">
+            {daTesserareCount} <span className="text-xs font-normal">nel file Excel</span>
+          </p>
+          <span className="text-[10px] text-amber-700/80 font-medium block">Da inviare all&apos;ente</span>
+        </div>
+
+        <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-blue-200 dark:border-blue-700/60 bg-blue-50/40 dark:bg-blue-950/20 shadow-xs">
+          <p className="text-[11px] font-semibold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
+            Inviati all&apos;Ente
+          </p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-1">{pendingCount}</p>
+          <span className="text-[10px] text-blue-700/80 font-medium block">In attesa tessere</span>
+        </div>
+
+        <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-emerald-200 dark:border-emerald-700/60 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-xs">
           <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
             Tessere Attive
           </p>
           <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{activeCount}</p>
-        </div>
-
-        <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50/40 dark:bg-amber-950/20 shadow-xs">
-          <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
-            In Attesa Ente
-          </p>
-          <p className="text-xl sm:text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">{pendingCount}</p>
-          <span className="text-[10px] text-amber-700/80 font-medium block">Esclusi da Excel</span>
+          <span className="text-[10px] text-emerald-700/80 font-medium block">Consegnate</span>
         </div>
 
         <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-xs">
@@ -337,29 +353,16 @@ export const ClientsView: React.FC = () => {
             Tessere Scadute
           </p>
           <p className="text-xl sm:text-2xl font-bold font-mono text-rose-600 dark:text-rose-400 mt-1">{expiredCount}</p>
+          <span className="text-[10px] text-rose-700/80 font-medium block">Da rinnovare</span>
         </div>
 
-        <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-xs">
-          <p className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider flex items-center justify-between">
+        <div className="bg-white dark:bg-[#0e0e0e] p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-yellow-500/25 shadow-xs">
+          <p className="text-[11px] font-semibold text-slate-700 dark:text-yellow-300 uppercase tracking-wider flex items-center justify-between">
             <span>Quote Saldate</span>
-            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 font-mono">({quoteSaldateCount})</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-yellow-400 font-mono">({quoteSaldateCount}/{clients.length})</span>
           </p>
-          <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-300 mt-1">{formatCurrency(quoteSaldateTotal)}</p>
-        </div>
-
-        <div className={`p-3.5 sm:p-4 rounded-xl border shadow-xs ${
-          pendingForEnte.length > 0
-            ? 'bg-amber-50/80 dark:bg-amber-950/25 border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200'
-            : 'bg-white dark:bg-[#0e0e0e] border-slate-200 dark:border-yellow-500/25 text-slate-700 dark:text-yellow-100'
-        }`}>
-          <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center justify-between">
-            <span>Nel File Excel Ente</span>
-            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 font-mono">({pendingForEnte.length})</span>
-          </p>
-          <p className="text-xl sm:text-2xl font-bold font-mono text-amber-700 dark:text-amber-300 mt-1">
-            {pendingForEnte.length} <span className="text-xs font-normal">da inviare</span>
-          </p>
-          <span className="text-[10px] text-amber-700/80 font-medium block">In ordine di inserimento</span>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-1">{formatCurrency(quoteSaldateTotal)}</p>
+          <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold block">{quoteDaSaldareCount} da saldare</span>
         </div>
       </div>
 
@@ -382,10 +385,11 @@ export const ClientsView: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value as any)}
             className="px-3.5 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl border border-slate-200 dark:border-yellow-500/30 bg-slate-50 dark:bg-neutral-900 text-slate-700 dark:text-yellow-200 focus:outline-hidden touch-manipulation cursor-pointer"
           >
-            <option value="all">Tutti gli stati tessera</option>
-            <option value="attivo">Solo Attivi</option>
-            <option value="in_attesa">⏳ Solo In Attesa (Inviati Ente)</option>
-            <option value="scaduto">⚠️ Solo Scaduti</option>
+            <option value="all">Tutti gli stati ({clients.length})</option>
+            <option value="da_tesserare">⏳ Da Tesserare - nel file Excel ({daTesserareCount})</option>
+            <option value="in_attesa">📤 Inviati all&apos;Ente ({pendingCount})</option>
+            <option value="attivo">✅ Tessere Attive ({activeCount})</option>
+            <option value="scaduto">⚠️ Tessere Scadute ({expiredCount})</option>
           </select>
 
           <select
@@ -438,8 +442,18 @@ export const ClientsView: React.FC = () => {
             title="Invia ai tuoi contatti WhatsApp il link del modulo di tesseramento"
           >
             <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">Invia Modulo WhatsApp</span>
-            <span className="sm:hidden">WhatsApp</span>
+            <span className="hidden sm:inline">WhatsApp</span>
+            <span className="sm:hidden">WA</span>
+          </button>
+
+          <button
+            onClick={() => setIsQrModalOpen(true)}
+            className="px-3.5 py-2.5 min-h-[44px] bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-600/50 font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
+            title="Mostra e scarica il QR Code per il tesseramento da esporre in sala o stampare come locandina"
+          >
+            <QrCode className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span className="hidden sm:inline">QR Code Iscrizione</span>
+            <span className="sm:hidden">QR Code</span>
           </button>
 
           <button
@@ -481,14 +495,17 @@ export const ClientsView: React.FC = () => {
                       className={`text-[11px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border cursor-pointer focus:outline-hidden transition-colors shadow-2xs ${
                         client.statoTesseramento === 'attivo'
                           ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                          : isPendingEnte
+                          : client.statoTesseramento === 'in_attesa'
+                          ? 'bg-blue-50 border-blue-300 text-blue-800'
+                          : client.statoTesseramento === 'da_tesserare'
                           ? 'bg-amber-50 border-amber-300 text-amber-800'
                           : 'bg-rose-50 border-rose-300 text-rose-800'
                       }`}
-                      title="Cambia stato tessera. Se 'In Attesa (Inviata a Ente)', viene escluso dal file Excel per l'ente."
+                      title="Cambia stato tessera"
                     >
+                      <option value="da_tesserare">⏳ Da Tesserare (nel file Excel)</option>
+                      <option value="in_attesa">📤 Inviato all&apos;Ente</option>
                       <option value="attivo">✅ Tessera Attiva</option>
-                      <option value="in_attesa">⏳ In Attesa (Inviata Ente)</option>
                       <option value="scaduto">⚠️ Tessera Scaduta</option>
                     </select>
 
@@ -628,36 +645,34 @@ export const ClientsView: React.FC = () => {
                     )}
                   </button>
 
-                  {/* Azione rapida invio ente: se è da saldare e non ancora in attesa */}
-                  {client.statoTesseramento !== 'in_attesa' && (client.quotaPagata === false || client.statoQuota === 'da_saldare') && (
+                  {/* Se è da tesserare -> pulsante rapido per segnarlo come inviato all'ente manualmente */}
+                  {client.statoTesseramento === 'da_tesserare' && (
                     <button
                       type="button"
                       onClick={() => handleUpdateStatus(client, 'in_attesa')}
-                      className="px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-bold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all touch-manipulation"
-                      title="Segna come inviato all'ente (Tessera in attesa): toglie il tesserato dal file Excel per l'ente"
+                      className="px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-bold border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all touch-manipulation"
+                      title="Segna come inviato all'ente (toglie il tesserato dal file Excel)"
                     >
-                      <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span>Metti In Attesa (Inviato)</span>
+                      <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>Segna Inviato all&apos;Ente</span>
                     </button>
                   )}
 
-                  {/* Se è già in attesa -> pulsante rapido per approvare quando l'ente consegna la tessera */}
-                  {isPendingEnte && (
+                  {/* Se è in attesa (inviato all'ente) -> pulsante per attivare quando l'ente consegna la tessera */}
+                  {client.statoTesseramento === 'in_attesa' && (
                     <button
                       type="button"
                       onClick={() => {
                         updateClient({
                           ...client,
                           statoTesseramento: 'attivo',
-                          quotaPagata: true,
-                          statoQuota: 'pagato',
                         });
                       }}
                       className="px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-bold border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all touch-manipulation"
-                      title="L'ente ha approvato: attiva la tessera e salda la quota"
+                      title="Tessera ricevuta dall'ente: imposta come Tessera Attiva"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Approva Tessera Attiva</span>
+                      <span>Attiva Tessera (Ricevuta)</span>
                     </button>
                   )}
                 </div>
@@ -713,6 +728,15 @@ export const ClientsView: React.FC = () => {
             onClose={() => setIsPrintModalOpen(false)}
             client={clientToPrint}
             allClients={filteredClients}
+          />
+        </React.Suspense>
+      )}
+
+      {isQrModalOpen && (
+        <React.Suspense fallback={null}>
+          <MembershipQrCodeModal
+            isOpen={isQrModalOpen}
+            onClose={() => setIsQrModalOpen(false)}
           />
         </React.Suspense>
       )}

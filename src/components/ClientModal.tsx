@@ -28,12 +28,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const [luogoNascita, setLuogoNascita] = useState('');
   const [telefono, setTelefono] = useState('');
   const [email, setEmail] = useState('');
-  const [statoTesseramento, setStatoTesseramento] = useState<MembershipStatus>('attivo');
+  const [statoTesseramento, setStatoTesseramento] = useState<MembershipStatus>('da_tesserare');
   const [numeroTessera, setNumeroTessera] = useState('');
   const [dataTesseramento, setDataTesseramento] = useState(formatDateToISO(new Date()));
   const [dataScadenzaTesseramento, setDataScadenzaTesseramento] = useState('');
   const [quotaTesseramento, setQuotaTesseramento] = useState<string | number>(10);
-  const [statoQuota, setStatoQuota] = useState<'pagato' | 'da_saldare'>('pagato');
+  const [statoQuota, setStatoQuota] = useState<'pagato' | 'da_saldare'>('da_saldare');
   const [descrizioneStrumentazione, setDescrizioneStrumentazione] = useState('');
   const [gruppoBand, setGruppoBand] = useState('');
   const [note, setNote] = useState('');
@@ -68,7 +68,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
       setLuogoNascita('');
       setTelefono('+39 ');
       setEmail('');
-      setStatoTesseramento('attivo');
+      setStatoTesseramento('da_tesserare');
+      setStatoQuota('da_saldare');
       let maxProg = 0;
       const curYear = new Date().getFullYear();
       for (const cl of clients) {
@@ -371,12 +372,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
                   onChange={(e) => setStatoTesseramento(e.target.value as MembershipStatus)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 >
-                  <option value="attivo">✅ Attivo (In regola)</option>
-                  <option value="in_attesa">⏳ In Attesa (Inviata all&apos;ente - Esclusa da file Excel)</option>
-                  <option value="scaduto">⚠️ Scaduto (Da rinnovare)</option>
+                  <option value="da_tesserare">⏳ Da Tesserare (nel file Excel per l&apos;ente)</option>
+                  <option value="in_attesa">📤 Inviato all&apos;Ente (Escluso da file Excel)</option>
+                  <option value="attivo">✅ Tessera Attiva (Consegnata dall&apos;ente)</option>
+                  <option value="scaduto">⚠️ Tessera Scaduta (Da rinnovare)</option>
                 </select>
                 <p className="text-[10px] text-slate-500 mt-1 leading-tight">
-                  I tesserati &quot;In Attesa&quot; sono esclusi dal file Excel da inviare all&apos;ente.
+                  I tesserati &quot;Da Tesserare&quot; sono inclusi nel file Excel. Quando esporti l&apos;Excel, passano a &quot;Inviato all&apos;Ente&quot;.
                 </p>
               </div>
               <div>

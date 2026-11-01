@@ -409,9 +409,12 @@ export function generateMembersRegistryPDF(clients: Client[]): void {
     } else if (c.statoTesseramento === 'scaduto') {
       doc.setTextColor(153, 27, 27); // red
       doc.text('SCADUTO', cols[7].x, y + 4.8);
+    } else if (c.statoTesseramento === 'da_tesserare') {
+      doc.setTextColor(180, 83, 9); // amber
+      doc.text('DA TESSERARE', cols[7].x, y + 4.8);
     } else {
-      doc.setTextColor(100, 116, 139);
-      doc.text('IN ATTESA', cols[7].x, y + 4.8);
+      doc.setTextColor(37, 99, 235); // blue
+      doc.text('INVIATO ENTE', cols[7].x, y + 4.8);
     }
 
     y += 7;

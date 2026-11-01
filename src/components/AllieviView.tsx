@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { Client, Booking, isLessonBooking, StudentPaymentStatus, StudentMonthlyPayment } from '../types';
+import { Client, Booking, isLessonBooking, StudentPaymentStatus, StudentMonthlyPayment, StaffMember } from '../types';
 import { studentPaymentService } from '../services/studentPaymentService';
 import {
   MESI_ITALIANI,
@@ -115,7 +115,7 @@ export const AllieviView: React.FC = () => {
   const [newCognome, setNewCognome] = useState('');
   const [newTelefono, setNewTelefono] = useState('+39 ');
   const [newEmail, setNewEmail] = useState('');
-  const [newCorso, setNewCorso] = useState('Chitarra Elettrica');
+  const [newCorso, setNewCorso] = useState('Chitarra & Teoria');
   const [newTeacherId, setNewTeacherId] = useState(user?.staffId || 'staff-1');
   const [newQuota, setNewQuota] = useState<number>(90);
 
@@ -173,37 +173,40 @@ export const AllieviView: React.FC = () => {
     const allLessonBookings = bookings.filter(isLesson);
 
     // Helper per determinare con precisione il docente assegnato alla prenotazione
-    const resolveTeacherForBooking = (b: Booking): { id: string; nomeCompleto: string } => {
+    const resolveTeacherForBooking = (b: Booking): { id: string; nomeCompleto: string; staffMember?: StaffMember } => {
       // 1. Match per ID esatto nello staff
       if (b.insegnanteId) {
         const byId = staff.find((s) => s.id === b.insegnanteId);
-        if (byId) return { id: byId.id, nomeCompleto: `${byId.nome} ${byId.cognome}`.trim() };
+        if (byId) return { id: byId.id, nomeCompleto: `${byId.nome} ${byId.cognome}`.trim(), staffMember: byId };
       }
       // 2. Match per nome dell'insegnante
       if (b.insegnanteNome) {
         const norm = b.insegnanteNome.trim().toLowerCase();
         const byFull = staff.find((s) => `${s.nome} ${s.cognome}`.trim().toLowerCase() === norm);
-        if (byFull) return { id: byFull.id, nomeCompleto: `${byFull.nome} ${byFull.cognome}`.trim() };
+        if (byFull) return { id: byFull.id, nomeCompleto: `${byFull.nome} ${byFull.cognome}`.trim(), staffMember: byFull };
         const byFirst = staff.find((s) => s.nome.trim().toLowerCase() === norm);
-        if (byFirst) return { id: byFirst.id, nomeCompleto: `${byFirst.nome} ${byFirst.cognome}`.trim() };
+        if (byFirst) return { id: byFirst.id, nomeCompleto: `${byFirst.nome} ${byFirst.cognome}`.trim(), staffMember: byFirst };
       }
       // 3. Fallback: allievo con docente di riferimento registrato
       if (b.clienteId) {
         const matched = clients.find((c) => c.id === b.clienteId);
         if (matched?.insegnanteRiferimentoId) {
           const byRef = staff.find((s) => s.id === matched.insegnanteRiferimentoId);
-          if (byRef) return { id: byRef.id, nomeCompleto: `${byRef.nome} ${byRef.cognome}`.trim() };
+          if (byRef) return { id: byRef.id, nomeCompleto: `${byRef.nome} ${byRef.cognome}`.trim(), staffMember: byRef };
         }
       }
       // 4. Prenotazione in Studiolo (Gabriele Piva)
       if (b.salaNome?.toLowerCase().includes('studiolo') || b.salaId?.includes('1790981409646')) {
         const piva = staff.find((s) => s.id === 'staff-1' || s.nome.toLowerCase() === 'gabriele');
-        if (piva) return { id: piva.id, nomeCompleto: `${piva.nome} ${piva.cognome}`.trim() };
+        if (piva) return { id: piva.id, nomeCompleto: `${piva.nome} ${piva.cognome}`.trim(), staffMember: piva };
       }
 
       const fallbackId = b.insegnanteId || 'docente-sconosciuto';
       const fallbackName = b.insegnanteNome || 'Docente da Assegnare';
-      return { id: fallbackId, nomeCompleto: fallbackName };
+      const fallbackStaff = staff.find(
+        (s) => s.id === fallbackId || `${s.nome} ${s.cognome}`.trim().toLowerCase() === fallbackName.toLowerCase()
+      );
+      return { id: fallbackId, nomeCompleto: fallbackName, staffMember: fallbackStaff };
     };
 
     const allieviMap = new Map<
@@ -229,10 +232,10 @@ export const AllieviView: React.FC = () => {
       let detectedCorso = '';
       if (rawName.toLowerCase().endsWith(' chita')) {
         cleanRawName = rawName.slice(0, -6).trim();
-        detectedCorso = 'Chitarra Elettrica / Acustica';
+        detectedCorso = 'Chitarra & Teoria';
       } else if (rawName.toLowerCase().endsWith(' chitarra')) {
         cleanRawName = rawName.slice(0, -9).trim();
-        detectedCorso = 'Chitarra Elettrica / Acustica';
+        detectedCorso = 'Chitarra & Teoria';
       } else if (rawName.toLowerCase().endsWith(' batteria')) {
         cleanRawName = rawName.slice(0, -9).trim();
         detectedCorso = 'Batteria & Percussioni';
@@ -260,31 +263,29 @@ export const AllieviView: React.FC = () => {
           cognome = parts.slice(1).join(' ');
         }
 
-        let corso = matchedClient?.corsoDidattico || detectedCorso || '';
-        const nameLower = rawName.toLowerCase();
-        const noteLower = (b.note || '').toLowerCase();
-        const instrLower = (b.richiesteStrumentazione || '').toLowerCase();
+        // REGOLA: Il corso & strumento deve essere lo stesso inserito nel docente di riferimento (materieInsegnamento)
+        const teacherStaff =
+          teacher.staffMember ||
+          staff.find(
+            (s) =>
+              s.id === teacher.id ||
+              `${s.nome} ${s.cognome}`.trim().toLowerCase() === teacher.nomeCompleto.toLowerCase() ||
+              s.nome.trim().toLowerCase() === teacher.nomeCompleto.trim().toLowerCase()
+          );
 
+        let corso = teacherStaff?.materieInsegnamento?.trim() || '';
+
+        // Se il docente non ha ancora materie specificate, fallback basato sul docente noto
         if (!corso) {
-          if (nameLower.includes('batteria') || noteLower.includes('batteria') || instrLower.includes('batteria')) {
-            corso = 'Batteria & Percussioni';
-          } else if (nameLower.includes('chita') || noteLower.includes('chita') || instrLower.includes('chitarra')) {
-            corso = 'Chitarra Elettrica / Acustica';
-          } else if (nameLower.includes('canto') || noteLower.includes('canto') || instrLower.includes('canto')) {
-            corso = 'Canto Moderno';
-          } else if (nameLower.includes('piano') || noteLower.includes('piano') || instrLower.includes('tastiera')) {
-            corso = 'Pianoforte & Tastiere';
-          } else if (nameLower.includes('basso') || noteLower.includes('basso')) {
-            corso = 'Basso Elettrico';
-          } else {
-            const tNome = teacher.nomeCompleto.toLowerCase();
-            if (tNome.includes('gabriele')) corso = 'Chitarra & Teoria';
-            else if (tNome.includes('michael')) corso = 'Pianoforte & Tastiere';
-            else if (tNome.includes('luca')) corso = 'Chitarra Moderna';
-            else if (tNome.includes('alessandro')) corso = 'Batteria & Basso';
-            else if (tNome.includes('silvia')) corso = 'Canto Moderno';
-            else corso = 'Corso Musicale';
-          }
+          const tNome = (teacher.nomeCompleto || '').toLowerCase();
+          if (tNome.includes('gabriele')) corso = 'Chitarra & Teoria';
+          else if (tNome.includes('michael')) corso = 'Pianoforte & Tastiere';
+          else if (tNome.includes('luca')) corso = 'Batteria & Percussioni';
+          else if (tNome.includes('alessandro')) corso = 'Basso & Batteria';
+          else if (tNome.includes('silvia')) corso = 'Canto Moderno';
+          else if (matchedClient?.corsoDidattico) corso = matchedClient.corsoDidattico;
+          else if (detectedCorso) corso = detectedCorso;
+          else corso = 'Corso Musicale';
         }
 
         const baseId = b.clienteId && !b.clienteId.startsWith('manual-')
@@ -814,7 +815,7 @@ export const AllieviView: React.FC = () => {
       </div>
 
       {/* ── 2. KPI SUMMARY CARDS (Compatibili Light & Dark) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 print:hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 print:hidden">
         {/* KPI 1: Allievi */}
         <div className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-4 shadow-xs">
           <div className="flex items-center justify-between">
@@ -873,25 +874,6 @@ export const AllieviView: React.FC = () => {
               }}
             />
           </div>
-        </div>
-
-        {/* KPI 4: Incasso Quote Mensili */}
-        <div className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">Incasso Quote Mese</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2 flex-wrap">
-            <span className="text-2xl font-black text-slate-900 dark:text-yellow-300">{formatCurrency(totalCollectedEuros)}</span>
-            <span className="text-xs text-rose-600 dark:text-rose-400 font-bold">
-              +{formatCurrency(totalPendingEuros)} da saldare
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-500 dark:text-neutral-400 mt-1">
-            Quote allievi di {monthName} {currentYear}
-          </p>
         </div>
       </div>
 
@@ -1528,7 +1510,14 @@ export const AllieviView: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 dark:text-neutral-300 mb-1">Docente Assegnato</label>
                   <select
                     value={newTeacherId}
-                    onChange={(e) => setNewTeacherId(e.target.value)}
+                    onChange={(e) => {
+                      const tId = e.target.value;
+                      setNewTeacherId(tId);
+                      const chosen = staff.find((s) => s.id === tId);
+                      if (chosen?.materieInsegnamento) {
+                        setNewCorso(chosen.materieInsegnamento);
+                      }
+                    }}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 text-slate-900 dark:text-white text-xs focus:border-amber-500 focus:outline-none font-medium"
                   >
                     {teachersList.map((t) => (

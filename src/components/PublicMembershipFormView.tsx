@@ -206,7 +206,7 @@ export const PublicMembershipFormView: React.FC = () => {
         residenza: fullResidenza,
         telefono: safeTelefono,
         email: safeEmail,
-        statoTesseramento: 'attivo',
+        statoTesseramento: 'da_tesserare',
         numeroTessera,
         dataTesseramento: todayISO,
         dataScadenzaTesseramento: scadenzaISO,

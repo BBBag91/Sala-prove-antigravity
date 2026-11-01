@@ -73,11 +73,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return '';
   });
   const [isRecurringDeleteOpen, setIsRecurringDeleteOpen] = useState(false);
-  const [salaId, setSalaId] = useState(() => bookingToEdit?.salaId || initialRoomId || '');
+  const [salaId, setSalaId] = useState(() => bookingToEdit?.salaId || initialRoomId || (rooms.length > 0 ? rooms[0].id : ''));
   const [tipo, setTipo] = useState<BookingType>(() => {
     if (bookingToEdit?.tipo) return bookingToEdit.tipo;
     if (initialType) return initialType;
     if (isAutoTeacher) return 'lezione';
+    const initDate = initialDate || formatDateToISO(new Date());
+    const hInfo = getHolidayOrSundayInfo(initDate);
+    if (hInfo.isHolidayOrSunday) return 'lezione';
     return 'prove';
   });
   const [insegnanteId, setInsegnanteId] = useState(() => {
@@ -215,13 +218,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     } else {
       const defaultDate = initialDate || formatDateToISO(new Date());
       const dIndex = parseISODate(defaultDate).getDay();
-      const defaultTipo = initialType || (isAutoTeacher ? 'lezione' : 'prove');
+      const hInfo = getHolidayOrSundayInfo(defaultDate);
+      const defaultTipo = initialType || (isAutoTeacher || hInfo.isHolidayOrSunday ? 'lezione' : 'prove');
+      const defaultRoom = initialRoomId || (rooms.length > 0 ? rooms[0].id : '');
       setIsManualClient(true);
       setManualClientName('');
       setClienteId('');
-      setSalaId(initialRoomId || '');
+      setSalaId(defaultRoom);
       setTipo(defaultTipo);
-      setInsegnanteId(isAutoTeacher && currentTeacherStaff ? currentTeacherStaff.id : '');
+      setInsegnanteId(
+        isAutoTeacher && currentTeacherStaff
+          ? currentTeacherStaff.id
+          : defaultTipo === 'lezione'
+            ? (staff.find((s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi'))?.id || '')
+            : ''
+      );
       const start = initialStartTime || '18:00';
       const startM = timeToMinutes(start);
       const durationM = defaultTipo === 'lezione' ? 60 : 120;
@@ -1362,7 +1373,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.nome} {c.cognome} {c.gruppoBand ? `[${c.gruppoBand}]` : ''} - Tessera:{' '}
-                        {c.statoTesseramento === 'attivo' ? 'Attiva' : c.statoTesseramento === 'in_attesa' ? 'In Attesa Ente' : 'Scaduta'}
+                        {c.statoTesseramento === 'attivo'
+                          ? 'Attiva'
+                          : c.statoTesseramento === 'da_tesserare'
+                            ? 'Da Tesserare'
+                            : c.statoTesseramento === 'in_attesa'
+                              ? 'Inviato all\'Ente'
+                              : 'Scaduta'}
                       </option>
                     ))}
                   </select>
@@ -1370,8 +1387,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <div className="mt-1.5 flex items-center gap-1 text-xs text-amber-700 font-medium">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span>
-                        {selectedClient.statoTesseramento === 'in_attesa'
-                          ? 'Tesseramento in attesa di approvazione dall\'ente.'
+                        {selectedClient.statoTesseramento === 'da_tesserare'
+                          ? 'Tesseramento da inviare all\'ente (presente nel file Excel).'
+                          : selectedClient.statoTesseramento === 'in_attesa'
+                          ? 'Tesseramento inviato all\'ente (in attesa di ricezione tessera).'
                           : 'Attenzione: tesseramento scaduto. Da rinnovare!'}
                       </span>
                     </div>
@@ -1408,7 +1427,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 oraInizio={oraInizio}
                 oraFine={oraFine}
               />
-              <input type="hidden" name="salaId" value={salaId} required />
+              <input type="hidden" name="salaId" value={salaId} />
 
               {/* Avviso in tempo reale se la sala scelta ha un conflitto */}
               {salaId && overlappingBookingsByRoom.has(salaId) && (

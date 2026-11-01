@@ -244,9 +244,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return deduplicateStaff(raw);
   });
 
-  const [clients, setClients] = useState<Client[]>(() =>
-    safeLocalStorageGet(STORAGE_KEYS.CLIENTS, INITIAL_CLIENTS)
-  );
+  const [clients, setClients] = useState<Client[]>(() => {
+    const raw = safeLocalStorageGet<Client[]>(STORAGE_KEYS.CLIENTS, INITIAL_CLIENTS);
+    const mockIds = new Set(['cli-1', 'cli-2', 'cli-3', 'cli-4', 'cli-5', 'cli-6', 'cli-7', 'cli-8']);
+    return raw.filter((c: Client) => !mockIds.has(c.id));
+  });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
     const parsed = safeLocalStorageGet<Booking[]>(STORAGE_KEYS.BOOKINGS, INITIAL_BOOKINGS);
@@ -298,10 +300,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setStaff((prevLocal) => deduplicateStaff([...remote.staff, ...prevLocal]));
           }
           if (remote.clients.length > 0) {
+            const mockIds = new Set(['cli-1', 'cli-2', 'cli-3', 'cli-4', 'cli-5', 'cli-6', 'cli-7', 'cli-8']);
+            const cleanRemote = remote.clients.filter((c) => !mockIds.has(c.id));
             setClients((prevLocal) => {
-              const remoteIds = new Set(remote.clients.map((c) => c.id));
-              const pendingLocal = prevLocal.filter((localC) => !remoteIds.has(localC.id));
-              return pendingLocal.length > 0 ? [...remote.clients, ...pendingLocal] : remote.clients;
+              const cleanLocal = prevLocal.filter((c) => !mockIds.has(c.id));
+              const remoteIds = new Set(cleanRemote.map((c) => c.id));
+              const pendingLocal = cleanLocal.filter((localC) => !remoteIds.has(localC.id));
+              return pendingLocal.length > 0 ? [...cleanRemote, ...pendingLocal] : cleanRemote;
             });
           }
           if (remote.bookings.length > 0) setBookings(remote.bookings);

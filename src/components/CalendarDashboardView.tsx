@@ -159,6 +159,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedDateForBooking, setSelectedDateForBooking] = useState<string>('');
   const [selectedStartTimeForBooking, setSelectedStartTimeForBooking] = useState<string>('18:00');
+  const [selectedRoomForBooking, setSelectedRoomForBooking] = useState<string>('');
   const [selectedTypeForBooking, setSelectedTypeForBooking] = useState<BookingType | undefined>(undefined);
   const [bookingToEdit, setBookingToEdit] = useState<Booking | null>(null);
   const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
@@ -623,6 +624,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
     setSelectedDateForBooking(dateStr);
     setSelectedStartTimeForBooking(startHourStr);
+    setSelectedRoomForBooking(selectedRoomFilter !== 'all' ? selectedRoomFilter : (rooms[0]?.id || ''));
     setSelectedTypeForBooking(preferLesson ? 'lezione' : undefined);
     setBookingToEdit(null);
     setIsBookingModalOpen(true);
@@ -1566,9 +1568,17 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             setSelectedDateForBooking(formatDateToISO(newDate));
           }}
           onOpenNewBooking={(dateStr) => {
+            const startHourStr = '18:00';
+            const endHourStr = '19:00';
+            const coverage = checkOperatorsCoverageForTimeSlot(staff, dateStr, startHourStr, endHourStr);
+            const holidayInfo = getHolidayOrSundayInfo(dateStr);
+            const preferLesson = !coverage.hasCoverage || holidayInfo.isHolidayOrSunday;
+            const defaultRoom = selectedRoomFilter !== 'all' ? selectedRoomFilter : (rooms[0]?.id || '');
+
             setSelectedDateForBooking(dateStr);
-            setSelectedStartTimeForBooking('18:00');
-            setSelectedTypeForBooking(undefined);
+            setSelectedStartTimeForBooking(startHourStr);
+            setSelectedRoomForBooking(defaultRoom);
+            setSelectedTypeForBooking(preferLesson ? 'lezione' : undefined);
             setBookingToEdit(null);
             setIsBookingModalOpen(true);
           }}
@@ -2975,7 +2985,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       {isBookingModalOpen && (
         <Suspense fallback={null}>
           <BookingModal
-            key={bookingToEdit ? `edit-${bookingToEdit.id}` : `new-${selectedDateForBooking}-${selectedStartTimeForBooking}`}
+            key={bookingToEdit ? `edit-${bookingToEdit.id}` : `new-${selectedDateForBooking}-${selectedStartTimeForBooking}-${selectedRoomForBooking}`}
             isOpen={isBookingModalOpen}
             onClose={() => {
               setIsBookingModalOpen(false);
@@ -2983,6 +2993,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             }}
             initialDate={selectedDateForBooking}
             initialStartTime={selectedStartTimeForBooking}
+            initialRoomId={bookingToEdit?.salaId || selectedRoomForBooking || (rooms.length > 0 ? rooms[0].id : '')}
             initialType={selectedTypeForBooking}
             bookingToEdit={bookingToEdit}
           />
