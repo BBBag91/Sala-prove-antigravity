@@ -258,7 +258,49 @@ export interface Client {
   gruppoBand?: string;
   /** Note anagrafiche aggiuntive */
   note?: string;
+  /** Flag che indica se il cliente è iscritto come allievo ai corsi di musica */
+  isAllievo?: boolean;
+  /** Strumento o corso didattico frequentato (es. Chitarra, Canto, Batteria, Basso, Pianoforte) */
+  corsoDidattico?: string;
+  /** Insegnante assegnato di riferimento */
+  insegnanteRiferimentoId?: string;
+  /** Nome dell'insegnante di riferimento */
+  insegnanteRiferimentoNome?: string;
+  /** Quota mensile pattuita per il corso (€) */
+  quotaMensileCorso?: number;
 }
+
+/**
+ * Stato del pagamento mensile dell'allievo
+ */
+export type StudentPaymentStatus = 'pagato' | 'da_saldare' | 'parziale';
+
+/**
+ * Registrazione del pagamento mensile per uno studente per un determinato mese (YYYY-MM).
+ */
+export interface StudentMonthlyPayment {
+  /** ID univoco della registrazione del mese (es. cli-1_2026-10) */
+  id: string;
+  /** ID del cliente/allievo */
+  clienteId: string;
+  /** Mese di competenza in formato YYYY-MM */
+  mese: string;
+  /** Stato del pagamento per il mese: 'pagato', 'da_saldare', 'parziale' */
+  stato: StudentPaymentStatus;
+  /** Data effettiva in cui è avvenuto il pagamento (YYYY-MM-DD) */
+  dataPagamento?: string;
+  /** Importo versato per il mese in Euro (€) */
+  importo?: number;
+  /** Metodo di pagamento utilizzato */
+  metodoPagamento?: PaymentMethod;
+  /** Eventuale numero di ricevuta o riferimento fiscale */
+  ricevutaNumero?: string;
+  /** Note sul pagamento della mensilità */
+  note?: string;
+  /** Timestamp dell'ultimo aggiornamento (ISO string) */
+  aggiornatoIl?: string;
+}
+
 
 /**
  * Fornitori gateway supportati per l'invio messaggi WhatsApp.

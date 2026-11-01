@@ -43,6 +43,7 @@ const MorningBriefingModal = lazy(() => import('./components/MorningBriefingModa
 const WhatsAppSettingsModal = lazy(() => import('./components/WhatsAppSettingsModal').then(m => ({ default: m.WhatsAppSettingsModal })));
 const TeacherProfileReportModal = lazy(() => import('./components/TeacherProfileReportModal').then(m => ({ default: m.TeacherProfileReportModal })));
 const TeachersReportView = lazy(() => import('./components/TeachersReportView').then(m => ({ default: m.TeachersReportView })));
+const AllieviView = lazy(() => import('./components/AllieviView').then(m => ({ default: m.AllieviView })));
 const PublicMembershipFormView = lazy(() => import('./components/PublicMembershipFormView').then(m => ({ default: m.PublicMembershipFormView })));
 const AnalyticsView = lazy(() => import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
 
@@ -55,7 +56,7 @@ const ViewLoadingFallback: React.FC = () => (
   </div>
 );
 
-type TabType = 'calendar' | 'turni' | 'teachers' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica' | 'analytics';
+type TabType = 'calendar' | 'turni' | 'allievi' | 'teachers' | 'staff' | 'clients' | 'rooms' | 'finance' | 'anagrafica' | 'analytics';
 
 interface NavSectionItem {
   id: TabType;
@@ -84,20 +85,17 @@ const AppContent: React.FC = () => {
   const roleLabel = user ? USER_ROLE_LABELS[user.ruolo] || 'Utente' : '';
   const teachersTabLabel = isTeacher ? 'Il Mio Monte Ore' : 'Ore Insegnanti';
 
-  // Route Guard: gli account insegnante accedono SOLO a Calendario, Turni (e Monte Ore personale)
-  // Gli insegnanti NON hanno accesso a Finance, Staff, Clienti, Sale o Anagrafica Studio
+  // Route Guard: gli account insegnante accedono a Calendario, Turni, Stato Allievi e Monte Ore
+  // Gli insegnanti standard NON hanno accesso a Finance, Staff, Clienti, Sale o Anagrafica Studio
   useEffect(() => {
     if (isTeacher) {
-      const allowed: TabType[] = ['calendar', 'turni'];
+      const allowed: TabType[] = ['calendar', 'turni', 'allievi'];
       if (canSeeTeachersReport) allowed.push('teachers');
       if (!allowed.includes(activeTab)) setActiveTab('calendar');
     } else if (isUser) {
-      const allowed: TabType[] = ['calendar', 'turni', 'anagrafica'];
+      const allowed: TabType[] = ['calendar', 'turni', 'allievi', 'anagrafica'];
       if (canSeeTeachersReport) allowed.push('teachers');
       if (!allowed.includes(activeTab)) setActiveTab('calendar');
-    }
-    if (isAdmin && activeTab === 'teachers') {
-      setActiveTab('finance');
     }
   }, [isUser, isTeacher, isAdmin, canSeeTeachersReport, activeTab]);
 
@@ -161,6 +159,14 @@ const AppContent: React.FC = () => {
   }
 
   const dropdownSections: NavSectionItem[] = [
+    {
+      id: 'allievi',
+      label: 'Stato Allievi & Lezioni',
+      shortLabel: 'Allievi',
+      description: 'Presenze lezioni svolte, orari e date di pagamento mensili',
+      icon: <GraduationCap className="w-4 h-4 text-yellow-400" />,
+      badge: clients.filter(c => c.isAllievo || (c.gruppoBand || '').toLowerCase().includes('corso')).length,
+    },
     {
       id: 'analytics',
       label: 'Analisi Statistiche & Grafici',
@@ -264,6 +270,24 @@ const AppContent: React.FC = () => {
                   <CalendarClock className="w-3.5 h-3.5 shrink-0" />
                   <span className="hidden 2xl:inline">Schema Turni</span>
                   <span className="2xl:hidden">Turni</span>
+                </button>
+
+                {/* Stato Allievi Tab (Monitoraggio presenze e date pagamento) */}
+                <button
+                  onClick={() => {
+                    setActiveTab('allievi');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer select-none ${
+                    activeTab === 'allievi'
+                      ? 'bg-yellow-400 text-black border border-yellow-400 shadow-sm shadow-yellow-500/20'
+                      : 'text-yellow-100/70 hover:text-yellow-300 hover:bg-yellow-400/10 border border-transparent'
+                  }`}
+                  title="Monitoraggio stato allievi, lezioni svolte e date di pagamento del mese"
+                >
+                  <GraduationCap className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                  <span className="hidden xl:inline">Stato Allievi</span>
+                  <span className="xl:hidden">Allievi</span>
                 </button>
 
                 {/* Riepilogo Ore Insegnanti (insegnanti: solo il proprio monte ore; account generico: tutti) */}
@@ -521,6 +545,21 @@ const AppContent: React.FC = () => {
                         <ChevronRight className="w-3 h-3 text-neutral-500" />
                       </button>
                     )}
+
+                    {/* Stato Allievi & Mensilità */}
+                    <button
+                      onClick={() => {
+                        setActiveTab('allievi');
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold text-neutral-200 hover:text-yellow-300 hover:bg-neutral-900 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Users className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                        <span>Stato Allievi &amp; Lezioni</span>
+                      </div>
+                      <ChevronRight className="w-3 h-3 text-neutral-500" />
+                    </button>
 
                     {/* Riepilogo Mattutino (Ore 10:00) - Solo Admin */}
                     {isAdmin && (
@@ -844,6 +883,25 @@ const AppContent: React.FC = () => {
                 {activeTab === 'turni' && <Check className="w-4 h-4 stroke-[3]" />}
               </button>
 
+              {/* Stato Allievi Mobile */}
+              <button
+                onClick={() => {
+                  setActiveTab('allievi');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-manipulation touch-active ${
+                  activeTab === 'allievi'
+                    ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-500/30'
+                    : 'text-neutral-200 hover:bg-neutral-900 hover:text-yellow-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <GraduationCap className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Stato Allievi &amp; Lezioni</span>
+                </div>
+                {activeTab === 'allievi' && <Check className="w-4 h-4 stroke-[3]" />}
+              </button>
+
               {/* Profilo Insegnante & Resoconto Monte Ore */}
               {canSeeTeachersReport && (
                 <button
@@ -1017,9 +1075,12 @@ const AppContent: React.FC = () => {
           {activeTab === 'calendar' && (
             <CalendarDashboardView onNavigateToTurni={() => setActiveTab('turni')} />
           )}
-          {activeTab === 'turni' && <ShiftsView />}
+          {activeTab === 'allievi' && <AllieviView />}
           {canSeeTeachersReport && activeTab === 'teachers' && (
-            <TeachersReportView lockedTeacherId={isTeacher ? user.staffId : undefined} />
+            <TeachersReportView
+              initialTeacherId={user.staffId}
+              lockedTeacherId={isTeacher && !isAdmin ? user.staffId : undefined}
+            />
           )}
           {activeTab === 'anagrafica' && (
             <AnagraficaView onNavigateTab={(tab) => setActiveTab(tab)} />
@@ -1036,7 +1097,7 @@ const AppContent: React.FC = () => {
             </>
           )}
         </Suspense>
-        {!isAdmin && activeTab !== 'calendar' && activeTab !== 'turni' && !(activeTab === 'teachers' && canSeeTeachersReport) && activeTab !== 'anagrafica' && (
+        {!isAdmin && activeTab !== 'calendar' && activeTab !== 'turni' && activeTab !== 'allievi' && !(activeTab === 'teachers' && canSeeTeachersReport) && activeTab !== 'anagrafica' && (
           <div className="bg-neutral-950 border border-rose-500/30 rounded-2xl p-8 text-center space-y-3 my-8 print:hidden">
             <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
               <Shield className="w-6 h-6" />

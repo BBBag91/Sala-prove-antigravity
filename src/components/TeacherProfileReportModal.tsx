@@ -44,9 +44,9 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
 }) => {
   const { staff, bookings, rooms } = useApp();
 
-  // Insegnanti esclusivi (solo ruolo 'insegnante', escludendo 'operatore' ed 'entrambi')
+  // Insegnanti attivi (insegnanti e entrambi come Gabriele Piva)
   const teachersOnly = useMemo(() => {
-    return staff.filter((s) => s.attivo && s.ruolo === 'insegnante');
+    return staff.filter((s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi'));
   }, [staff]);
 
   // Insegnante selezionato nel profilo utente

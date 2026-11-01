@@ -239,42 +239,59 @@ export const LoginView: React.FC = () => {
                     ? teacher.email
                     : `${teacher.nome.toLowerCase().replace(/\s+/g, '')}.${teacher.cognome.toLowerCase().replace(/\s+/g, '')}@salaprove.it`;
                 const isSelected = email.toLowerCase() === teacherEmail.toLowerCase();
-                return (
-                  <button
-                    key={teacher.id}
-                    type="button"
-                    onClick={() => {
-                      setEmail(teacherEmail);
-                      setError(null);
-                    }}
-                    className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer group ${
-                      isSelected
-                        ? 'bg-purple-900/30 border-purple-500 text-white shadow-2xs'
-                        : 'bg-neutral-900/80 hover:bg-purple-950/30 border-purple-500/25 hover:border-purple-400 text-neutral-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white text-[11px] shrink-0 shadow-2xs"
-                        style={{ backgroundColor: teacher.coloreBadge || '#8b5cf6' }}
-                      >
-                        {teacher.nome[0]}{teacher.cognome[0]}
+                  const isGabriele = teacher.id === 'staff-1' || teacher.nome.toLowerCase().includes('gabriele');
+                  return (
+                    <button
+                      key={teacher.id}
+                      type="button"
+                      onClick={() => {
+                        setEmail(teacherEmail);
+                        setPassword(isGabriele ? 'DocenteGabriele2026!' : `Docente${teacher.nome}2026!`);
+                        setError(null);
+                      }}
+                      className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer group ${
+                        isGabriele
+                          ? isSelected
+                            ? 'bg-amber-950/40 border-amber-400 text-white shadow-sm shadow-amber-500/20 ring-1 ring-amber-400/50'
+                            : 'bg-amber-950/20 hover:bg-amber-950/40 border-amber-500/40 hover:border-amber-400 text-neutral-200'
+                          : isSelected
+                          ? 'bg-purple-900/30 border-purple-500 text-white shadow-2xs'
+                          : 'bg-neutral-900/80 hover:bg-purple-950/30 border-purple-500/25 hover:border-purple-400 text-neutral-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white text-[11px] shrink-0 shadow-2xs"
+                          style={{ backgroundColor: teacher.coloreBadge || '#8b5cf6' }}
+                        >
+                          {isGabriele ? '🎸' : `${teacher.nome[0]}${teacher.cognome[0]}`}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-xs text-white group-hover:text-yellow-300 block truncate">
+                              {teacher.nome} {teacher.cognome}
+                            </span>
+                            {isGabriele && (
+                              <span className="text-[9px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-500/40 px-1 py-0.2 rounded">
+                                Admin &amp; Docente
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-neutral-400 block truncate font-mono">
+                            {teacherEmail}
+                          </span>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <span className="font-bold text-xs text-white group-hover:text-purple-300 block truncate">
-                          {teacher.nome} {teacher.cognome}
-                        </span>
-                        <span className="text-[10px] text-neutral-400 block truncate font-mono">
-                          {teacherEmail}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/30 shrink-0 ml-1">
-                      {isSelected ? 'Selezionato ✓' : 'Compila ➔'}
-                    </span>
-                  </button>
-                );
-              })}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ml-1 ${
+                        isGabriele
+                          ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                          : 'text-purple-300 bg-purple-500/20 border-purple-500/30'
+                      }`}>
+                        {isSelected ? 'Selezionato ✓' : 'Accedi ➔'}
+                      </span>
+                    </button>
+                  );
+                })}
             </div>
           </div>
         )}
