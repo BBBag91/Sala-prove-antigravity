@@ -430,10 +430,10 @@ export const ClientsView: React.FC = () => {
 
           <button
             onClick={() => handleOpenPrint(null)}
-            className="px-3.5 py-2.5 min-h-[44px] bg-white dark:bg-neutral-900 hover:bg-slate-50 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-300 border border-slate-200 dark:border-yellow-500/30 font-semibold text-xs rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
+            className="px-3.5 py-2.5 min-h-[44px] bg-slate-900 hover:bg-slate-800 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-300 border border-slate-900 dark:border-yellow-500/30 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
             title="Stampa Registro Soci o Schede Tessere PDF"
           >
-            <Printer className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
+            <Printer className="w-4 h-4 text-white dark:text-yellow-400" />
             <span className="hidden sm:inline">Stampa / PDF Tessere</span>
           </button>
 
@@ -444,13 +444,13 @@ export const ClientsView: React.FC = () => {
               className="px-3.5 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
               title="Scarica file Excel per l'ente: include solo i tesserati da saldare in ordine di inserimento. Quelli 'In Attesa' sono esclusi."
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 text-white" />
               <span className="hidden sm:inline">Scarica Excel Ente ({pendingForEnte.length})</span>
               <span className="sm:hidden">Excel Ente ({pendingForEnte.length})</span>
             </button>
             <button
               onClick={() => handleExportExcel('all')}
-              className="px-2.5 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-200 font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-1 touch-manipulation touch-active shrink-0 cursor-pointer border border-slate-200 dark:border-yellow-500/30"
+              className="px-2.5 py-2.5 min-h-[44px] bg-slate-800 hover:bg-slate-900 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-200 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1 touch-manipulation touch-active shrink-0 cursor-pointer border border-slate-800 dark:border-yellow-500/30 shadow-xs"
               title="Scarica registro completo con tutti i tesserati"
             >
               <span className="hidden md:inline">Tutti ({clients.length})</span>
@@ -464,20 +464,20 @@ export const ClientsView: React.FC = () => {
               const msg = encodeURIComponent(`Ciao! 🎶 Ecco il modulo online per il tesseramento alla nostra Associazione / Sala Prove:\n🔗 ${url}\n\nBastano 2 minuti: compilalo per registrarti automaticamente nei nostri sistemi.`);
               window.open(`https://wa.me/?text=${msg}`, '_blank', 'noopener,noreferrer');
             }}
-            className="px-3.5 py-2.5 min-h-[44px] bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600/50 font-semibold text-xs rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
+            className="px-3.5 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
             title="Invia ai tuoi contatti WhatsApp il link del modulo di tesseramento"
           >
-            <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <MessageSquare className="w-4 h-4 text-white" />
             <span className="hidden sm:inline">WhatsApp</span>
             <span className="sm:hidden">WA</span>
           </button>
 
           <button
             onClick={() => setIsQrModalOpen(true)}
-            className="px-3.5 py-2.5 min-h-[44px] bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-600/50 font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
+            className="px-3.5 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active shrink-0 cursor-pointer"
             title="Mostra e scarica il QR Code per il tesseramento da esporre in sala o stampare come locandina"
           >
-            <QrCode className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <QrCode className="w-4 h-4 text-white" />
             <span className="hidden sm:inline">QR Code Iscrizione</span>
             <span className="sm:hidden">QR Code</span>
           </button>

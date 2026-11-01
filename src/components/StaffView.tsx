@@ -126,20 +126,20 @@ export const StaffView: React.FC<StaffViewProps> = ({ onNavigateToTurni }) => {
             <button
               type="button"
               onClick={() => setIsMonthlyPdfModalOpen(true)}
-              className="px-4 py-2.5 min-h-[44px] bg-yellow-400/20 hover:bg-yellow-400/30 text-yellow-300 font-bold text-xs rounded-xl border border-yellow-500/40 shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
+              className="px-4 py-2.5 min-h-[44px] bg-amber-500 hover:bg-amber-600 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation touch-active"
               title="Esporta o stampa la tabella schematica turni del mese (1 pagina orizzontale)"
             >
-              <Printer className="w-4 h-4 text-yellow-400" />
+              <Printer className="w-4 h-4 text-white dark:text-black" />
               <span>Stampa PDF Mese (1 Pagina)</span>
             </button>
           )}
 
           <button
             onClick={() => handleOpenSchedulePrint(null)}
-            className="px-4 py-2.5 min-h-[44px] bg-white dark:bg-neutral-900 hover:bg-slate-50 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-300 font-semibold text-xs rounded-xl border border-slate-300 dark:border-yellow-500/30 shadow-2xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active cursor-pointer"
+            className="px-4 py-2.5 min-h-[44px] bg-slate-900 hover:bg-slate-800 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-300 font-bold text-xs rounded-xl border border-slate-900 dark:border-yellow-500/30 shadow-xs transition-all flex items-center justify-center gap-2 touch-manipulation touch-active cursor-pointer"
             title="Esporta o stampa il catalogo completo degli appuntamenti per tutti gli operatori"
           >
-            <Printer className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
+            <Printer className="w-4 h-4 text-white dark:text-yellow-400" />
             <span className="hidden sm:inline">Stampa / PDF Appuntamenti</span>
           </button>
 

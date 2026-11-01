@@ -1412,10 +1412,10 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <>
                 <button
                   onClick={() => setIsOperatorScheduleModalOpen(true)}
-                  className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-white dark:bg-neutral-900 hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-300 font-semibold text-[11px] sm:text-xs rounded-lg border border-slate-200 dark:border-yellow-500/30 transition-all whitespace-nowrap"
+                  className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-slate-800 hover:bg-slate-900 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-300 font-bold text-[11px] sm:text-xs rounded-lg border border-slate-700 dark:border-yellow-500/30 transition-all whitespace-nowrap shadow-2xs"
                   title="PDF Operatori"
                 >
-                  <Printer className="w-3 h-3 text-blue-600 dark:text-yellow-400" />
+                  <Printer className="w-3 h-3 text-white dark:text-yellow-400" />
                   <span className="hidden sm:inline">PDF</span>
                 </button>
 

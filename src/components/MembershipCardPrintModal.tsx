@@ -167,10 +167,10 @@ export const MembershipCardPrintModal: React.FC<MembershipCardPrintModalProps> =
           <div className="flex items-center gap-2 self-end md:self-auto">
             <button
               onClick={handleDirectPrint}
-              className="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+              className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer border border-slate-700"
               title="Apre la finestra di stampa del browser"
             >
-              <Printer className="w-3.5 h-3.5 text-slate-600" />
+              <Printer className="w-3.5 h-3.5 text-white" />
               <span>Stampa Diretta</span>
             </button>
 

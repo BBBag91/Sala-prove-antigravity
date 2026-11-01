@@ -186,10 +186,10 @@ export const FinanceView: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setIsReportModalOpen(true)}
-            className="px-3.5 py-2.5 min-h-[44px] bg-white dark:bg-neutral-900 border border-slate-200 dark:border-yellow-500/30 hover:bg-slate-50 dark:hover:bg-yellow-400/10 text-slate-800 dark:text-yellow-300 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs touch-manipulation touch-active cursor-pointer"
+            className="px-3.5 py-2.5 min-h-[44px] bg-slate-900 hover:bg-slate-800 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-300 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs touch-manipulation touch-active cursor-pointer border border-slate-900 dark:border-yellow-500/30"
             title="Visualizza, stampa o scarica in PDF il resoconto mensile contabile di entrate e uscite"
           >
-            <Printer className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
+            <Printer className="w-4 h-4 text-white dark:text-yellow-400" />
             <span className="hidden sm:inline">Resoconto per Stampa / PDF</span>
             <span className="sm:hidden">Resoconto</span>
           </button>

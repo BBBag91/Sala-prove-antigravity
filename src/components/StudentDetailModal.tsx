@@ -363,21 +363,22 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             <button
               type="button"
               onClick={handleExportPdf}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs border border-rose-500"
               title="Scarica scheda e resoconto in PDF"
             >
-              <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <Download className="w-3.5 h-3.5 text-white" />
               <span>PDF</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 hover:border-rose-300 dark:bg-neutral-800 dark:hover:bg-rose-950/40 dark:text-neutral-200 dark:hover:text-rose-300 dark:border-neutral-700 dark:hover:border-rose-800 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-              title="Chiudi dettaglio (Esc)"
+              className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-8 h-8 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25 ml-0.5"
+              style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+              title="Chiudi"
+              aria-label="Chiudi finestra"
             >
-              <X className="w-3.5 h-3.5 text-slate-600 dark:text-neutral-300" />
-              <span>Chiudi</span>
+              <X className="w-4 h-4 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
             </button>
           </div>
         </div>
@@ -947,16 +948,16 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             <button
               type="button"
               onClick={handleExportPdf}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-white flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs border border-rose-500"
             >
-              <Printer className="w-3.5 h-3.5 text-neutral-400" />
+              <Printer className="w-3.5 h-3.5 text-white" />
               <span>Stampa / PDF</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-1.5 rounded-lg text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-neutral-200 cursor-pointer transition-colors"
+              className="px-4 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-colors shadow-xs border border-blue-500"
             >
               Chiudi
             </button>

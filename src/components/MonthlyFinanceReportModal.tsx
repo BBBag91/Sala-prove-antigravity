@@ -236,10 +236,10 @@ export const MonthlyFinanceReportModal: React.FC<MonthlyFinanceReportModalProps>
             <button
               type="button"
               onClick={handlePrint}
-              className="px-3.5 py-1.5 bg-white dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 border border-slate-300 dark:border-neutral-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer border border-slate-700"
               title="Stampa scheda su carta A4"
             >
-              <Printer className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
+              <Printer className="w-4 h-4 text-white" />
               <span>Stampa Scheda</span>
             </button>
 

@@ -201,10 +201,10 @@ export const BookingsView: React.FC = () => {
 
           <button
             onClick={() => setIsSchedulePrintOpen(true)}
-            className="px-3.5 py-2.5 min-h-[44px] bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 shadow-2xs transition-all flex items-center gap-2 touch-manipulation touch-active cursor-pointer"
+            className="px-3.5 py-2.5 min-h-[44px] bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 touch-manipulation touch-active cursor-pointer border border-slate-900"
             title="Stampa o esporta PDF del catalogo appuntamenti operatori"
           >
-            <Printer className="w-4 h-4 text-indigo-600" />
+            <Printer className="w-4 h-4 text-white" />
             <span className="hidden sm:inline">Stampa Turni</span>
           </button>
 

@@ -453,10 +453,10 @@ export const AnalyticsView: React.FC = () => {
           {/* Stampa Schermata Statistiche */}
           <button
             onClick={() => window.print()}
-            className="px-3 py-2 min-h-[38px] border border-slate-200 dark:border-yellow-500/30 hover:bg-slate-50 dark:hover:bg-yellow-400/10 text-slate-700 dark:text-yellow-300 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+            className="px-3.5 py-2 min-h-[38px] bg-slate-900 hover:bg-slate-800 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-300 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border border-slate-900 dark:border-yellow-500/30"
             title="Stampa riepilogo statistiche"
           >
-            <Printer className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400" />
+            <Printer className="w-3.5 h-3.5 text-white dark:text-yellow-400" />
             <span className="hidden sm:inline">Stampa</span>
           </button>
         </div>

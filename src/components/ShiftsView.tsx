@@ -320,10 +320,10 @@ export const ShiftsView: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsWeeklyPrintModalOpen(true)}
-              className="px-3 py-2 min-h-[40px] bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:text-yellow-300 dark:border-yellow-500/40 font-bold text-xs rounded-lg shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active"
+              className="px-3 py-2 min-h-[40px] bg-slate-800 hover:bg-slate-900 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-300 font-bold text-xs rounded-lg shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active border border-slate-700 dark:border-yellow-500/40"
               title="Anteprima a schermo con opzioni firme e download PDF"
             >
-              <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400" />
+              <FileText className="w-3.5 h-3.5 text-white dark:text-yellow-400" />
               <span>Anteprima &amp; PDF</span>
             </button>
 
@@ -331,10 +331,10 @@ export const ShiftsView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsMonthlyPdfModalOpen(true)}
-                className="px-3 py-2 min-h-[40px] bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:text-yellow-300 dark:border-yellow-500/40 font-bold text-xs rounded-lg shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active"
+                className="px-3 py-2 min-h-[40px] bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation touch-active border border-rose-500"
                 title="Esporta il documento PDF riassuntivo del mese (1 Pagina Landscape)"
               >
-                <Download className="w-3.5 h-3.5 text-blue-600 dark:text-yellow-400" />
+                <Download className="w-3.5 h-3.5 text-white" />
                 <span>PDF Mese</span>
               </button>
             )}

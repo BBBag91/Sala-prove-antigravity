@@ -131,7 +131,7 @@ export const WeeklyShiftsPrintModal: React.FC<WeeklyShiftsPrintModalProps> = ({
               className={`px-3 py-2 font-bold text-xs rounded-xl border transition-all flex items-center gap-2 cursor-pointer touch-manipulation touch-active ${
                 downloadSuccess
                   ? 'bg-emerald-500 text-white border-emerald-400'
-                  : 'bg-white dark:bg-neutral-900 hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-800 dark:text-yellow-300 border-slate-300 dark:border-yellow-500/40 shadow-xs'
+                  : 'bg-slate-800 hover:bg-slate-900 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-300 border-slate-700 shadow-xs'
               }`}
               title="Scarica il file PDF pronto all'uso"
             >
@@ -142,7 +142,7 @@ export const WeeklyShiftsPrintModal: React.FC<WeeklyShiftsPrintModalProps> = ({
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
+                  <Download className="w-4 h-4 text-white dark:text-yellow-400" />
                   <span>Scarica PDF</span>
                 </>
               )}
