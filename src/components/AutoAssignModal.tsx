@@ -26,7 +26,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({ isOpen, onClos
                 Assegnazione Automatica Intelligente
               </h2>
               <p className="text-xs text-slate-500 dark:text-neutral-400 font-normal truncate mt-0.5">
-                Verifica turni primari, preferenza turni continuativi e bilanciamento monte ore
+                Verifica turni primari, continuità presidio e bilanciamento settimanale (Lun-Dom)
               </p>
             </div>
           </div>
@@ -74,13 +74,13 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({ isOpen, onClos
             </div>
             <ul className="list-disc list-inside space-y-0.5 text-[11px] text-slate-600 pl-1">
               <li>
-                <strong>Verifica Turni Lavoro Primario</strong>: L'operatore è selezionabile solo se libero (24h - lavoro primario).
+                <strong>Verifica Turni Lavoro Primario</strong>: L'operatore è selezionabile solo se libero (24h - lavoro primario ed eccezioni).
               </li>
               <li>
-                <strong>Turni Continuativi</strong>: Quando possibile, turni consecutivi o contigui nello stesso giorno vengono assegnati allo stesso operatore per evitare spezzettamenti.
+                <strong>Equilibrio Settimanale (Lun-Dom)</strong>: I turni vengono bilanciati rigorosamente settimana per settimana tra gli operatori (Gabriele, Paolo, Alessandro). Chi ha meno disponibilità in certe settimane per impegni lavorativi non rischia più di coprire intere settimane da solo quando è libero.
               </li>
               <li>
-                <strong>Bilanciamento Orari</strong>: Negli slot isolati viene data precedenza all'operatore che ha accumulato meno ore nel mese.
+                <strong>Turni Continuativi</strong>: Quando possibile, turni contigui o consecutivi nello stesso giorno vengono affidati allo stesso operatore per evitare spezzettamenti.
               </li>
             </ul>
           </div>

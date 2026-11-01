@@ -1,5 +1,5 @@
 import { Booking, StaffMember, isLessonBooking } from '../types';
-import { calculateDurationHours, parseISODate, timeToMinutes } from './dateUtils';
+import { calculateDurationHours, formatDateToISO, parseISODate, timeToMinutes } from './dateUtils';
 
 /**
  * Checks if two time intervals overlap on the same day.
@@ -188,6 +188,43 @@ export function getOperatorAccumulatedHours(
   return hoursMap;
 }
 
+/**
+ * Restituisce la data ISO (YYYY-MM-DD) del Lunedì della settimana corrispondente alla data indicata.
+ * Tutti i giorni da Lunedì a Domenica della medesima settimana condividono la stessa chiave.
+ */
+export function getWeekMondayKey(dateStr: string): string {
+  const date = parseISODate(dateStr);
+  const day = date.getDay(); // 0 = Dom, 1 = Lun ... 6 = Sab
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + diffToMonday);
+  return formatDateToISO(monday);
+}
+
+/**
+ * Calcola le ore accumulate da ciascun operatore per una specifica settimana (Lun-Dom).
+ */
+export function getOperatorWeeklyHours(
+  operators: StaffMember[],
+  bookings: Booking[],
+  weekKey: string // YYYY-MM-DD del Lunedì
+): Record<string, number> {
+  const hoursMap: Record<string, number> = {};
+  for (const op of operators) {
+    hoursMap[op.id] = 0;
+  }
+
+  for (const b of bookings) {
+    if (!isLessonBooking(b) && b.operatoreAssegnatoId && hoursMap[b.operatoreAssegnatoId] !== undefined) {
+      if (getWeekMondayKey(b.data) === weekKey) {
+        hoursMap[b.operatoreAssegnatoId] += b.durataOre || calculateDurationHours(b.oraInizio, b.oraFine);
+      }
+    }
+  }
+
+  return hoursMap;
+}
+
 export interface AutoAssignResult {
   updatedBookings: Booking[];
   assignedCount: number;
@@ -204,17 +241,20 @@ export interface AutoAssignResult {
 }
 
 /**
- * Intelligent operator assignment algorithm:
- * - Operates on provided bookings (or unassigned only)
- * - Verifies operator availability (24h - turni lavoro primario)
- * - Priority 1: CONTINUOUS SHIFTS. If an operator has a booking right before/after, favor them to avoid fragmented shifts.
- * - Priority 2: FAIRNESS. Balance total working hours between available operators.
+ * Algoritmo di auto-assegnazione intelligente dei turni sala:
+ * - Esclude categoricamente le lezioni musicali (gestite autonomamente dai docenti).
+ * - Verifica disponibilità operatore (24h - turni lavoro primario ed eccezioni).
+ * - Priorità 1: CONTINUITÀ TURNO (+100 punti se l'operatore ha già una prenotazione contigua nello stesso giorno).
+ * - Priorità 2: EQUILIBRIO SETTIMANALE (Lun-Dom). La ripartizione del carico avviene rigorosamente di settimana
+ *   in settimana (e NON mensile), garantendo che operatori con vincoli di lavoro primario (es. Paolo) non vengano
+ *   sovraccaricati nei giorni liberi per colmare i deficit di altre settimane.
+ * - Priorità 3: Distribuzione dei giorni di presidio nella settimana.
  */
 export function autoAssignOperators(
   bookingsToAssign: Booking[],
   allBookings: Booking[],
   operators: StaffMember[],
-  monthFilter?: string
+  _monthFilter?: string
 ): AutoAssignResult {
   const eligibleOperators = operators.filter(
     (op) => op.attivo && (op.ruolo === 'operatore' || op.ruolo === 'entrambi')
@@ -241,27 +281,39 @@ export function autoAssignOperators(
     };
   }
 
-  // Working copy of all bookings
+  // Copia di lavoro di tutte le prenotazioni
   let currentBookings = [...allBookings];
   const logs: AutoAssignResult['logs'] = [];
   let assignedCount = 0;
   let unassignedCount = 0;
 
-  // Track dynamic hours
-  const hoursTracker = getOperatorAccumulatedHours(eligibleOperators, currentBookings, monthFilter);
+  // Tracker dinamico delle ore per settimana: weekKey (Lunedì) -> { [operatorId]: number }
+  const weeklyHoursTracker: Record<string, Record<string, number>> = {};
 
-  // Sort bookings to assign chronologically
+  const getWeekHoursFor = (wKey: string) => {
+    if (!weeklyHoursTracker[wKey]) {
+      weeklyHoursTracker[wKey] = getOperatorWeeklyHours(eligibleOperators, currentBookings, wKey);
+    }
+    return weeklyHoursTracker[wKey];
+  };
+
+  // Ordina le prenotazioni da assegnare cronologicamente (per data e poi orario inizio)
   const sortedTargetBookings = [...rehearsalBookings].sort((a, b) => {
     if (a.data !== b.data) return a.data.localeCompare(b.data);
     return a.oraInizio.localeCompare(b.oraInizio);
   });
 
   for (const target of sortedTargetBookings) {
-    // Find candidate operators
+    const targetWeekKey = getWeekMondayKey(target.data);
+    const weekHours = getWeekHoursFor(targetWeekKey);
+    const duration = target.durataOre || calculateDurationHours(target.oraInizio, target.oraFine);
+
+    // Trova candidati idonei
     const candidates: {
       operator: StaffMember;
       isContinuous: boolean;
       score: number;
+      hoursThisWeek: number;
     }[] = [];
 
     for (const op of eligibleOperators) {
@@ -275,17 +327,31 @@ export function autoAssignOperators(
       );
 
       if (avail.available) {
-        // Scoring formula:
-        // +100 bonus for continuous adjacent shift (high priority as requested)
-        // - (accumulated hours * 2) to balance workload between operators
+        // Punteggio bilanciamento settimanale:
+        // +100 bonus per turno contiguo adiacente (evita spezzettamenti inutili nello stesso giorno)
+        // - (ore accumulate in QUESTA SPECIFICA SETTIMANA * 10) per garantire perfetta equità settimanale
+        // - (giorni già lavorati in questa settimana * 2) per favorire la rotazione dei giorni di riposo
         const continuousBonus = avail.isContinuousPossible ? 100 : 0;
-        const currentHours = hoursTracker[op.id] || 0;
-        const score = continuousBonus - currentHours * 2;
+        const currentHoursInWeek = weekHours[op.id] || 0;
+
+        // Quanti giorni distinti l'operatore lavora già in questa settimana (Lun-Dom)
+        const daysInWeek = currentBookings
+          .filter(
+            (b) =>
+              !isLessonBooking(b) &&
+              b.operatoreAssegnatoId === op.id &&
+              getWeekMondayKey(b.data) === targetWeekKey
+          )
+          .map((b) => b.data);
+        const uniqueDaysInWeek = new Set(daysInWeek).size;
+
+        const score = continuousBonus - currentHoursInWeek * 10 - uniqueDaysInWeek * 2;
 
         candidates.push({
           operator: op,
           isContinuous: !!avail.isContinuousPossible,
           score,
+          hoursThisWeek: currentHoursInWeek,
         });
       }
     }
@@ -303,21 +369,20 @@ export function autoAssignOperators(
       continue;
     }
 
-    // Sort candidates by score descending
+    // Ordina candidati per punteggio decrescente
     candidates.sort((a, b) => b.score - a.score);
     const chosen = candidates[0];
 
-    // Assign
+    // Assegna operatore alla prenotazione
     const updatedTarget: Booking = {
       ...target,
       operatoreAssegnatoId: chosen.operator.id,
       operatoreAssegnatoNome: `${chosen.operator.nome} ${chosen.operator.cognome}`,
     };
 
-    // Update state
+    // Aggiorna stato locale e monte ore settimanale dell'operatore
     currentBookings = currentBookings.map((b) => (b.id === target.id ? updatedTarget : b));
-    hoursTracker[chosen.operator.id] =
-      (hoursTracker[chosen.operator.id] || 0) + (target.durataOre || calculateDurationHours(target.oraInizio, target.oraFine));
+    weekHours[chosen.operator.id] = (weekHours[chosen.operator.id] || 0) + duration;
 
     assignedCount++;
     logs.push({
@@ -327,8 +392,8 @@ export function autoAssignOperators(
       time: `${target.oraInizio} - ${target.oraFine}`,
       assignedToName: `${chosen.operator.nome} ${chosen.operator.cognome}`,
       reason: chosen.isContinuous
-        ? 'Assegnato per continuità turno lavorativo (stesso operatore)'
-        : 'Assegnato per bilanciamento ore tra operatori',
+        ? 'Assegnato per continuità turno (stesso operatore in sala)'
+        : `Assegnato per bilanciamento settimanale (${chosen.hoursThisWeek}h già assegnate questa settimana)`,
       isContinuous: chosen.isContinuous,
     });
   }
