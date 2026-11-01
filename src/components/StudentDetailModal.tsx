@@ -147,15 +147,31 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
       .filter((b) => {
         const isLes = isLessonBooking(b) || b.tipo === 'lezione' || Boolean(b.insegnanteId) || Boolean(b.insegnanteNome);
         if (!isLes) return false;
-        if (b.clienteId && student.id && b.clienteId === student.id) return true;
-        let bName = (b.clienteNome || '').toLowerCase().trim();
-        if (bName.endsWith(' chita')) bName = bName.slice(0, -6).trim();
-        if (bName.endsWith(' chitarra')) bName = bName.slice(0, -9).trim();
-        if (bName.endsWith(' batteria')) bName = bName.slice(0, -9).trim();
-        if (bName && (bName === fullName || fullName.includes(bName) || bName.includes(fullName) || bName.includes(sNameOnly) || sNameOnly === bName)) {
-          return true;
+        let matchStudent = false;
+        if (b.clienteId && student.id && (b.clienteId === student.id || student.id.startsWith(b.clienteId))) {
+          matchStudent = true;
+        } else {
+          let bName = (b.clienteNome || '').toLowerCase().trim();
+          if (bName.endsWith(' chita')) bName = bName.slice(0, -6).trim();
+          if (bName.endsWith(' chitarra')) bName = bName.slice(0, -9).trim();
+          if (bName.endsWith(' batteria')) bName = bName.slice(0, -9).trim();
+          if (bName && (bName === fullName || fullName.includes(bName) || bName.includes(fullName) || bName.includes(sNameOnly) || sNameOnly === bName)) {
+            matchStudent = true;
+          }
         }
-        return false;
+        if (!matchStudent) return false;
+
+        // Se lo studente nel resoconto appartiene a un docente specifico, mostra ESCLUSIVAMENTE le lezioni di quel docente
+        if (student.insegnanteRiferimentoId) {
+          const matchTId = b.insegnanteId === student.insegnanteRiferimentoId;
+          const matchTName = Boolean(
+            student.insegnanteRiferimentoNome &&
+            (b.insegnanteNome || '').toLowerCase().trim() === student.insegnanteRiferimentoNome.toLowerCase().trim()
+          );
+          if (!matchTId && !matchTName) return false;
+        }
+
+        return true;
       })
       .sort((a, b) => {
         const d = a.data.localeCompare(b.data);

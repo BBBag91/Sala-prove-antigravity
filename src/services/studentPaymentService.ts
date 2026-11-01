@@ -243,10 +243,15 @@ export const studentPaymentService = {
     const cleanName = (clienteNome || '').trim().toLowerCase();
     const cleanId = (clienteId || '').trim();
 
+    // Priorità 1: Corrispondenza per clienteId esatto (garantisce separazione fra corsi diversi con docenti diversi)
+    if (cleanId) {
+      const matchExact = list.find((p) => p.mese === mese && p.clienteId === cleanId);
+      if (matchExact) return matchExact;
+    }
+
     return (
       list.find((p) => {
         if (p.mese !== mese) return false;
-        if (cleanId && p.clienteId === cleanId) return true;
         if (cleanName && p.clienteNome && p.clienteNome.toLowerCase() === cleanName) return true;
         if (cleanName && p.clienteId && p.clienteId.toLowerCase().includes(cleanName.replace(/\s+/g, '-'))) return true;
         return false;

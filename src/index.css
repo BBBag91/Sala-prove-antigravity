@@ -850,23 +850,41 @@ html {
     color: #000000 !important;
   }
 
-  /* 4. Tabelle e Bordi Definiti */
+  /* 4. Tabelle e Bordi Definiti: permette la suddivisione naturale su più pagine */
   table {
     border-collapse: collapse !important;
     width: 100% !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  tr {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
   th {
-    background-color: #e2e8f0 !important;
+    background-color: #f1f5f9 !important;
     color: #000000 !important;
-    border: 1px solid #64748b !important;
+    border: 1px solid #475569 !important;
+    font-weight: 800 !important;
+    padding: 6px 8px !important;
+    font-size: 10px !important;
   }
 
   td {
     border: 1px solid #cbd5e1 !important;
     color: #000000 !important;
+    padding: 5px 7px !important;
+    font-size: 9.5px !important;
   }
 
   tr:nth-child(even) td {
@@ -874,6 +892,15 @@ html {
   }
   tr:nth-child(odd) td {
     background-color: #ffffff !important;
+  }
+
+  /* Evita che i contenitori con overflow nascondano o blocchino l'impaginazione di stampa */
+  .overflow-hidden,
+  .overflow-x-auto,
+  .overflow-y-auto {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
   }
 
   .print\:break-after-page {

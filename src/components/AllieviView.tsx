@@ -41,6 +41,7 @@ import {
   timeToMinutes,
 } from '../utils/dateUtils';
 import { StudentDetailModal } from './StudentDetailModal';
+import { generateStudentRegistryPdf } from '../utils/studentRegistryPdf';
 
 export const AllieviView: React.FC = () => {
   const { clients, bookings, staff, addClient, studioInfo } = useApp();
@@ -77,11 +78,32 @@ export const AllieviView: React.FC = () => {
     setCurrentDate(new Date(2026, 9, 1));
   };
 
+  // Profilo docente loggato (se l'utente corrente è un singolo insegnante)
+  const currentLoggedInTeacher = useMemo(() => {
+    if (isTeacher && !isAdmin && user?.staffId) {
+      return staff.find((s) => s.id === user.staffId) || null;
+    }
+    return null;
+  }, [isTeacher, isAdmin, user, staff]);
+
   // Filtri e visualizzazione (default 'table' per layout Excel-like richiesto)
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string>('all');
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>(() => {
+    if (isTeacher && !isAdmin && user?.staffId) {
+      return user.staffId;
+    }
+    return 'all';
+  });
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<'all' | 'pagato' | 'da_saldare'>('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+
+  useEffect(() => {
+    if (isTeacher && !isAdmin && user?.staffId) {
+      setSelectedTeacherId(user.staffId);
+    }
+  }, [isTeacher, isAdmin, user]);
+
+  const activeTeacherFilter = (isTeacher && !isAdmin && user?.staffId) ? user.staffId : selectedTeacherId;
 
   // Modal Dettaglio Allievo
   const [selectedStudent, setSelectedStudent] = useState<Client | null>(null);
@@ -144,9 +166,45 @@ export const AllieviView: React.FC = () => {
 
   /**
    * ── ESTRAZIONE DEGLI ALLIEVI DALLE PRENOTAZIONI DELLE LEZIONI ──
+   * REGOLA CRUCIALE: Ogni allievo è censito per singolo docente (chiave: studente + insegnante).
+   * In questo modo, ogni insegnante nel riepilogo ha ESCLUSIVAMENTE le proprie lezioni e non quelle degli altri.
    */
   const studentsWithStats = useMemo(() => {
     const allLessonBookings = bookings.filter(isLesson);
+
+    // Helper per determinare con precisione il docente assegnato alla prenotazione
+    const resolveTeacherForBooking = (b: Booking): { id: string; nomeCompleto: string } => {
+      // 1. Match per ID esatto nello staff
+      if (b.insegnanteId) {
+        const byId = staff.find((s) => s.id === b.insegnanteId);
+        if (byId) return { id: byId.id, nomeCompleto: `${byId.nome} ${byId.cognome}`.trim() };
+      }
+      // 2. Match per nome dell'insegnante
+      if (b.insegnanteNome) {
+        const norm = b.insegnanteNome.trim().toLowerCase();
+        const byFull = staff.find((s) => `${s.nome} ${s.cognome}`.trim().toLowerCase() === norm);
+        if (byFull) return { id: byFull.id, nomeCompleto: `${byFull.nome} ${byFull.cognome}`.trim() };
+        const byFirst = staff.find((s) => s.nome.trim().toLowerCase() === norm);
+        if (byFirst) return { id: byFirst.id, nomeCompleto: `${byFirst.nome} ${byFirst.cognome}`.trim() };
+      }
+      // 3. Fallback: allievo con docente di riferimento registrato
+      if (b.clienteId) {
+        const matched = clients.find((c) => c.id === b.clienteId);
+        if (matched?.insegnanteRiferimentoId) {
+          const byRef = staff.find((s) => s.id === matched.insegnanteRiferimentoId);
+          if (byRef) return { id: byRef.id, nomeCompleto: `${byRef.nome} ${byRef.cognome}`.trim() };
+        }
+      }
+      // 4. Prenotazione in Studiolo (Gabriele Piva)
+      if (b.salaNome?.toLowerCase().includes('studiolo') || b.salaId?.includes('1790981409646')) {
+        const piva = staff.find((s) => s.id === 'staff-1' || s.nome.toLowerCase() === 'gabriele');
+        if (piva) return { id: piva.id, nomeCompleto: `${piva.nome} ${piva.cognome}`.trim() };
+      }
+
+      const fallbackId = b.insegnanteId || 'docente-sconosciuto';
+      const fallbackName = b.insegnanteNome || 'Docente da Assegnare';
+      return { id: fallbackId, nomeCompleto: fallbackName };
+    };
 
     const allieviMap = new Map<
       string,
@@ -179,13 +237,16 @@ export const AllieviView: React.FC = () => {
         cleanRawName = rawName.slice(0, -9).trim();
         detectedCorso = 'Batteria & Percussioni';
       }
-      const normalizedKey = cleanRawName.toLowerCase();
 
-      if (!allieviMap.has(normalizedKey)) {
+      const teacher = resolveTeacherForBooking(b);
+      // Chiave composita: studente + docente (garantisce assoluta separazione delle lezioni fra docenti diversi)
+      const compositeKey = `${cleanRawName.toLowerCase()}###${teacher.id}`;
+
+      if (!allieviMap.has(compositeKey)) {
         const matchedClient = clients.find((c) => {
           if (b.clienteId && c.id === b.clienteId) return true;
           const cFullName = `${c.nome} ${c.cognome}`.trim().toLowerCase();
-          return cFullName === normalizedKey || c.nome.toLowerCase() === normalizedKey;
+          return cFullName === cleanRawName.toLowerCase() || c.nome.toLowerCase() === cleanRawName.toLowerCase();
         });
 
         let nome = cleanRawName;
@@ -215,29 +276,33 @@ export const AllieviView: React.FC = () => {
             corso = 'Pianoforte & Tastiere';
           } else if (nameLower.includes('basso') || noteLower.includes('basso')) {
             corso = 'Basso Elettrico';
-          } else if (b.insegnanteNome) {
-            const tNome = b.insegnanteNome.toLowerCase();
+          } else {
+            const tNome = teacher.nomeCompleto.toLowerCase();
             if (tNome.includes('gabriele')) corso = 'Chitarra & Teoria';
             else if (tNome.includes('michael')) corso = 'Pianoforte & Tastiere';
             else if (tNome.includes('luca')) corso = 'Chitarra Moderna';
             else if (tNome.includes('alessandro')) corso = 'Batteria & Basso';
             else if (tNome.includes('silvia')) corso = 'Canto Moderno';
             else corso = 'Corso Musicale';
-          } else {
-            corso = 'Corso Musicale';
           }
         }
+
+        const baseId = b.clienteId && !b.clienteId.startsWith('manual-')
+          ? b.clienteId
+          : `student-${cleanRawName.replace(/\s+/g, '-').toLowerCase()}`;
+        const studentUniqueId = `${baseId}_${teacher.id}`;
 
         const studentObj: Client = matchedClient
           ? {
               ...matchedClient,
+              id: studentUniqueId,
               isAllievo: true,
-              corsoDidattico: matchedClient.corsoDidattico || corso,
-              insegnanteRiferimentoNome: matchedClient.insegnanteRiferimentoNome || b.insegnanteNome,
-              insegnanteRiferimentoId: matchedClient.insegnanteRiferimentoId || b.insegnanteId,
+              corsoDidattico: corso,
+              insegnanteRiferimentoNome: teacher.nomeCompleto,
+              insegnanteRiferimentoId: teacher.id,
             }
           : {
-              id: b.clienteId && !b.clienteId.startsWith('manual-') ? b.clienteId : `student-${cleanRawName.replace(/\s+/g, '-').toLowerCase()}`,
+              id: studentUniqueId,
               nome,
               cognome,
               codiceFiscale: '',
@@ -258,25 +323,25 @@ export const AllieviView: React.FC = () => {
               gruppoBand: `Corso ${corso}`,
               isAllievo: true,
               corsoDidattico: corso,
-              insegnanteRiferimentoId: b.insegnanteId,
-              insegnanteRiferimentoNome: b.insegnanteNome,
+              insegnanteRiferimentoId: teacher.id,
+              insegnanteRiferimentoNome: teacher.nomeCompleto,
               quotaMensileCorso: 90,
               note: b.note || '',
             };
 
-        allieviMap.set(normalizedKey, {
+        allieviMap.set(compositeKey, {
           student: studentObj,
           allLessons: [],
           monthlyLessons: [],
-          primaryTeacherName: b.insegnanteNome || 'Insegnante',
-          primaryTeacherId: b.insegnanteId || '',
-          teacherIds: new Set(),
-          teacherNames: new Set(),
+          primaryTeacherName: teacher.nomeCompleto,
+          primaryTeacherId: teacher.id,
+          teacherIds: new Set([teacher.id]),
+          teacherNames: new Set([teacher.nomeCompleto]),
           corsoStrumento: corso,
         });
       }
 
-      return allieviMap.get(normalizedKey)!;
+      return allieviMap.get(compositeKey)!;
     };
 
     allLessonBookings.forEach((b) => {
@@ -284,15 +349,6 @@ export const AllieviView: React.FC = () => {
       if (!entry) return;
 
       entry.allLessons.push(b);
-
-      if (b.insegnanteId) entry.teacherIds.add(b.insegnanteId);
-      if (b.insegnanteNome) {
-        entry.teacherNames.add(b.insegnanteNome);
-        entry.primaryTeacherName = b.insegnanteNome;
-      }
-      if (b.insegnanteId) {
-        entry.primaryTeacherId = b.insegnanteId;
-      }
 
       if (b.data && b.data.startsWith(monthStr)) {
         entry.monthlyLessons.push(b);
@@ -399,19 +455,15 @@ export const AllieviView: React.FC = () => {
         if (!fullText.includes(query)) return false;
       }
 
-      // 2. Filtro Docente
-      if (selectedTeacherId !== 'all') {
-        const selectedTeacher = teachersList.find((t) => t.id === selectedTeacherId);
-        const tFullName = selectedTeacher ? `${selectedTeacher.nome} ${selectedTeacher.cognome}`.toLowerCase() : '';
-        const matchDirect = teacherId === selectedTeacherId || (tFullName && teacherName.toLowerCase().includes(tFullName));
-        const matchSet = teacherIds?.has(selectedTeacherId);
-        const matchMonthly = monthlyLessons.some(
-          (l) => l.insegnanteId === selectedTeacherId || (tFullName && (l.insegnanteNome || '').toLowerCase().includes(tFullName))
-        );
-        const matchAll = allLessons.some(
-          (l) => l.insegnanteId === selectedTeacherId || (tFullName && (l.insegnanteNome || '').toLowerCase().includes(tFullName))
-        );
-        if (!matchDirect && !matchSet && !matchMonthly && !matchAll) return false;
+      // 2. Filtro Docente: ogni docente vede ESCLUSIVAMENTE i propri allievi e le proprie lezioni
+      if (activeTeacherFilter !== 'all') {
+        const selectedTeacher = teachersList.find((t) => t.id === activeTeacherFilter) || staff.find((s) => s.id === activeTeacherFilter);
+        const tFullName = selectedTeacher ? `${selectedTeacher.nome} ${selectedTeacher.cognome}`.toLowerCase().trim() : '';
+
+        const matchId = teacherId === activeTeacherFilter;
+        const matchName = Boolean(tFullName && teacherName.toLowerCase().trim() === tFullName);
+
+        if (!matchId && !matchName) return false;
       }
 
       // 3. Filtro Stato Pagamento
@@ -605,7 +657,23 @@ export const AllieviView: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const selectedTeacherObj = teachersList.find((t) => t.id === selectedTeacherId);
+  // Esportazione PDF Vettoriale A4 con jsPDF
+  const exportToPdf = () => {
+    generateStudentRegistryPdf({
+      monthName,
+      currentYear,
+      studioInfo,
+      selectedTeacherName: selectedTeacherObj ? `${selectedTeacherObj.nome} ${selectedTeacherObj.cognome}` : 'Tutti i Docenti',
+      items: filteredStudents,
+      totalStudents: filteredCount,
+      totalCompletedHours: totalMonthlyCompletedHours,
+      totalCompletedLessons: totalMonthlyCompletedLessonsCount,
+      totalCollected: totalCollectedEuros,
+      totalPending: totalPendingEuros,
+    });
+  };
+
+  const selectedTeacherObj = teachersList.find((t) => t.id === activeTeacherFilter) || staff.find((s) => s.id === activeTeacherFilter);
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
@@ -711,12 +779,23 @@ export const AllieviView: React.FC = () => {
             <span className="font-bold">Esporta Excel</span>
           </button>
 
-          {/* Stampa Registro A4 */}
+          {/* Esporta PDF (Download Diretto Vettoriale) */}
+          <button
+            type="button"
+            onClick={exportToPdf}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+            title="Scarica direttamente il documento PDF formattato del registro allievi"
+          >
+            <Download className="w-4 h-4" />
+            <span className="font-bold">Esporta PDF</span>
+          </button>
+
+          {/* Stampa Registro A4 / Salva in PDF */}
           <button
             type="button"
             onClick={() => window.print()}
             className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 dark:bg-neutral-800 hover:bg-slate-800 dark:hover:bg-neutral-700 text-white border border-slate-800 dark:border-neutral-700 flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-            title="Stampa foglio presenze e quote formato A4"
+            title="Stampa foglio presenze e quote o Salva come PDF"
           >
             <Printer className="w-4 h-4 text-slate-300" />
             <span>Stampa A4</span>
@@ -832,22 +911,31 @@ export const AllieviView: React.FC = () => {
 
         {/* Filtri */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Filtro Docente */}
-          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-neutral-950 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-neutral-800">
-            <GraduationCap className="w-3.5 h-3.5 text-amber-500" />
-            <select
-              value={selectedTeacherId}
-              onChange={(e) => setSelectedTeacherId(e.target.value)}
-              className="bg-transparent text-slate-900 dark:text-neutral-200 text-xs font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value="all">Tutti i Docenti</option>
-              {teachersList.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nome} {t.cognome}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Filtro Docente: se profilo insegnante singolo, bloccato sul proprio profilo; se admin, scelta libera */}
+          {isTeacher && !isAdmin && user?.staffId ? (
+            <div className="flex items-center gap-1.5 bg-amber-500/10 dark:bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-500/30">
+              <GraduationCap className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-slate-900 dark:text-neutral-200 text-xs font-bold">
+                {selectedTeacherObj ? `${selectedTeacherObj.nome} ${selectedTeacherObj.cognome}` : user.nome}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-neutral-950 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-neutral-800">
+              <GraduationCap className="w-3.5 h-3.5 text-amber-500" />
+              <select
+                value={selectedTeacherId}
+                onChange={(e) => setSelectedTeacherId(e.target.value)}
+                className="bg-transparent text-slate-900 dark:text-neutral-200 text-xs font-semibold focus:outline-none cursor-pointer"
+              >
+                <option value="all">Tutti i Docenti</option>
+                {teachersList.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nome} {t.cognome}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Filtro Stato Pagamento */}
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-neutral-950 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-neutral-800">
@@ -930,9 +1018,9 @@ export const AllieviView: React.FC = () => {
         /* ═════════════════════════════════════════════════════════════════
            ── TABELLA MASTER STILE EXCEL (FOGLIO PRESENZE & QUOTE) ──
            ═════════════════════════════════════════════════════════════════ */
-        <div className="bg-white dark:bg-neutral-900 border border-slate-300 dark:border-neutral-700 rounded-xl overflow-hidden shadow-xs print:border-slate-900">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+        <div className="bg-white dark:bg-neutral-900 border border-slate-300 dark:border-neutral-700 rounded-xl overflow-hidden shadow-xs print:overflow-visible print:border-none print:shadow-none print:m-0 print:p-0">
+          <div className="overflow-x-auto print:overflow-visible">
+            <table className="w-full text-left text-xs border-collapse print:text-[9.5px] print:w-full">
               {/* Header Tabella Excel (senza metodo) */}
               <thead className="bg-slate-100 dark:bg-neutral-950 text-slate-700 dark:text-neutral-300 font-extrabold uppercase tracking-wider text-[11px] border-b-2 border-slate-300 dark:border-neutral-700">
                 <tr>
