@@ -110,7 +110,7 @@ export const INITIAL_STAFF: StaffMember[] = [
     indisponibilitaDate: [],
   },
   {
-    id: 'staff-1790952646698',
+    id: 'staff-1790952724237',
     nome: 'Luca',
     cognome: 'Di Chiara',
     ruolo: 'insegnante',
@@ -139,7 +139,7 @@ export const INITIAL_STAFF: StaffMember[] = [
     indisponibilitaDate: [],
   },
   {
-    id: 'staff-1790952680654',
+    id: 'staff-1790952691190',
     nome: 'Michael',
     cognome: 'Bertin',
     ruolo: 'insegnante',
@@ -353,7 +353,7 @@ export const INITIAL_CLIENTS: Client[] = [
     note: 'Allievo corso batteria moderna con Luca Di Chiara.',
     isAllievo: true,
     corsoDidattico: 'Batteria & Percussioni',
-    insegnanteRiferimentoId: 'staff-1790952646698',
+    insegnanteRiferimentoId: 'staff-1790952724237',
     insegnanteRiferimentoNome: 'Luca Di Chiara',
     quotaMensileCorso: 85,
   },
@@ -610,7 +610,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     salaId: 'room-1790435560341', // Sala Piccola
     salaNome: 'Sala Piccola',
     tipo: 'lezione',
-    insegnanteId: 'staff-1790952646698',
+    insegnanteId: 'staff-1790952724237',
     insegnanteNome: 'Luca Di Chiara',
     data: getRelativeDateStr(-4), // 4 giorni fa (svolta)
     oraInizio: '18:00',
@@ -629,7 +629,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     salaId: 'room-1790435560341',
     salaNome: 'Sala Piccola',
     tipo: 'lezione',
-    insegnanteId: 'staff-1790952646698',
+    insegnanteId: 'staff-1790952724237',
     insegnanteNome: 'Luca Di Chiara',
     data: getRelativeDateStr(3),
     oraInizio: '18:00',

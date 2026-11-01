@@ -158,6 +158,74 @@ export function deduplicateBookings(bookingsList: Booking[]): Booking[] {
   return Array.from(clientSlotMap.values());
 }
 
+/**
+ * Deduplica la lista collaboratori/insegnanti garantendo unicità per ID e per nome/cognome normalizzato.
+ * Previene che discrepanze tra localStorage e database Supabase (es. ID temporanei o generati)
+ * producano docenti duplicati nei menù a tendina.
+ */
+export function deduplicateStaff(staffList: StaffMember[]): StaffMember[] {
+  const canonicalIdMap: Record<string, string> = {
+    'staff-1790952646698': 'staff-1790952724237', // Luca Di Chiara
+    'staff-1790952680654': 'staff-1790952691190', // Michael Bertin
+  };
+
+  const nameMap = new Map<string, StaffMember>();
+  const idMap = new Map<string, StaffMember>();
+
+  for (const raw of staffList) {
+    if (!raw) continue;
+    let member: StaffMember = {
+      ...raw,
+      id: canonicalIdMap[raw.id] || raw.id,
+    };
+
+    // Sanificazione Gabriele Piva (ex Marco Bellini)
+    if (
+      member.id === 'staff-1' ||
+      member.nome?.toLowerCase() === 'gabriele' ||
+      member.nome?.toLowerCase() === 'marco' ||
+      (member.email && member.email.includes('marco.bellini'))
+    ) {
+      member = {
+        ...member,
+        id: 'staff-1',
+        nome: 'Gabriele',
+        cognome: 'Piva',
+        email: 'gabriele.piva@salaprove.it',
+      };
+    }
+
+    const normName = `${(member.nome || '').trim().toLowerCase()} ${(member.cognome || '').trim().toLowerCase()}`;
+
+    if (!normName.trim()) {
+      if (!idMap.has(member.id)) idMap.set(member.id, member);
+      continue;
+    }
+
+    if (!nameMap.has(normName)) {
+      nameMap.set(normName, member);
+      idMap.set(member.id, member);
+    } else {
+      const existing = nameMap.get(normName)!;
+      // Preferisci sempre l'ID reale censito su Supabase o quello con più informazioni
+      const preferMember =
+        member.id === 'staff-1790952724237' ||
+        member.id === 'staff-1790952691190' ||
+        member.id === 'staff-1' ||
+        (!existing.email && Boolean(member.email));
+
+      const winner: StaffMember = preferMember
+        ? { ...existing, ...member }
+        : { ...member, ...existing };
+
+      nameMap.set(normName, winner);
+      idMap.set(winner.id, winner);
+    }
+  }
+
+  return Array.from(nameMap.values());
+}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [studioInfo, setStudioInfo] = useState<StudioInfo>(() => {
     const local = safeLocalStorageGet(STORAGE_KEYS.STUDIO, DEFAULT_STUDIO_INFO);
@@ -173,17 +241,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [staff, setStaff] = useState<StaffMember[]>(() => {
     const raw = safeLocalStorageGet(STORAGE_KEYS.STAFF, INITIAL_STAFF);
-    return raw.map((s) => {
-      if (s.id === 'staff-1' || s.nome?.toLowerCase() === 'gabriele' || (s.email && s.email.includes('marco.bellini'))) {
-        return {
-          ...s,
-          nome: 'Gabriele',
-          cognome: 'Piva',
-          email: 'gabriele.piva@salaprove.it',
-        };
-      }
-      return s;
-    });
+    return deduplicateStaff(raw);
   });
 
   const [clients, setClients] = useState<Client[]>(() =>
@@ -237,11 +295,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
           }
           if (remote.staff.length > 0) {
-            setStaff((prevLocal) => {
-              const remoteIds = new Set(remote.staff.map((s) => s.id));
-              const pendingLocal = prevLocal.filter((localMember) => !remoteIds.has(localMember.id));
-              return pendingLocal.length > 0 ? [...remote.staff, ...pendingLocal] : remote.staff;
-            });
+            setStaff((prevLocal) => deduplicateStaff([...remote.staff, ...prevLocal]));
           }
           if (remote.clients.length > 0) {
             setClients((prevLocal) => {
@@ -343,22 +397,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
         }
         if (remote.staff.length > 0) {
-          const sanitizedStaff = remote.staff.map((s) => {
-            if (s.id === 'staff-1' || s.nome?.toLowerCase() === 'marco' || (s.email && s.email.includes('marco.bellini'))) {
-              return {
-                ...s,
-                nome: 'Gabriele',
-                cognome: 'Piva',
-                email: 'gabriele.piva@salaprove.it',
-              };
-            }
-            return s;
-          });
-          setStaff((prevLocal) => {
-            const remoteIds = new Set(sanitizedStaff.map((s) => s.id));
-            const pendingLocal = prevLocal.filter((localMember) => !remoteIds.has(localMember.id));
-            return pendingLocal.length > 0 ? [...sanitizedStaff, ...pendingLocal] : sanitizedStaff;
-          });
+          setStaff((prevLocal) => deduplicateStaff([...remote.staff, ...prevLocal]));
         }
         if (remote.bookings) {
           const sanitized = remote.bookings.map((b) => {

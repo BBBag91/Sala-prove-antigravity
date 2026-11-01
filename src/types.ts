@@ -283,12 +283,18 @@ export interface StudentMonthlyPayment {
   id: string;
   /** ID del cliente/allievo */
   clienteId: string;
+  /** Nome del cliente/allievo per matching affidabile */
+  clienteNome?: string;
   /** Mese di competenza in formato YYYY-MM */
   mese: string;
   /** Stato del pagamento per il mese: 'pagato', 'da_saldare', 'parziale' */
   stato: StudentPaymentStatus;
   /** Data effettiva in cui è avvenuto il pagamento (YYYY-MM-DD) */
   dataPagamento?: string;
+  /** Orario di registrazione del pagamento (HH:mm) */
+  oraPagamento?: string;
+  /** Timestamp completo di registrazione del pagamento (ISO string) */
+  dataOraRegistrazione?: string;
   /** Importo versato per il mese in Euro (€) */
   importo?: number;
   /** Metodo di pagamento utilizzato */

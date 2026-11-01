@@ -24,7 +24,7 @@ import {
   CreditCard,
   FileText,
 } from 'lucide-react';
-import { Client, Booking, StudentMonthlyPayment, StudentPaymentStatus, PaymentMethod } from '../types';
+import { Client, Booking, isLessonBooking, StudentMonthlyPayment, StudentPaymentStatus, PaymentMethod } from '../types';
 import { useApp } from '../context/AppContext';
 import { studentPaymentService } from '../services/studentPaymentService';
 import {
@@ -63,7 +63,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
       const [y, m] = initialMonthStr.split('-');
       return new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
     }
-    return today;
+    return new Date(2026, 9, 1); // Ottobre 2026
   });
 
   const monthStr = useMemo(() => {
@@ -93,18 +93,19 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   // Caricamento del pagamento per l'allievo nel mese
   const loadPayment = () => {
     if (!student) return;
-    const p = studentPaymentService.getPayment(student.id, monthStr);
+    const fullName = `${student.nome} ${student.cognome}`.trim();
+    const p = studentPaymentService.getPayment(student.id, monthStr, fullName);
     setPaymentRecord(p);
     if (p) {
       setFormStato(p.stato);
-      setFormDataPagamento(p.dataPagamento || todayISO);
+      setFormDataPagamento(p.dataPagamento || `${monthStr}-05`);
       setFormImporto(p.importo !== undefined ? p.importo : (student.quotaMensileCorso || 90));
       setFormMetodo(p.metodoPagamento || 'bonifico');
       setFormRicevuta(p.ricevutaNumero || '');
       setFormNote(p.note || '');
     } else {
       setFormStato('da_saldare');
-      setFormDataPagamento(todayISO);
+      setFormDataPagamento(`${monthStr}-05`);
       setFormImporto(student.quotaMensileCorso || 90);
       setFormMetodo('bonifico');
       setFormRicevuta('');
@@ -136,15 +137,24 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     setCurrentDate(today);
   };
 
-  // Lezioni dell'allievo
+  // Lezioni dell'allievo estratte direttamente da tutte le lezioni a calendario
   const allStudentLessons = useMemo(() => {
     if (!student) return [];
     const fullName = `${student.nome} ${student.cognome}`.trim().toLowerCase();
+    const sNameOnly = student.nome.toLowerCase().trim();
+
     return bookings
       .filter((b) => {
-        if (b.tipo !== 'lezione') return false;
-        if (b.clienteId === student.id) return true;
-        if (b.clienteNome && b.clienteNome.toLowerCase().includes(fullName)) return true;
+        const isLes = isLessonBooking(b) || b.tipo === 'lezione' || Boolean(b.insegnanteId) || Boolean(b.insegnanteNome);
+        if (!isLes) return false;
+        if (b.clienteId && student.id && b.clienteId === student.id) return true;
+        let bName = (b.clienteNome || '').toLowerCase().trim();
+        if (bName.endsWith(' chita')) bName = bName.slice(0, -6).trim();
+        if (bName.endsWith(' chitarra')) bName = bName.slice(0, -9).trim();
+        if (bName.endsWith(' batteria')) bName = bName.slice(0, -9).trim();
+        if (bName && (bName === fullName || fullName.includes(bName) || bName.includes(fullName) || bName.includes(sNameOnly) || sNameOnly === bName)) {
+          return true;
+        }
         return false;
       })
       .sort((a, b) => {
@@ -188,16 +198,20 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   // Salvataggio del pagamento del mese
   const handleSavePayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!student) return;
+    const fullName = `${student.nome} ${student.cognome}`.trim();
+    const now = new Date();
+    const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     const newRecord: StudentMonthlyPayment = {
       id: `${student.id}_${monthStr}`,
       clienteId: student.id,
+      clienteNome: fullName,
       mese: monthStr,
       stato: formStato,
       dataPagamento: formStato === 'pagato' ? formDataPagamento : undefined,
+      oraPagamento: formStato === 'pagato' ? (paymentRecord?.oraPagamento || nowTime) : undefined,
+      dataOraRegistrazione: formStato === 'pagato' ? (paymentRecord?.dataOraRegistrazione || now.toISOString()) : undefined,
       importo: Number(formImporto) || 0,
-      metodoPagamento: formStato === 'pagato' ? formMetodo : undefined,
       ricevutaNumero: formRicevuta.trim() || undefined,
       note: formNote.trim() || undefined,
     };
@@ -208,19 +222,25 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     setTimeout(() => setSaveSuccess(false), 2500);
   };
 
-  // Azione rapida: Segna come saldato oggi
+  // Azione rapida: Segna come saldato oggi con data e ora esatta
   const handleQuickMarkPaid = () => {
     if (!student) return;
+    const fullName = `${student.nome} ${student.cognome}`.trim();
+    const now = new Date();
+    const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
     const newRecord: StudentMonthlyPayment = {
       id: `${student.id}_${monthStr}`,
       clienteId: student.id,
+      clienteNome: fullName,
       mese: monthStr,
       stato: 'pagato',
       dataPagamento: todayISO,
+      oraPagamento: nowTime,
+      dataOraRegistrazione: now.toISOString(),
       importo: formImporto || student.quotaMensileCorso || 90,
-      metodoPagamento: formMetodo || 'bonifico',
       ricevutaNumero: formRicevuta || `R-${currentYear}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`,
-      note: formNote || 'Saldato con registrazione rapida',
+      note: formNote || `Saldato il ${todayISO} alle ore ${nowTime}`,
     };
     studentPaymentService.savePayment(newRecord);
     setPaymentRecord(newRecord);
@@ -233,10 +253,11 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   // Storico dei 12 mesi per l'allievo
   const yearlyHistory = useMemo(() => {
     if (!student) return [];
+    const fullName = `${student.nome} ${student.cognome}`.trim();
     return MESI_ITALIANI.map((nomeMese, idx) => {
       const mNum = String(idx + 1).padStart(2, '0');
       const mStr = `${currentYear}-${mNum}`;
-      const rec = studentPaymentService.getPayment(student.id, mStr);
+      const rec = studentPaymentService.getPayment(student.id, mStr, fullName);
       const mLessons = allStudentLessons.filter((b) => b.data.startsWith(mStr));
       const mHours = mLessons.reduce((sum, b) => sum + (b.durataOre || 1), 0);
       return {
