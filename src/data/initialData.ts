@@ -474,7 +474,6 @@ export const INITIAL_EXPENSES: Expense[] = [
     fornitore: 'Immobiliare Musica srl',
     numeroFatturaRicevuta: 'FATT-2026-089',
     stato: 'pagato',
-    cicloPagamento: 'posticipato',
   },
   {
     id: 'exp-2',

@@ -560,10 +560,6 @@ export interface Expense {
   stato: 'pagato' | 'in_scadenza';
   /** Note contabili */
   note?: string;
-  /** Mese di competenza economica (YYYY-MM) a cui la spesa è imputata (es. '2026-10' per l'affitto pagato il 10 Novembre con incassi di Ottobre) */
-  meseCompetenza?: string;
-  /** Ciclo di pagamento: 'corrente' o 'posticipato' (es. affitto pagato a inizio mese M per competenza M-1) */
-  cicloPagamento?: 'corrente' | 'posticipato';
 }
 
 /**

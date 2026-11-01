@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { X, Receipt, CheckCircle2, Calendar } from 'lucide-react';
+import { X, Receipt, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Expense, ExpenseCategory } from '../types';
-import { formatDateToISO, getPreviousMonthStr, MESI_ITALIANI } from '../utils/dateUtils';
+import { formatDateToISO } from '../utils/dateUtils';
 import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
 
 interface ExpenseModalProps {
@@ -36,8 +36,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
   const [numeroFatturaRicevuta, setNumeroFatturaRicevuta] = useState('');
   const [stato, setStato] = useState<'pagato' | 'in_scadenza'>('pagato');
   const [note, setNote] = useState('');
-  const [cicloPagamento, setCicloPagamento] = useState<'corrente' | 'posticipato'>('corrente');
-  const [meseCompetenza, setMeseCompetenza] = useState<string>('');
 
   useEffect(() => {
     if (expenseToEdit) {
@@ -50,16 +48,8 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
       setNumeroFatturaRicevuta(expenseToEdit.numeroFatturaRicevuta || '');
       setStato(expenseToEdit.stato);
       setNote(expenseToEdit.note || '');
-      
-      const isPost = expenseToEdit.cicloPagamento === 'posticipato' || expenseToEdit.categoria === 'affitto';
-      setCicloPagamento(isPost ? 'posticipato' : 'corrente');
-      setMeseCompetenza(
-        expenseToEdit.meseCompetenza ||
-        (isPost ? getPreviousMonthStr(expenseToEdit.data.substring(0, 7)) : expenseToEdit.data.substring(0, 7))
-      );
     } else {
-      const todayIso = formatDateToISO(new Date());
-      setData(todayIso);
+      setData(formatDateToISO(new Date()));
       setCategoria('energia');
       setDescrizione('');
       setImporto('');
@@ -68,56 +58,14 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
       setNumeroFatturaRicevuta('');
       setStato('pagato');
       setNote('');
-      setCicloPagamento('corrente');
-      setMeseCompetenza(todayIso.substring(0, 7));
     }
   }, [expenseToEdit, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleCategoryChange = (newCat: ExpenseCategory) => {
-    setCategoria(newCat);
-    if (newCat === 'affitto') {
-      setCicloPagamento('posticipato');
-      const prevMonth = getPreviousMonthStr(data.substring(0, 7));
-      setMeseCompetenza(prevMonth);
-      if (!descrizione.trim() || descrizione.toLowerCase().includes('canone') || descrizione.toLowerCase().includes('affitto')) {
-        const [py, pm] = prevMonth.split('-').map(Number);
-        setDescrizione(`Canone Affitto ${MESI_ITALIANI[pm - 1]} ${py}`);
-      }
-    } else if (cicloPagamento === 'posticipato' && (!expenseToEdit || expenseToEdit.categoria === 'affitto')) {
-      setCicloPagamento('corrente');
-      setMeseCompetenza(data.substring(0, 7));
-    }
-  };
-
-  const handleDataChange = (newData: string) => {
-    setData(newData);
-    const dataMonth = newData.substring(0, 7);
-    if (cicloPagamento === 'posticipato') {
-      setMeseCompetenza(getPreviousMonthStr(dataMonth));
-    } else {
-      setMeseCompetenza(dataMonth);
-    }
-  };
-
-  const handleCicloChange = (newCiclo: 'corrente' | 'posticipato') => {
-    setCicloPagamento(newCiclo);
-    const dataMonth = data.substring(0, 7);
-    if (newCiclo === 'posticipato') {
-      setMeseCompetenza(getPreviousMonthStr(dataMonth));
-    } else {
-      setMeseCompetenza(dataMonth);
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!descrizione.trim() || !importo) return;
-
-    const finalMeseCompetenza = meseCompetenza || (
-      cicloPagamento === 'posticipato' ? getPreviousMonthStr(data.substring(0, 7)) : data.substring(0, 7)
-    );
 
     if (expenseToEdit) {
       updateExpense({
@@ -131,8 +79,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
         numeroFatturaRicevuta: numeroFatturaRicevuta.trim() || undefined,
         stato,
         note: note.trim() || undefined,
-        meseCompetenza: finalMeseCompetenza,
-        cicloPagamento,
       });
     } else {
       addExpense({
@@ -145,8 +91,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
         numeroFatturaRicevuta: numeroFatturaRicevuta.trim() || undefined,
         stato,
         note: note.trim() || undefined,
-        meseCompetenza: finalMeseCompetenza,
-        cicloPagamento,
       });
     }
 
@@ -192,7 +136,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
             </label>
             <select
               value={categoria}
-              onChange={(e) => handleCategoryChange(e.target.value as ExpenseCategory)}
+              onChange={(e) => setCategoria(e.target.value as ExpenseCategory)}
               className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
             >
               {EXPENSE_CATEGORIES.map((c) => (
@@ -201,73 +145,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Ciclo e Mese di Competenza Economica (Particolarmente dedicato all'Affitto Locale Sala) */}
-          <div className="p-3.5 rounded-xl border border-indigo-100 bg-indigo-50/60 dark:bg-neutral-900 dark:border-neutral-800 space-y-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-indigo-950 dark:text-neutral-200 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Ciclo di Competenza Economica:</span>
-              </span>
-              <div className="flex items-center bg-white dark:bg-neutral-800 rounded-lg p-0.5 border border-indigo-200 dark:border-neutral-700 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleCicloChange('posticipato')}
-                  className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
-                    cicloPagamento === 'posticipato'
-                      ? 'bg-indigo-600 text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-neutral-300 hover:text-slate-900'
-                  }`}
-                  title="Il canone pagato a inizio mese M viene coperto con i soldi maturati nel mese M-1"
-                >
-                  ⏳ Posticipato (Mese Prec.)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCicloChange('corrente')}
-                  className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
-                    cicloPagamento === 'corrente'
-                      ? 'bg-indigo-600 text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-neutral-300 hover:text-slate-900'
-                  }`}
-                  title="Contabilizzato nello stesso mese della data del pagamento"
-                >
-                  📅 Mese Corrente
-                </button>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-indigo-900/80 dark:text-neutral-400 leading-snug">
-              {cicloPagamento === 'posticipato' ? (
-                <span>
-                  💡 <strong>Ciclo Posticipato:</strong> La spesa (es. canone affitto del 10 del mese) viene imputata al conto del <strong>mese precedente</strong> e coperta con i proventi maturati in quel mese.
-                </span>
-              ) : (
-                <span>
-                  💡 <strong>Ciclo Corrente:</strong> La spesa viene imputata direttamente al conto del mese della data di pagamento.
-                </span>
-              )}
-            </p>
-
-            <div className="flex items-center gap-2 pt-1 border-t border-indigo-100/80 dark:border-neutral-800">
-              <label className="text-[11px] font-semibold text-slate-700 dark:text-neutral-300 whitespace-nowrap">
-                Imputa al Conto Mese:
-              </label>
-              <input
-                type="month"
-                value={meseCompetenza}
-                onChange={(e) => setMeseCompetenza(e.target.value)}
-                className="px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 font-bold text-xs text-indigo-900 dark:text-white"
-              />
-              <span className="text-[10px] text-slate-500 font-mono">
-                {(() => {
-                  if (!meseCompetenza || !meseCompetenza.includes('-')) return '';
-                  const [y, m] = meseCompetenza.split('-').map(Number);
-                  return `(${MESI_ITALIANI[m - 1]} ${y})`;
-                })()}
-              </span>
-            </div>
           </div>
 
           {/* Descrizione */}
@@ -313,12 +190,12 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, exp
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Data Pagamento / Scadenza *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Data *</label>
               <input
                 type="date"
                 required
                 value={data}
-                onChange={(e) => handleDataChange(e.target.value)}
+                onChange={(e) => setData(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
               />
             </div>

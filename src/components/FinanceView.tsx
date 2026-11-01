@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Expense, ExpenseCategory } from '../types';
-import { formatCurrency, formatDateItalian, MESI_ITALIANI, getExpenseCompetenceMonth } from '../utils/dateUtils';
+import { formatCurrency, formatDateItalian, MESI_ITALIANI } from '../utils/dateUtils';
 import { EXPENSE_CATEGORIES, ExpenseModal } from './ExpenseModal';
 import { CompensiFineMeseSection } from './CompensiFineMeseSection';
 import { TeacherLessonsFinanceSection } from './TeacherLessonsFinanceSection';
@@ -60,30 +60,18 @@ export const FinanceView: React.FC = () => {
     }
   };
 
-  // Modalità filtro registro spese: 'competenza' (default) o 'cassa' (per data pagamento)
-  const [expenseFilterMode, setExpenseFilterMode] = useState<'competenza' | 'cassa'>('competenza');
-
-  // Spese di competenza del mese (es. l'affitto pagato il 10 Novembre con gli incassi di Ottobre appartiene alla competenza di Ottobre!)
-  const competenceExpenses = expenses.filter((e) => getExpenseCompetenceMonth(e) === monthStr);
-  const cashMovementExpenses = expenses.filter((e) => e.data && e.data.startsWith(monthStr));
-
-  // Spese mostrate nel registro dettagliato
-  const monthlyExpenses = expenseFilterMode === 'competenza' ? competenceExpenses : cashMovementExpenses;
+  // Expenses for this month
+  const monthlyExpenses = expenses.filter((e) => e.data.startsWith(monthStr));
   const filteredExpenses = monthlyExpenses.filter(
     (e) => categoryFilter === 'all' || e.categoria === categoryFilter
   );
 
-  // Spese per il conto economico mensile: calcolate su base COMPETENZA (i soldi maturati in questo mese coprono i costi di questo mese)
-  const paidExpenses = competenceExpenses.filter((e) => e.stato === 'pagato');
-  const pendingExpenses = competenceExpenses.filter((e) => e.stato === 'in_scadenza');
+  // Spese del mese: conteggia nel totale spese solo quelle effettivamente saldate / pagate
+  const paidExpenses = monthlyExpenses.filter((e) => e.stato === 'pagato');
+  const pendingExpenses = monthlyExpenses.filter((e) => e.stato === 'in_scadenza');
 
   const totalExpenses = paidExpenses.reduce((sum, e) => sum + e.importo, 0);
   const totalPendingExpenses = pendingExpenses.reduce((sum, e) => sum + e.importo, 0);
-
-  // Spese posticipate pagate in questo mese ma coperte dal mese precedente (es. affitto mese prec. pagato a inizio mese corrente)
-  const deferredExpensesPaidInThisMonth = expenses.filter(
-    (e) => e.data && e.data.startsWith(monthStr) && getExpenseCompetenceMonth(e) !== monthStr
-  );
 
   // Incomes from bookings for this month (solo eventi sala saldati)
   const monthlyBookings = bookings.filter((b) => b.data.startsWith(monthStr));
@@ -122,11 +110,7 @@ export const FinanceView: React.FC = () => {
   // Calcolo storico "somma di ogni Netto Sala"
   const allMonthKeys = new Set<string>();
   bookings.forEach((b) => b.data && allMonthKeys.add(b.data.substring(0, 7)));
-  expenses.forEach((e) => {
-    if (e.data) allMonthKeys.add(e.data.substring(0, 7));
-    const comp = getExpenseCompetenceMonth(e);
-    if (comp) allMonthKeys.add(comp);
-  });
+  expenses.forEach((e) => e.data && allMonthKeys.add(e.data.substring(0, 7)));
   allMonthKeys.add(monthStr);
 
   let historicalNettoSalaSum = 0;
@@ -135,7 +119,7 @@ export const FinanceView: React.FC = () => {
       .filter((b) => b.data && b.data.startsWith(mStr) && b.statoPagamento === 'pagato' && b.tipo !== 'lezione')
       .reduce((sum, b) => sum + b.tariffaTotale, 0);
     const mExpenses = expenses
-      .filter((e) => getExpenseCompetenceMonth(e) === mStr && e.stato === 'pagato')
+      .filter((e) => e.data && e.data.startsWith(mStr) && e.stato === 'pagato')
       .reduce((sum, e) => sum + e.importo, 0);
     const mNet = mBookings - mExpenses;
     historicalNettoSalaSum += Math.ceil(mNet / 3);
@@ -365,79 +349,28 @@ export const FinanceView: React.FC = () => {
 
       {/* Spese Registro Table & Mobile Cards */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden space-y-3 p-4">
-        {/* Banner informativo se nel mese corrente avviene il pagamento di un affitto/spesa di competenza del mese precedente */}
-        {deferredExpensesPaidInThisMonth.length > 0 && (
-          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
-            <span className="text-base">🏢</span>
-            <div>
-              <p className="font-bold">
-                Promemoria Uscite di Cassa a {MESI_ITALIANI[currentMonth]} (Affitto Posticipato)
-              </p>
-              <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">
-                {deferredExpensesPaidInThisMonth.map((e) => {
-                  const comp = getExpenseCompetenceMonth(e);
-                  const [cy, cm] = comp.split('-').map(Number);
-                  return `Il canone di €${e.importo.toFixed(2)} (${e.descrizione}) ha scadenza/pagamento il ${formatDateItalian(e.data, false)}, ed è imputato e coperto con gli incassi maturati a ${MESI_ITALIANI[cm - 1]} ${cy}.`;
-                }).join(' ')}
-              </p>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
           <div>
             <h3 className="text-base font-bold text-slate-900">Registro Dettagliato Spese</h3>
             <p className="text-xs text-slate-500">
-              {expenseFilterMode === 'competenza'
-                ? `Spese coperte dagli incassi di ${MESI_ITALIANI[currentMonth]} ${currentYear} (compreso canone affitto posticipato)`
-                : `Spese con data di pagamento compresa in ${MESI_ITALIANI[currentMonth]} ${currentYear}`}
+              Utenze, bollette, affitti, ricevute e compensi con metodo di pagamento
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Toggle Vista Competenza vs Vista Cassa */}
-            <div className="flex items-center bg-slate-100 dark:bg-neutral-800 p-0.5 rounded-xl border border-slate-200 dark:border-neutral-700 text-xs">
-              <button
-                type="button"
-                onClick={() => setExpenseFilterMode('competenza')}
-                className={`px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                  expenseFilterMode === 'competenza'
-                    ? 'bg-white dark:bg-neutral-900 text-slate-900 dark:text-yellow-300 shadow-2xs'
-                    : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900'
-                }`}
-                title="Mostra le spese coperte dagli incassi maturati in questo mese (es. affitto imputato a questo mese)"
-              >
-                📊 Vista Competenza
-              </button>
-              <button
-                type="button"
-                onClick={() => setExpenseFilterMode('cassa')}
-                className={`px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                  expenseFilterMode === 'cassa'
-                    ? 'bg-white dark:bg-neutral-900 text-slate-900 dark:text-yellow-300 shadow-2xs'
-                    : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900'
-                }`}
-                title="Mostra le spese in base alla data effettiva del pagamento"
-              >
-                💳 Vista Movimenti Cassa
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <Filter className="w-4 h-4 text-slate-400" />
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value as any)}
-                className="text-xs font-semibold px-3 py-2 min-h-[38px] rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden touch-manipulation cursor-pointer"
-              >
-                <option value="all">Tutte le categorie</option>
-                {EXPENSE_CATEGORIES.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.icon} {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-400" />
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value as any)}
+              className="text-xs font-semibold px-3 py-2.5 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden touch-manipulation cursor-pointer"
+            >
+              <option value="all">Tutte le categorie</option>
+              {EXPENSE_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.icon} {c.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -451,9 +384,6 @@ export const FinanceView: React.FC = () => {
             filteredExpenses.map((exp) => {
               const catInfo = EXPENSE_CATEGORIES.find((c) => c.id === exp.categoria);
               const isPaid = exp.stato === 'pagato';
-              const comp = getExpenseCompetenceMonth(exp);
-              const isPost = exp.categoria === 'affitto' || exp.cicloPagamento === 'posticipato' || comp !== exp.data.substring(0, 7);
-              const [cy, cm] = comp ? comp.split('-').map(Number) : [0, 0];
 
               return (
                 <div
@@ -474,18 +404,11 @@ export const FinanceView: React.FC = () => {
                   {/* Body: Date & Description */}
                   <div className="space-y-1 text-xs">
                     <div className="text-[11px] font-mono text-slate-500">
-                      📅 Data pagamento: {formatDateItalian(exp.data, false)}
+                      📅 {formatDateItalian(exp.data, false)}
                     </div>
                     <div className="font-bold text-slate-900 text-sm">
                       {exp.descrizione}
                     </div>
-
-                    {isPost && cy > 0 && (
-                      <div className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
-                        <span>🏢 Affitto Posticipato:</span>
-                        <span>coperto con incassi di {MESI_ITALIANI[cm - 1]} {cy}</span>
-                      </div>
-                    )}
 
                     {(exp.fornitore || exp.numeroFatturaRicevuta) && (
                       <div className="text-slate-600 bg-white/60 p-2 rounded-lg border border-slate-200 text-xs mt-1">
@@ -571,19 +494,11 @@ export const FinanceView: React.FC = () => {
                 filteredExpenses.map((exp) => {
                   const catInfo = EXPENSE_CATEGORIES.find((c) => c.id === exp.categoria);
                   const isPaid = exp.stato === 'pagato';
-                  const comp = getExpenseCompetenceMonth(exp);
-                  const isPost = exp.categoria === 'affitto' || exp.cicloPagamento === 'posticipato' || comp !== exp.data.substring(0, 7);
-                  const [cy, cm] = comp ? comp.split('-').map(Number) : [0, 0];
 
                   return (
                     <tr key={exp.id} className="hover:bg-slate-50/70 transition-colors">
                       <td className="py-3 px-3 font-medium text-slate-800 whitespace-nowrap">
-                        <div>{formatDateItalian(exp.data, false)}</div>
-                        {isPost && cy > 0 && (
-                          <div className="text-[10px] text-amber-700 font-semibold font-mono mt-0.5">
-                            Comp: {MESI_ITALIANI[cm - 1]} {cy}
-                          </div>
-                        )}
+                        {formatDateItalian(exp.data, false)}
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
                         <span className="font-medium text-slate-800 flex items-center gap-1.5">
@@ -591,14 +506,7 @@ export const FinanceView: React.FC = () => {
                           <span>{catInfo?.label || exp.categoria}</span>
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-medium text-slate-900">
-                        <div>{exp.descrizione}</div>
-                        {isPost && cy > 0 && (
-                          <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                            🏢 Affitto Posticipato (coperto con incassi di {MESI_ITALIANI[cm - 1]} {cy})
-                          </span>
-                        )}
-                      </td>
+                      <td className="py-3 px-3 font-medium text-slate-900">{exp.descrizione}</td>
                       <td className="py-3 px-3 text-slate-500">
                         {exp.fornitore && <span>{exp.fornitore}</span>}
                         {exp.numeroFatturaRicevuta && (
