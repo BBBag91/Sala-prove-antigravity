@@ -516,4 +516,53 @@ export function shouldSendDailyBriefing(
   return { shouldSend: true, targetHour: configuredWeekdayHour || '10:00' };
 }
 
+/**
+ * Restituisce la stringa del mese precedente in formato 'YYYY-MM'.
+ * Es. '2026-11' -> '2026-10', '2026-01' -> '2025-12'
+ */
+export function getPreviousMonthStr(monthStr: string): string {
+  if (!monthStr || !monthStr.includes('-')) return monthStr;
+  const [y, m] = monthStr.split('-').map(Number);
+  const prevDate = new Date(y, m - 2, 1);
+  const py = prevDate.getFullYear();
+  const pm = String(prevDate.getMonth() + 1).padStart(2, '0');
+  return `${py}-${pm}`;
+}
+
+/**
+ * Restituisce il mese successivo in formato 'YYYY-MM'.
+ */
+export function getNextMonthStr(monthStr: string): string {
+  if (!monthStr || !monthStr.includes('-')) return monthStr;
+  const [y, m] = monthStr.split('-').map(Number);
+  const nextDate = new Date(y, m, 1);
+  const ny = nextDate.getFullYear();
+  const nm = String(nextDate.getMonth() + 1).padStart(2, '0');
+  return `${ny}-${nm}`;
+}
+
+/**
+ * Restituisce il mese di competenza economica (YYYY-MM) per una spesa.
+ * Per le spese di canone locazione (affitto) o con cicloPagamento='posticipato':
+ * l'affitto pagato a inizio mese M (es. il 10 Novembre) è imputato al mese precedente M-1 (Ottobre),
+ * poiché viene saldato direttamente con i proventi e gli incassi maturati nel mese di Ottobre.
+ */
+export function getExpenseCompetenceMonth(exp: {
+  data: string;
+  categoria?: string;
+  meseCompetenza?: string;
+  cicloPagamento?: 'corrente' | 'posticipato';
+}): string {
+  if (exp.meseCompetenza) {
+    return exp.meseCompetenza;
+  }
+  const expenseMonth = exp.data ? exp.data.substring(0, 7) : '';
+  if (!expenseMonth) return '';
+
+  if (exp.cicloPagamento === 'posticipato' || exp.categoria === 'affitto') {
+    return getPreviousMonthStr(expenseMonth);
+  }
+  return expenseMonth;
+}
+
 

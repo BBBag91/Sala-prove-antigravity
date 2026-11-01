@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { Booking, Client, Expense, ExpenseCategory, Room, StaffMember, StudioInfo } from '../types';
-import { calculateDurationHours, formatCurrency, formatDateItalian, MESI_ITALIANI } from './dateUtils';
+import { calculateDurationHours, formatCurrency, formatDateItalian, MESI_ITALIANI, getExpenseCompetenceMonth } from './dateUtils';
 import { EXPENSE_CATEGORIES } from '../components/ExpenseModal';
 
 export interface MonthlyTeacherSummary {
@@ -196,15 +196,19 @@ export function compileMonthlyFinanceData(
     }
   });
 
-  // 4. Spese pagate del mese
-  const monthlyExpenses = expenses.filter((e) => e.data && e.data.startsWith(monthStr));
+  // 4. Spese pagate del mese (calcolate per competenza economica: i soldi maturati in questo mese coprono i costi di questo mese)
+  const monthlyExpenses = expenses.filter((e) => getExpenseCompetenceMonth(e) === monthStr);
   const paidExpenses = monthlyExpenses.filter((e) => e.stato === 'pagato');
   const pendingExpenses = monthlyExpenses.filter((e) => e.stato === 'in_scadenza');
 
   paidExpenses.forEach((exp) => {
     const catConfig = EXPENSE_CATEGORIES.find((c) => c.id === exp.categoria);
     const catName = catConfig?.label ? catConfig.label.split('(')[0].trim() : exp.categoria;
-    const desc = exp.fornitore ? `${exp.descrizione} (${exp.fornitore}) - ${catName}` : `${exp.descrizione} - ${catName}`;
+    const isPost = exp.categoria === 'affitto' || exp.cicloPagamento === 'posticipato' || getExpenseCompetenceMonth(exp) !== exp.data.substring(0, 7);
+    const postNote = isPost ? ` [Canone posticipato, pagato il ${exp.data}]` : '';
+    const desc = exp.fornitore
+      ? `${exp.descrizione}${postNote} (${exp.fornitore}) - ${catName}`
+      : `${exp.descrizione}${postNote} - ${catName}`;
     rawMovements.push({
       id: exp.id,
       date: exp.data,

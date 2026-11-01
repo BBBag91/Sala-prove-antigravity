@@ -348,32 +348,77 @@ export const mapBookingFromDb = (b: any): Booking => {
   };
 };
 
-export const mapExpenseToDb = (e: Expense) => ({
-  id: e.id,
-  data: e.data,
-  categoria: e.categoria,
-  descrizione: e.descrizione,
-  importo: e.importo,
-  metodo_pagamento: e.metodoPagamento,
-  fornitore: e.fornitore || '',
-  numero_fattura_ricevuta: e.numeroFatturaRicevuta || '',
-  stato: e.stato,
-  note: e.note || '',
-  updated_at: new Date().toISOString(),
-});
+export const mapExpenseToDb = (e: Expense) => {
+  let cleanNote = e.note || '';
+  cleanNote = cleanNote
+    .replace(/\[COMPETENZA:.*?\]\s*/g, '')
+    .replace(/\[CICLO_PAGAMENTO:.*?\]\s*/g, '')
+    .trim();
 
-export const mapExpenseFromDb = (e: any): Expense => ({
-  id: e.id,
-  data: e.data,
-  categoria: e.categoria,
-  descrizione: e.descrizione,
-  importo: Number(e.importo),
-  metodoPagamento: e.metodo_pagamento,
-  fornitore: e.fornitore || '',
-  numeroFatturaRicevuta: e.numero_fattura_ricevuta || '',
-  stato: e.stato,
-  note: e.note || '',
-});
+  const metaParts: string[] = [];
+  if (e.meseCompetenza) {
+    metaParts.push(`[COMPETENZA:${e.meseCompetenza}]`);
+  }
+  if (e.cicloPagamento) {
+    metaParts.push(`[CICLO_PAGAMENTO:${e.cicloPagamento}]`);
+  }
+
+  const noteWithMeta = [cleanNote, ...metaParts].filter(Boolean).join(' ').trim();
+
+  return {
+    id: e.id,
+    data: e.data,
+    categoria: e.categoria,
+    descrizione: e.descrizione,
+    importo: e.importo,
+    metodo_pagamento: e.metodoPagamento,
+    fornitore: e.fornitore || '',
+    numero_fattura_ricevuta: e.numeroFatturaRicevuta || '',
+    stato: e.stato,
+    note: noteWithMeta,
+    updated_at: new Date().toISOString(),
+  };
+};
+
+export const mapExpenseFromDb = (e: any): Expense => {
+  const rawNote = e.note || '';
+  let meseCompetenza: string | undefined;
+  let cicloPagamento: 'corrente' | 'posticipato' | undefined;
+
+  const compMatch = rawNote.match(/\[COMPETENZA:(.*?)\]/);
+  if (compMatch && compMatch[1]) {
+    meseCompetenza = compMatch[1].trim();
+  }
+  const cicloMatch = rawNote.match(/\[CICLO_PAGAMENTO:(.*?)\]/);
+  if (cicloMatch && cicloMatch[1]) {
+    cicloPagamento = cicloMatch[1].trim() as any;
+  }
+
+  // Fallback predefinito per canone affitto: se non indicato diversamente è posticipato
+  if (!cicloPagamento && e.categoria === 'affitto') {
+    cicloPagamento = 'posticipato';
+  }
+
+  const cleanNote = rawNote
+    .replace(/\[COMPETENZA:.*?\]\s*/g, '')
+    .replace(/\[CICLO_PAGAMENTO:.*?\]\s*/g, '')
+    .trim();
+
+  return {
+    id: e.id,
+    data: e.data,
+    categoria: e.categoria,
+    descrizione: e.descrizione,
+    importo: Number(e.importo),
+    metodoPagamento: e.metodo_pagamento,
+    fornitore: e.fornitore || '',
+    numeroFatturaRicevuta: e.numero_fattura_ricevuta || '',
+    stato: e.stato,
+    note: cleanNote,
+    meseCompetenza,
+    cicloPagamento,
+  };
+};
 
 export const mapIncomeToDb = (i: ManualIncome) => ({
   id: i.id,
