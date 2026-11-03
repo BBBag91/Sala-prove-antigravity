@@ -132,22 +132,44 @@ export function deduplicateBookings(bookingsList: Booking[]): Booking[] {
  */
 export function deduplicateClients(clientsList: Client[]): Client[] {
   const cfMap = new Map<string, Client>();
-  const idMap = new Map<string, Client>();
+  const noCfMap = new Map<string, Client>();
 
-  for (const client of clientsList) {
-    if (!client) continue;
+  for (const rawClient of clientsList) {
+    if (!rawClient) continue;
+
+    // Assicura che i metadati ALLIEVO_DATA eventualmente presenti in note siano sempre estratti
+    let client: Client = { ...rawClient };
+    if (client.note && client.note.includes('[ALLIEVO_DATA:')) {
+      const match = client.note.match(/\[ALLIEVO_DATA:(\{.*?\})\]/);
+      if (match && match[1]) {
+        try {
+          const parsed = JSON.parse(match[1]);
+          if (parsed.isAllievo !== undefined && client.isAllievo === undefined) {
+            client.isAllievo = Boolean(parsed.isAllievo);
+          }
+          if (parsed.insegnanteId && !client.insegnanteRiferimentoId) {
+            client.insegnanteRiferimentoId = parsed.insegnanteId;
+          }
+          if (parsed.insegnanteNome && !client.insegnanteRiferimentoNome) {
+            client.insegnanteRiferimentoNome = parsed.insegnanteNome;
+          }
+          if ((parsed.corsoDidattico || parsed.corso) && !client.corsoDidattico) {
+            client.corsoDidattico = parsed.corsoDidattico || parsed.corso;
+          }
+        } catch {}
+      }
+    }
 
     const cf = (client.codiceFiscale || '').trim().toUpperCase();
 
     // Se non ha CF, usa solo l'ID come chiave
     if (!cf) {
-      if (!idMap.has(client.id)) idMap.set(client.id, client);
+      if (!noCfMap.has(client.id)) noCfMap.set(client.id, client);
       continue;
     }
 
     if (!cfMap.has(cf)) {
       cfMap.set(cf, client);
-      idMap.set(client.id, client);
     } else {
       const existing = cfMap.get(cf)!;
       // Preferisci il record con numero tessera assegnato o con più dati
@@ -158,11 +180,10 @@ export function deduplicateClients(clientsList: Client[]): Client[] {
         ? { ...existing, ...client }
         : { ...client, ...existing };
       cfMap.set(cf, winner);
-      idMap.set(winner.id, winner);
     }
   }
 
-  return Array.from(cfMap.values());
+  return [...Array.from(cfMap.values()), ...Array.from(noCfMap.values())];
 }
 
 
@@ -991,32 +1012,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteBooking = (id: string, mode: DeleteRecurringMode | boolean = 'single') => {
-    let targetGroup: string | undefined = undefined;
-    let targetDate: string | undefined = undefined;
     const deleteMode: DeleteRecurringMode =
       typeof mode === 'boolean' ? (mode ? 'all' : 'single') : mode;
+
+    const currentTarget = bookings.find((b) => b.id === id);
+    const targetGroup = currentTarget?.gruppoRicorrenzaId;
+    const targetDate = currentTarget?.data;
 
     setBookings((prev) => {
       const target = prev.find((b) => b.id === id);
       if (!target) return prev.filter((b) => b.id !== id);
 
-      targetGroup = target.gruppoRicorrenzaId;
-      targetDate = target.data;
+      const gId = target.gruppoRicorrenzaId;
+      const tDate = target.data;
 
-      if (!targetGroup || deleteMode === 'single') {
+      if (!gId || deleteMode === 'single') {
         return prev.filter((b) => b.id !== id);
       }
 
       if (deleteMode === 'future') {
         // Elimina questo evento e tutti gli eventi futuri ripetuti della stessa serie
         return prev.filter(
-          (b) => !(b.gruppoRicorrenzaId === targetGroup && b.data >= targetDate!)
+          (b) => !(b.gruppoRicorrenzaId === gId && b.data >= tDate)
         );
       }
 
       if (deleteMode === 'all') {
         // Elimina tutta la serie
-        return prev.filter((b) => b.gruppoRicorrenzaId !== targetGroup);
+        return prev.filter((b) => b.gruppoRicorrenzaId !== gId);
       }
 
       return prev.filter((b) => b.id !== id);

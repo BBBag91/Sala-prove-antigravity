@@ -173,8 +173,64 @@ export const AllieviView: React.FC = () => {
   const studentsWithStats = useMemo(() => {
     const allLessonBookings = bookings.filter(isLesson);
 
+    // Helper per risolvere l'ID canonico di un docente da ID o da nome
+    const canonicalizeTeacherId = (rawId?: string, rawName?: string): string => {
+      const id = (rawId || '').trim();
+      const name = (rawName || '').trim().toLowerCase();
+      if (id === 'staff-1' || name.includes('gabriele') || name.includes('piva')) return 'staff-1';
+      if (id === 'staff-1790952691190' || id === 'staff-1790952680654' || name.includes('michael') || name.includes('bertin') || name.includes('maicol')) return 'staff-1790952691190';
+      if (id === 'staff-1790952724237' || id === 'staff-1790952646698' || name.includes('luca') || name.includes('di chiara')) return 'staff-1790952724237';
+      if (id === 'staff-1790952634062' || name.includes('alessandro') || name.includes('cilea')) return 'staff-1790952634062';
+      return id;
+    };
+
+    // Helper per estrarre il docente di riferimento di un cliente (anche se salvato in note ALLIEVO_DATA)
+    const getClientTeacherId = (c: Client): string => {
+      let refId = c.insegnanteRiferimentoId || '';
+      let refName = c.insegnanteRiferimentoNome || '';
+      if ((!refId || !refName) && c.note && c.note.includes('[ALLIEVO_DATA:')) {
+        const match = c.note.match(/\[ALLIEVO_DATA:(\{.*?\})\]/);
+        if (match && match[1]) {
+          try {
+            const parsed = JSON.parse(match[1]);
+            if (!refId && parsed.insegnanteId) refId = parsed.insegnanteId;
+            if (!refName && parsed.insegnanteNome) refName = parsed.insegnanteNome;
+          } catch {}
+        }
+      }
+      return canonicalizeTeacherId(refId, refName);
+    };
+
+    // Verifica se una scheda Client in anagrafica è in realtà il profilo personale di un docente/staff
+    const isStaffPersonalClientRecord = (c: Client): boolean => {
+      const full = `${c.nome || ''} ${c.cognome || ''}`.trim().toLowerCase();
+      return (
+        full === 'gabriele piva' ||
+        full === 'luca di chiara' ||
+        full === 'michael bertin' ||
+        full === 'maicol bertin' ||
+        full === 'alessandro cilea' ||
+        full === 'alessandro francesco cilea' ||
+        full === 'paolo bianchini'
+      );
+    };
+
+    // Helper per formattare i nomi con iniziale maiuscola (es. "federico alessandro" -> "Federico Alessandro")
+    const toTitleCase = (str: string): string => {
+      return str
+        .trim()
+        .split(/\s+/)
+        .map((w) => (w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ''))
+        .join(' ');
+    };
+
     // Helper per determinare con precisione il docente assegnato alla prenotazione
     const resolveTeacherForBooking = (b: Booking): { id: string; nomeCompleto: string; staffMember?: StaffMember } => {
+      const canonId = canonicalizeTeacherId(b.insegnanteId, b.insegnanteNome);
+      if (canonId) {
+        const byCanon = staff.find((s) => s.id === canonId);
+        if (byCanon) return { id: byCanon.id, nomeCompleto: `${byCanon.nome} ${byCanon.cognome}`.trim(), staffMember: byCanon };
+      }
       // 1. Match per ID esatto nello staff
       if (b.insegnanteId) {
         const byId = staff.find((s) => s.id === b.insegnanteId);
@@ -191,8 +247,9 @@ export const AllieviView: React.FC = () => {
       // 3. Fallback: allievo con docente di riferimento registrato
       if (b.clienteId) {
         const matched = clients.find((c) => c.id === b.clienteId);
-        if (matched?.insegnanteRiferimentoId) {
-          const byRef = staff.find((s) => s.id === matched.insegnanteRiferimentoId);
+        const refTeacherId = matched ? getClientTeacherId(matched) : '';
+        if (refTeacherId) {
+          const byRef = staff.find((s) => s.id === refTeacherId);
           if (byRef) return { id: byRef.id, nomeCompleto: `${byRef.nome} ${byRef.cognome}`.trim(), staffMember: byRef };
         }
       }
@@ -224,9 +281,24 @@ export const AllieviView: React.FC = () => {
       }
     >();
 
+    // Voci segnaposto/blocchi generici nel calendario che NON sono allievi
+    const NON_STUDENT_LABELS = new Set([
+      'lezioni',
+      'lezione',
+      'di chiara',
+      'luca di chiara',
+      'mike riunione',
+      'riunione',
+      'prova batteria',
+      'prova',
+    ]);
+    const MOCK_BOOKING_IDS = new Set(['book-1', 'book-2', 'book-3', 'book-4', 'book-5', 'book-6', 'book-7', 'book-8']);
+
     const getOrCreateStudent = (b: Booking) => {
+      if (MOCK_BOOKING_IDS.has(b.id)) return null;
       const rawName = (b.clienteNome || '').trim();
       if (!rawName) return null;
+      if (NON_STUDENT_LABELS.has(rawName.toLowerCase())) return null;
 
       // Normalizzazione chiave studente (rimuove suffissi tecnici tipo "chita" o "batteria")
       let cleanRawName = rawName;
@@ -242,25 +314,60 @@ export const AllieviView: React.FC = () => {
         detectedCorso = 'Batteria & Percussioni';
       }
 
+      if (!cleanRawName || NON_STUDENT_LABELS.has(cleanRawName.toLowerCase())) return null;
+
       const teacher = resolveTeacherForBooking(b);
+      // Esclude prenotazioni prive di un insegnante reale (es. affitti sala non associati a nessun docente)
+      if (!teacher.id || teacher.id === 'docente-sconosciuto') return null;
+
       // Chiave composita: studente + docente (garantisce assoluta separazione delle lezioni fra docenti diversi)
       const compositeKey = `${cleanRawName.toLowerCase()}###${teacher.id}`;
 
       if (!allieviMap.has(compositeKey)) {
         const matchedClient = clients.find((c) => {
+          // Non associare mai le schede personali dei docenti stessi come allievi
+          if (isStaffPersonalClientRecord(c)) return false;
+
+          const clientTeacherId = getClientTeacherId(c);
+
+          // 1. REGOLA FERREA ANTI-CONTAMINAZIONE DOCENTI:
+          // Se il cliente censito in anagrafica ha già un insegnante di riferimento specificato
+          // e questo è DIVERSO dall'insegnante di questa lezione, NON DEVE MAI essere associato a un altro docente!
+          if (clientTeacherId && teacher.id && clientTeacherId !== teacher.id) {
+            return false;
+          }
+
+          // 2. Se la prenotazione ha un ID cliente univoco e coincide (solo se non viola il docente di riferimento)
           if (b.clienteId && c.id === b.clienteId) return true;
+
           const cFullName = `${c.nome} ${c.cognome}`.trim().toLowerCase();
-          return cFullName === cleanRawName.toLowerCase() || c.nome.toLowerCase() === cleanRawName.toLowerCase();
+          const cleanNorm = cleanRawName.toLowerCase();
+
+          // 3. Match esatto nome + cognome completo (es. "Mattia Sacco" === "mattia sacco")
+          if (cFullName === cleanNorm) return true;
+
+          // 4. Se la prenotazione specifica SOLO il nome di battesimo (es. "Mattia" o "Diego" o "Alessandro" senza cognome):
+          // può matchare SOLO se l'allievo in anagrafica è esplicitamente registrato sotto QUESTO STESSO docente!
+          if (!cleanRawName.includes(' ') && c.nome.trim().toLowerCase() === cleanNorm) {
+            if (clientTeacherId && clientTeacherId === teacher.id) {
+              return true;
+            }
+            if (!c.cognome || !c.cognome.trim()) {
+              return true;
+            }
+          }
+
+          return false;
         });
 
-        let nome = cleanRawName;
+        let nome = toTitleCase(cleanRawName);
         let cognome = '';
         if (matchedClient) {
           nome = matchedClient.nome;
           cognome = matchedClient.cognome;
         } else {
-          const parts = cleanRawName.split(' ');
-          nome = parts[0] || cleanRawName;
+          const parts = toTitleCase(cleanRawName).split(' ');
+          nome = parts[0] || toTitleCase(cleanRawName);
           cognome = parts.slice(1).join(' ');
         }
 
@@ -280,7 +387,7 @@ export const AllieviView: React.FC = () => {
         if (!corso) {
           const tNome = (teacher.nomeCompleto || '').toLowerCase();
           if (tNome.includes('gabriele')) corso = 'Chitarra & Teoria';
-          else if (tNome.includes('michael')) corso = 'Pianoforte & Tastiere';
+          else if (tNome.includes('michael')) corso = 'Batteria';
           else if (tNome.includes('luca')) corso = 'Batteria & Percussioni';
           else if (tNome.includes('alessandro')) corso = 'Basso & Batteria';
           else if (tNome.includes('silvia')) corso = 'Canto Moderno';

@@ -182,7 +182,21 @@ export const studentPaymentService = {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          // Rimuove eventuali record contaminati dal vecchio bug di omonimia tra docenti diversi
+          const sanitized = parsed.filter((p: StudentMonthlyPayment) => {
+            const cName = (p.clienteNome || '').trim().toLowerCase();
+            const cId = (p.clienteId || '').trim();
+            if (cName === 'mattia sacco' && cId.includes('staff-1790952691190')) return false;
+            if (cName === 'diego bolognesi' && cId.includes('staff-1790952724237')) return false;
+            if (cName === 'alessandro furlan' && cId.includes('staff-1790952691190')) return false;
+            return true;
+          });
+          if (sanitized.length !== parsed.length) {
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+            } catch {}
+          }
+          return sanitized;
         }
       }
     } catch (e) {
@@ -203,11 +217,22 @@ export const studentPaymentService = {
   savePayment(payment: StudentMonthlyPayment): void {
     const list = this.getAll();
     const cleanName = (payment.clienteNome || '').trim().toLowerCase();
+    const cleanId = (payment.clienteId || '').trim();
+    const teacherMatch = cleanId.match(/_(staff-[a-zA-Z0-9-]+)$/);
+    const teacherSuffix = teacherMatch ? teacherMatch[1] : '';
 
     const existingIndex = list.findIndex((p) => {
       if (p.mese !== payment.mese) return false;
       if (payment.id && p.id === payment.id) return true;
-      if (payment.clienteId && p.clienteId === payment.clienteId) return true;
+      if (cleanId && p.clienteId === cleanId) return true;
+
+      // Se entrambi hanno un docente specifico nel clienteId e sono diversi, non sovrascrivere
+      const pTeacherMatch = (p.clienteId || '').match(/_(staff-[a-zA-Z0-9-]+)$/);
+      const pTeacherSuffix = pTeacherMatch ? pTeacherMatch[1] : '';
+      if (teacherSuffix && pTeacherSuffix && teacherSuffix !== pTeacherSuffix) {
+        return false;
+      }
+
       if (cleanName && p.clienteNome && p.clienteNome.toLowerCase() === cleanName) return true;
       return false;
     });
@@ -236,12 +261,15 @@ export const studentPaymentService = {
 
   /**
    * Restituisce la registrazione di un allievo per un mese specifico (YYYY-MM),
-   * verificando sia per clienteId che per nome normalizzato dell'allievo.
+   * verificando sia per clienteId che per nome normalizzato dell'allievo,
+   * garantendo separazione rigorosa tra docenti diversi.
    */
   getPayment(clienteId: string, mese: string, clienteNome?: string): StudentMonthlyPayment | null {
     const list = this.getAll();
     const cleanName = (clienteNome || '').trim().toLowerCase();
     const cleanId = (clienteId || '').trim();
+    const teacherMatch = cleanId.match(/_(staff-[a-zA-Z0-9-]+)$/);
+    const teacherSuffix = teacherMatch ? teacherMatch[1] : '';
 
     // Priorità 1: Corrispondenza per clienteId esatto (garantisce separazione fra corsi diversi con docenti diversi)
     if (cleanId) {
@@ -252,8 +280,18 @@ export const studentPaymentService = {
     return (
       list.find((p) => {
         if (p.mese !== mese) return false;
-        if (cleanName && p.clienteNome && p.clienteNome.toLowerCase() === cleanName) return true;
-        if (cleanName && p.clienteId && p.clienteId.toLowerCase().includes(cleanName.replace(/\s+/g, '-'))) return true;
+
+        // Se il record di pagamento ha un docente specifico nel clienteId diverso da quello cercato, non associarlo mai
+        const pTeacherMatch = (p.clienteId || '').match(/_(staff-[a-zA-Z0-9-]+)$/);
+        const pTeacherSuffix = pTeacherMatch ? pTeacherMatch[1] : '';
+        if (teacherSuffix && pTeacherSuffix && teacherSuffix !== pTeacherSuffix) {
+          return false;
+        }
+
+        // Corrispondenza solo per nome completo esatto (MAI usare .includes() che confonde "Mattia" con "Mattia Sacco")
+        if (cleanName && p.clienteNome && p.clienteNome.trim().toLowerCase() === cleanName) {
+          return true;
+        }
         return false;
       }) || null
     );
