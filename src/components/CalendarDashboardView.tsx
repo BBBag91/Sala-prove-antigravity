@@ -2817,11 +2817,11 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       );
                     })}
 
-                    {/* Promemoria (CalendarReminder) visualizzati direttamente sulla griglia oraria con forma distinta (non conteggiati nelle ore sala) */}
-                    {(remindersByDay[ds] || []).map((rem, remIdx, allDayRems) => {
+                    {/* Promemoria (CalendarReminder) visualizzati a forma di cerchio compatto sulla griglia oraria per non coprire le prenotazioni */}
+                    {(remindersByDay[ds] || []).map((rem, _remIdx, allDayRems) => {
                       const rStyle = getReminderColorStyle(rem.colore);
                       const isPublic = rem.visibilita === 'tutti' || rem.autoreRuolo === 'admin';
-                      const startStr = rem.ora || '18:00';
+                      const startStr = rem.ora || '20:30';
                       const rawStartMins = timeToMinutes(startStr);
                       const rawEndMins = rem.oraFine
                         ? timeToMinutes(rem.oraFine)
@@ -2831,28 +2831,15 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       if (endMins <= startMins) endMins = startMins + 60;
 
                       const topPx = (startMins / 60) * effectiveCellHeight;
-                      const heightPx = Math.max(28, ((endMins - startMins) / 60) * effectiveCellHeight);
 
-                      // Controlla se ci sono prenotazioni sala sovrapposte nello stesso orario (senza alterare la visuale delle prenotazioni)
-                      const hasOverlappingBooking = dayBks.some((bk) => {
-                        const bStart = timeToMinutes(bk.oraInizio) - HOUR_START * 60;
-                        let bEnd = timeToMinutes(bk.oraFine) - HOUR_START * 60;
-                        if (bEnd <= bStart) bEnd += 24 * 60;
-                        return bStart < endMins && bEnd > startMins;
-                      });
-
-                      // Controlla se ci sono altri promemoria nello stesso identico orario per affiancarli
+                      // Controlla se ci sono altri promemoria nello stesso orario per affiancarli in piccoli cerchi
                       const sameTimeRems = allDayRems.filter((other) => {
-                        const oStart = timeToMinutes(other.ora || '18:00') - HOUR_START * 60;
-                        const oEnd = (other.oraFine ? timeToMinutes(other.oraFine) : timeToMinutes(other.ora || '18:00') + 60) - HOUR_START * 60;
-                        return oStart < endMins && oEnd > startMins;
+                        const oStart = timeToMinutes(other.ora || '20:30') - HOUR_START * 60;
+                        return Math.abs(oStart - startMins) < 45;
                       });
                       const subIdx = Math.max(0, sameTimeRems.findIndex((o) => o.id === rem.id));
-                      const subTotal = Math.max(1, sameTimeRems.length);
-                      const availWidth = hasOverlappingBooking ? 50 : 100;
-                      const baseLeft = hasOverlappingBooking ? 50 : 0;
-                      const widthPct = availWidth / subTotal;
-                      const leftPct = baseLeft + subIdx * widthPct;
+                      const circleSizePx = viewMode === 'day' ? 54 : viewMode === '3days' ? 48 : 42;
+                      const rightOffsetPx = 4 + subIdx * (circleSizePx - 6);
 
                       return (
                         <div
@@ -2861,43 +2848,40 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             e.stopPropagation();
                             handleOpenReminderModal(ds, rem);
                           }}
-                          className={`absolute z-[18] cursor-pointer overflow-hidden transition-all hover:brightness-110 hover:scale-[1.02] hover:z-30 hover:shadow-xl select-none rounded-2xl rounded-tl-xs border-2 border-dashed shadow-md flex flex-col items-center justify-center text-center px-1.5 py-0.5 ${
-                            rem.completato ? 'opacity-60' : ''
+                          className={`absolute z-[22] cursor-pointer transition-all hover:brightness-110 hover:scale-125 hover:z-35 select-none rounded-full border-2 shadow-[0_3px_10px_rgba(0,0,0,0.45)] ring-2 ring-black/25 dark:ring-white/20 flex flex-col items-center justify-center text-center p-1 ${
+                            rem.completato ? 'opacity-55' : ''
                           }`}
                           style={{
-                            top: `${topPx + 2}px`,
-                            height: `${heightPx - 4}px`,
-                            left: `${leftPct + 1}%`,
-                            width: `${widthPct - 2}%`,
+                            top: `${Math.max(2, topPx - 2)}px`,
+                            right: `${rightOffsetPx}px`,
+                            width: `${circleSizePx}px`,
+                            height: `${circleSizePx}px`,
                             backgroundColor: rStyle.solidBg,
-                            borderColor: rStyle.solidBorder,
+                            borderColor: '#ffffff',
                           }}
-                          title={`${isPublic ? '👑 Promemoria Pubblico' : '🔒 Promemoria Personale'}: ${rem.titolo} (${startStr} - ${minutesToTime(rawEndMins)})\nNessun addebito ore sala • Clicca per modificare`}
+                          title={`${isPublic ? '👑 Promemoria Pubblico' : '🔒 Promemoria Personale'}: ${rem.titolo} (${startStr} - ${minutesToTime(rawEndMins)})\nNessun addebito ore sala • Clicca per aprire`}
                         >
-                          {/* Angolo spilla / Badge Promemoria in alto a destra (al posto di L) */}
-                          <span className="absolute top-0.5 right-1 px-1 py-0.2 rounded-full bg-white text-slate-900 text-[7px] font-black leading-none shadow-xs flex items-center gap-0.5 pointer-events-none">
-                            <span>{isPublic ? '📌' : '🔒'}</span>
-                            {viewMode !== 'week' && <span>PROMO</span>}
+                          {/* Spilla / Lucchetto sul bordo superiore del cerchio */}
+                          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-slate-900 text-[8px] font-black leading-none shadow-sm flex items-center justify-center pointer-events-none border border-slate-200">
+                            {isPublic ? '📌' : '🔒'}
                           </span>
 
-                          {/* Titolo Promemoria ben visibile come i nomi nel calendario */}
+                          {/* Testo compatto dentro il cerchio */}
                           <span
-                            className={`font-black text-white leading-[1.1] break-words hyphens-auto drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] max-w-full ${
+                            className={`font-black text-white leading-[1.02] break-words overflow-hidden line-clamp-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] max-w-full px-0.5 ${
                               rem.completato ? 'line-through' : ''
                             } ${
-                              viewMode === 'week'
-                                ? 'text-[12px] sm:text-[13.5px] lg:text-[14.5px]'
-                                : 'text-sm sm:text-base'
+                              viewMode === 'day'
+                                ? 'text-[10.5px]'
+                                : 'text-[9px] sm:text-[9.5px]'
                             }`}
                           >
                             {rem.titolo}
                           </span>
 
-                          {(viewMode !== 'week' || heightPx >= 50) && (
-                            <span className="text-[8.5px] sm:text-[9.5px] font-bold text-white/95 font-mono tracking-tight mt-0.5 leading-none shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.65)]">
-                              {startStr} - {minutesToTime(rawEndMins)}
-                            </span>
-                          )}
+                          <span className="text-[7px] font-extrabold text-white/95 font-mono leading-none mt-0.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
+                            {startStr}
+                          </span>
                         </div>
                       );
                     })}
