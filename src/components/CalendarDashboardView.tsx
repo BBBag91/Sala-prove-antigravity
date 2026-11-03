@@ -326,8 +326,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   );
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
   const [reminderModalDate, setReminderModalDate] = useState<string>(() => formatDateToISO(currentDate));
+  const [reminderModalTime, setReminderModalTime] = useState<string>('20:30');
   const [selectedReminderForEdit, setSelectedReminderForEdit] = useState<CalendarReminder | null>(null);
-  const [showRemindersBoard, setShowRemindersBoard] = useState<boolean>(true);
 
   useEffect(() => {
     let mounted = true;
@@ -380,8 +380,9 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
   }, [visibleReminders, viewMode, monthString, displayDayStrs]);
 
   const handleOpenReminderModal = useCallback(
-    (dateStr?: string, reminder?: CalendarReminder | null) => {
+    (dateStr?: string, reminder?: CalendarReminder | null, startTime?: string) => {
       setReminderModalDate(dateStr || formatDateToISO(currentDate));
+      setReminderModalTime(reminder?.ora || startTime || '20:30');
       setSelectedReminderForEdit(reminder || null);
       setIsReminderModalOpen(true);
     },
@@ -1484,15 +1485,6 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <span className="lg:hidden">{showShiftsInGrid ? 'In Griglia' : 'No Griglia'}</span>
             </button>
 
-            <button
-              onClick={() => setIsEquipmentModalOpen(true)}
-              className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-white dark:bg-neutral-900 hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-700 dark:text-yellow-300 font-semibold text-[11px] sm:text-xs rounded-lg border border-slate-200 dark:border-yellow-500/30 transition-all whitespace-nowrap cursor-pointer"
-              title="Prospetto Strumenti"
-            >
-              <SlidersHorizontal className="w-3 h-3 text-blue-600 dark:text-yellow-400" />
-              <span className="hidden sm:inline">Strumenti</span>
-            </button>
-
             {/* Pulsante Promemoria Calendario (Admin = Visibile a tutti, Insegnante = Privato) */}
             <button
               type="button"
@@ -1663,130 +1655,6 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
           )}
         </div>
       )}
-
-      {/* -- Bacheca Promemoria Calendario (Non invasiva, sopra la griglia) -- */}
-      <div className="bg-white dark:bg-[#0e0e0e] rounded-xl px-3 sm:px-4 py-2 shadow-sm border border-fuchsia-200/80 dark:border-fuchsia-500/25">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-              <Pin className="w-3.5 h-3.5 -rotate-12" />
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-fuchsia-200 tracking-tight">
-                Bacheca Promemoria
-              </h3>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                  isAdmin
-                    ? 'bg-fuchsia-100/90 text-fuchsia-900 dark:bg-fuchsia-500/20 dark:text-fuchsia-300'
-                    : 'bg-violet-100/90 text-violet-900 dark:bg-violet-500/20 dark:text-violet-300'
-                }`}
-              >
-                {isAdmin ? (
-                  <>
-                    <Globe className="w-2.5 h-2.5" />
-                    <span>Modalità Admin (Visibili a tutti)</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-2.5 h-2.5" />
-                    <span>I tuoi promemoria + Avvisi Studio</span>
-                  </>
-                )}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleOpenReminderModal(formatDateToISO(currentDate), null)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-fuchsia-600 to-violet-600 hover:from-fuchsia-700 hover:to-violet-700 text-white text-[11px] font-black shadow-2xs transition-all cursor-pointer"
-            >
-              <Plus className="w-3 h-3 stroke-[3]" />
-              <span>Nuovo Promemoria</span>
-            </button>
-            {currentPeriodReminders.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowRemindersBoard((prev) => !prev)}
-                className="flex items-center gap-0.5 text-[10px] sm:text-[11px] font-semibold text-slate-600 dark:text-fuchsia-300 hover:text-fuchsia-700 bg-slate-100 dark:bg-neutral-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-fuchsia-500/25 transition-colors cursor-pointer"
-              >
-                <span>{showRemindersBoard ? 'Compatta' : `Mostra (${currentPeriodReminders.length})`}</span>
-                {showRemindersBoard ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {showRemindersBoard && currentPeriodReminders.length > 0 && (
-          <div className="flex items-stretch gap-2.5 overflow-x-auto pt-2.5 mt-2 border-t border-slate-100 dark:border-neutral-800/80 pb-1 no-scrollbar">
-            {currentPeriodReminders.map((rem) => {
-              const style = getReminderColorStyle(rem.colore);
-              const isPublic = rem.visibilita === 'tutti' || rem.autoreRuolo === 'admin';
-              return (
-                <div
-                  key={rem.id}
-                  onClick={() => handleOpenReminderModal(rem.data, rem)}
-                  className={`group relative shrink-0 w-56 sm:w-64 p-2.5 rounded-xl border transition-all cursor-pointer hover:shadow-md flex flex-col justify-between ${
-                    style.bg
-                  } ${style.border} ${rem.completato ? 'opacity-60' : 'shadow-2xs'}`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-1.5 mb-1">
-                      <div className="flex items-center gap-1 min-w-0">
-                        <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-black uppercase ${style.badge}`}>
-                          {formatDateItalian(rem.data, false)}
-                          {rem.ora ? ` • ${rem.ora}` : ''}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span
-                          className="text-[9.5px] font-bold px-1.5 py-0.2 rounded-full bg-white/70 dark:bg-black/30 text-slate-700 dark:text-slate-200"
-                          title={
-                            isPublic
-                              ? `Promemoria globale inserito da ${rem.autoreNome} (visibile a tutti)`
-                              : `Promemoria personale di ${rem.autoreNome} (visibile solo a te)`
-                          }
-                        >
-                          {isPublic ? '👑 Tutti' : '🔒 Tuo'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            reminderService.toggleCompleted(rem.id);
-                          }}
-                          className="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                          title={rem.completato ? 'Segna come da fare' : 'Segna come completato'}
-                        >
-                          {rem.completato ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                          ) : (
-                            <Circle className="w-3.5 h-3.5 opacity-60 hover:opacity-100" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    <p
-                      className={`text-xs font-extrabold leading-snug line-clamp-2 ${style.text} ${
-                        rem.completato ? 'line-through' : ''
-                      }`}
-                    >
-                      {rem.titolo}
-                    </p>
-                    {rem.note && (
-                      <p className={`text-[10.5px] mt-0.5 line-clamp-1 opacity-80 ${style.text}`}>
-                        {rem.note}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
       {/* -- Time Grid with Zoom & Mobile Scroll & Touch Swipe Navigation OR Full Month View -- */}
       {viewMode === 'month' ? (
@@ -1967,7 +1835,19 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                           ? 'bg-blue-50/70 dark:bg-yellow-400/10'
                           : ''
                     }`}
-                    onClick={() => handleDayClick(ds)}
+                    title={
+                      viewMode !== 'day'
+                        ? `Clicca per aprire la vista a 1 giorno (${formatDateItalian(ds, false)})`
+                        : `Clicca per tornare alla vista settimanale (7 giorni)`
+                    }
+                    onClick={() => {
+                      if (viewMode !== 'day') {
+                        setCurrentDate(day);
+                        handleSetViewMode('day');
+                      } else {
+                        handleSetViewMode('week');
+                      }
+                    }}
                   >
                     {/* Quick Pin Button to add a reminder on this day */}
                     <button
@@ -2020,50 +1900,6 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                         <div className="flex justify-center items-center mt-0.5 gap-0.5">
                           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isClosed ? 'bg-rose-600' : 'bg-blue-600 dark:bg-yellow-400'}`} />
                           <span className={`text-[8px] sm:text-[9px] font-mono ${isClosed ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-blue-600 dark:text-yellow-400/80'}`}>{cnt}</span>
-                        </div>
-                      )}
-
-                      {/* Promemoria Post-it Pills nell'intestazione del giorno (non altera la griglia oraria) */}
-                      {dayRems.length > 0 && (
-                        <div
-                          className="mt-1 flex flex-col gap-0.5 w-full"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {dayRems.slice(0, 2).map((rem) => {
-                            const rStyle = getReminderColorStyle(rem.colore);
-                            const isPublic = rem.visibilita === 'tutti' || rem.autoreRuolo === 'admin';
-                            return (
-                              <div
-                                key={rem.id}
-                                onClick={() => handleOpenReminderModal(ds, rem)}
-                                className={`px-1 py-0.5 rounded border text-left flex items-center gap-1 transition-all hover:scale-[1.02] shadow-2xs ${
-                                  rStyle.bg
-                                } ${rStyle.border} ${rem.completato ? 'opacity-55' : ''}`}
-                                title={`${isPublic ? '👑 Promemoria Pubblico' : '🔒 Promemoria Personale'}: ${rem.titolo}${rem.ora ? ` (ore ${rem.ora})` : ''}${rem.note ? `\n${rem.note}` : ''}`}
-                              >
-                                <span className="text-[8px] leading-none shrink-0">
-                                  {isPublic ? '📌' : '🔒'}
-                                </span>
-                                <span
-                                  className={`text-[7.5px] sm:text-[8px] font-extrabold truncate flex-1 leading-tight ${
-                                    rStyle.text
-                                  } ${rem.completato ? 'line-through' : ''}`}
-                                >
-                                  {rem.ora ? `${rem.ora} ` : ''}
-                                  {rem.titolo}
-                                </span>
-                              </div>
-                            );
-                          })}
-                          {dayRems.length > 2 && (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenReminderModal(ds, null)}
-                              className="text-[7.5px] font-black text-amber-700 dark:text-amber-300 hover:underline cursor-pointer"
-                            >
-                              +{dayRems.length - 2} altri promemoria
-                            </button>
-                          )}
                         </div>
                       )}
                     </div>
@@ -2981,6 +2817,91 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       );
                     })}
 
+                    {/* Promemoria (CalendarReminder) visualizzati direttamente sulla griglia oraria con forma distinta (non conteggiati nelle ore sala) */}
+                    {(remindersByDay[ds] || []).map((rem, remIdx, allDayRems) => {
+                      const rStyle = getReminderColorStyle(rem.colore);
+                      const isPublic = rem.visibilita === 'tutti' || rem.autoreRuolo === 'admin';
+                      const startStr = rem.ora || '18:00';
+                      const rawStartMins = timeToMinutes(startStr);
+                      const rawEndMins = rem.oraFine
+                        ? timeToMinutes(rem.oraFine)
+                        : Math.min(24 * 60, rawStartMins + 60);
+                      const startMins = Math.max(0, rawStartMins - HOUR_START * 60);
+                      let endMins = rawEndMins - HOUR_START * 60;
+                      if (endMins <= startMins) endMins = startMins + 60;
+
+                      const topPx = (startMins / 60) * effectiveCellHeight;
+                      const heightPx = Math.max(28, ((endMins - startMins) / 60) * effectiveCellHeight);
+
+                      // Controlla se ci sono prenotazioni sala sovrapposte nello stesso orario (senza alterare la visuale delle prenotazioni)
+                      const hasOverlappingBooking = dayBks.some((bk) => {
+                        const bStart = timeToMinutes(bk.oraInizio) - HOUR_START * 60;
+                        let bEnd = timeToMinutes(bk.oraFine) - HOUR_START * 60;
+                        if (bEnd <= bStart) bEnd += 24 * 60;
+                        return bStart < endMins && bEnd > startMins;
+                      });
+
+                      // Controlla se ci sono altri promemoria nello stesso identico orario per affiancarli
+                      const sameTimeRems = allDayRems.filter((other) => {
+                        const oStart = timeToMinutes(other.ora || '18:00') - HOUR_START * 60;
+                        const oEnd = (other.oraFine ? timeToMinutes(other.oraFine) : timeToMinutes(other.ora || '18:00') + 60) - HOUR_START * 60;
+                        return oStart < endMins && oEnd > startMins;
+                      });
+                      const subIdx = Math.max(0, sameTimeRems.findIndex((o) => o.id === rem.id));
+                      const subTotal = Math.max(1, sameTimeRems.length);
+                      const availWidth = hasOverlappingBooking ? 50 : 100;
+                      const baseLeft = hasOverlappingBooking ? 50 : 0;
+                      const widthPct = availWidth / subTotal;
+                      const leftPct = baseLeft + subIdx * widthPct;
+
+                      return (
+                        <div
+                          key={rem.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenReminderModal(ds, rem);
+                          }}
+                          className={`absolute z-[18] cursor-pointer overflow-hidden transition-all hover:brightness-110 hover:scale-[1.02] hover:z-30 hover:shadow-xl select-none rounded-2xl rounded-tl-xs border-2 border-dashed shadow-md flex flex-col items-center justify-center text-center px-1.5 py-0.5 ${
+                            rem.completato ? 'opacity-60' : ''
+                          }`}
+                          style={{
+                            top: `${topPx + 2}px`,
+                            height: `${heightPx - 4}px`,
+                            left: `${leftPct + 1}%`,
+                            width: `${widthPct - 2}%`,
+                            backgroundColor: rStyle.solidBg,
+                            borderColor: rStyle.solidBorder,
+                          }}
+                          title={`${isPublic ? '👑 Promemoria Pubblico' : '🔒 Promemoria Personale'}: ${rem.titolo} (${startStr} - ${minutesToTime(rawEndMins)})\nNessun addebito ore sala • Clicca per modificare`}
+                        >
+                          {/* Angolo spilla / Badge Promemoria in alto a destra (al posto di L) */}
+                          <span className="absolute top-0.5 right-1 px-1 py-0.2 rounded-full bg-white text-slate-900 text-[7px] font-black leading-none shadow-xs flex items-center gap-0.5 pointer-events-none">
+                            <span>{isPublic ? '📌' : '🔒'}</span>
+                            {viewMode !== 'week' && <span>PROMO</span>}
+                          </span>
+
+                          {/* Titolo Promemoria ben visibile come i nomi nel calendario */}
+                          <span
+                            className={`font-black text-white leading-[1.1] break-words hyphens-auto drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] max-w-full ${
+                              rem.completato ? 'line-through' : ''
+                            } ${
+                              viewMode === 'week'
+                                ? 'text-[12px] sm:text-[13.5px] lg:text-[14.5px]'
+                                : 'text-sm sm:text-base'
+                            }`}
+                          >
+                            {rem.titolo}
+                          </span>
+
+                          {(viewMode !== 'week' || heightPx >= 50) && (
+                            <span className="text-[8.5px] sm:text-[9.5px] font-bold text-white/95 font-mono tracking-tight mt-0.5 leading-none shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.65)]">
+                              {startStr} - {minutesToTime(rawEndMins)}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+
                     {/* Indicatore orario attuale IN PRIMO PIANO rispetto a tutti gli eventi */}
                     {isToday && (() => {
                       const now = new Date(currentTimeTick);
@@ -3298,6 +3219,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             initialRoomId={bookingToEdit?.salaId || selectedRoomForBooking || (rooms.length > 0 ? rooms[0].id : '')}
             initialType={selectedTypeForBooking}
             bookingToEdit={bookingToEdit}
+            onSwitchToReminder={(date, startTime) => handleOpenReminderModal(date, null, startTime)}
           />
         </Suspense>
       )}
@@ -3716,6 +3638,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
           setSelectedReminderForEdit(null);
         }}
         initialDate={reminderModalDate}
+        initialStartTime={reminderModalTime}
         initialReminder={selectedReminderForEdit}
         user={user}
         visibleReminders={visibleReminders}

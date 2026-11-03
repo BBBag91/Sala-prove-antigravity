@@ -11,7 +11,8 @@ import {
   Globe,
   Lock,
   Sparkles,
-  Plus,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import { formatDateItalian } from '../utils/dateUtils';
 import {
@@ -27,6 +28,7 @@ interface CalendarReminderModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialDate: string; // YYYY-MM-DD
+  initialStartTime?: string; // HH:mm
   initialReminder?: CalendarReminder | null;
   user: AuthUser | null;
   visibleReminders: CalendarReminder[];
@@ -36,6 +38,7 @@ export const CalendarReminderModal: React.FC<CalendarReminderModalProps> = ({
   isOpen,
   onClose,
   initialDate,
+  initialStartTime,
   initialReminder,
   user,
   visibleReminders,
@@ -43,10 +46,13 @@ export const CalendarReminderModal: React.FC<CalendarReminderModalProps> = ({
   const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [titolo, setTitolo] = useState('');
   const [data, setData] = useState(initialDate);
-  const [ora, setOra] = useState('');
+  const [ora, setOra] = useState(initialStartTime || '20:30');
+  const [oraFine, setOraFine] = useState('21:30');
   const [note, setNote] = useState('');
   const [colore, setColore] = useState<ReminderColor>('fuchsia');
   const [completato, setCompletato] = useState(false);
+  const [notificaAttiva, setNotificaAttiva] = useState(true);
+  const [anticipoNotificaMinuti, setAnticipoNotificaMinuti] = useState<number>(15);
   const [isSaving, setIsSaving] = useState(false);
 
   const isAdmin = user?.ruolo === 'admin';
@@ -57,7 +63,14 @@ export const CalendarReminderModal: React.FC<CalendarReminderModalProps> = ({
       setEditingId(initialReminder.id);
       setTitolo(initialReminder.titolo);
       setData(initialReminder.data);
-      setOra(initialReminder.ora || '');
+      const startH = initialReminder.ora || '20:30';
+      setOra(startH);
+      if (initialReminder.oraFine) {
+        setOraFine(initialReminder.oraFine);
+      } else {
+        const [hh, mm] = startH.split(':').map(Number);
+        setOraFine(`${String(Math.min(23, (hh || 20) + 1)).padStart(2, '0')}:${String(mm || 0).padStart(2, '0')}`);
+      }
       setNote(initialReminder.note || '');
       setColore(
         initialReminder.colore && initialReminder.colore in REMINDER_COLOR_STYLES
@@ -65,16 +78,25 @@ export const CalendarReminderModal: React.FC<CalendarReminderModalProps> = ({
           : 'fuchsia'
       );
       setCompletato(Boolean(initialReminder.completato));
+      setNotificaAttiva(initialReminder.notificaAttiva !== false);
+      setAnticipoNotificaMinuti(
+        initialReminder.anticipoNotificaMinuti !== undefined ? initialReminder.anticipoNotificaMinuti : 15
+      );
     } else {
       setEditingId(undefined);
       setTitolo('');
       setData(initialDate);
-      setOra('');
+      const defaultStart = initialStartTime || '20:30';
+      setOra(defaultStart);
+      const [hh, mm] = defaultStart.split(':').map(Number);
+      setOraFine(`${String(Math.min(23, (hh || 20) + 1)).padStart(2, '0')}:${String(mm || 0).padStart(2, '0')}`);
       setNote('');
       setColore(isAdmin ? 'fuchsia' : 'violet');
       setCompletato(false);
+      setNotificaAttiva(true);
+      setAnticipoNotificaMinuti(15);
     }
-  }, [isOpen, initialReminder, initialDate, isAdmin]);
+  }, [isOpen, initialReminder, initialDate, initialStartTime, isAdmin]);
 
   if (!isOpen || !user) return null;
 
@@ -85,20 +107,41 @@ export const CalendarReminderModal: React.FC<CalendarReminderModalProps> = ({
   const resetFormForNew = () => {
     setEditingId(undefined);
     setTitolo('');
-    setOra('');
+    setOra(initialStartTime || '20:30');
+    setOraFine('21:30');
     setNote('');
     setColore(isAdmin ? 'fuchsia' : 'violet');
     setCompletato(false);
+    setNotificaAttiva(true);
+    setAnticipoNotificaMinuti(15);
   };
 
   const handleSelectForEdit = (rem: CalendarReminder) => {
     setEditingId(rem.id);
     setTitolo(rem.titolo);
     setData(rem.data);
-    setOra(rem.ora || '');
+    const startH = rem.ora || '20:30';
+    setOra(startH);
+    if (rem.oraFine) {
+      setOraFine(rem.oraFine);
+    } else {
+      const [hh, mm] = startH.split(':').map(Number);
+      setOraFine(`${String(Math.min(23, (hh || 20) + 1)).padStart(2, '0')}:${String(mm || 0).padStart(2, '0')}`);
+    }
     setNote(rem.note || '');
     setColore(rem.colore && rem.colore in REMINDER_COLOR_STYLES ? rem.colore : 'fuchsia');
     setCompletato(Boolean(rem.completato));
+    setNotificaAttiva(rem.notificaAttiva !== false);
+    setAnticipoNotificaMinuti(rem.anticipoNotificaMinuti !== undefined ? rem.anticipoNotificaMinuti : 15);
+  };
+
+  const handleStartOraChange = (newStart: string) => {
+    setOra(newStart);
+    if (newStart && newStart.includes(':')) {
+      const [hh, mm] = newStart.split(':').map(Number);
+      const nextH = Math.min(23, (hh || 20) + 1);
+      setOraFine(`${String(nextH).padStart(2, '0')}:${String(mm || 0).padStart(2, '0')}`);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,23 +149,48 @@ export const CalendarReminderModal: React.FC<CalendarReminderModalProps> = ({
     if (!titolo.trim()) return;
     setIsSaving(true);
     try {
-      await reminderService.upsertReminder(
+      if (notificaAttiva) {
+        await reminderService.requestDeviceNotificationPermission();
+      }
+      const saved = await reminderService.upsertReminder(
         {
           id: editingId,
           titolo: titolo.trim(),
           data,
-          ora: ora.trim() || undefined,
+          ora: ora.trim() || '20:30',
+          oraFine: oraFine.trim() || '21:30',
           note: note.trim() || undefined,
           colore,
           completato,
+          notificaAttiva,
+          anticipoNotificaMinuti,
         },
         user
       );
-      if (initialReminder) {
-        onClose();
-      } else {
-        resetFormForNew();
+
+      // Invia subito la notifica sul dispositivo in uso quando il promemoria viene impostato
+      // (solo se il profilo attuale corrisponde al destinatario: Admin -> Admin, Insegnante -> quell'Insegnante)
+      if (notificaAttiva && reminderService.shouldNotifyUser(saved, user)) {
+        const dateLabel = formatDateItalian(saved.data, false);
+        const targetLabel =
+          saved.visibilita === 'tutti' || saved.autoreRuolo === 'admin'
+            ? 'Profilo Amministratore'
+            : `Profilo ${user.nome}`;
+        await reminderService.sendDeviceNotification(
+          `🔔 Promemoria Impostato: ${saved.titolo}`,
+          `📅 ${dateLabel} • 🕒 ${saved.ora} - ${saved.oraFine} (${targetLabel})`,
+          `reminder-set-${saved.id}`
+        );
+        window.dispatchEvent(
+          new CustomEvent('calendar-reminder-toast', {
+            detail: {
+              reminder: saved,
+              type: 'set',
+            },
+          })
+        );
       }
+      onClose();
     } finally {
       setIsSaving(false);
     }
@@ -235,8 +303,8 @@ export const CalendarReminderModal: React.FC<CalendarReminderModalProps> = ({
               />
             </div>
 
-            {/* Data e Ora */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Data, Ora Inizio e Ora Fine sulla Griglia */}
+            <div className="grid grid-cols-3 gap-2.5">
               <div>
                 <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   <CalendarIcon className="w-3 h-3 inline mr-1 -mt-0.5" />
@@ -247,19 +315,33 @@ export const CalendarReminderModal: React.FC<CalendarReminderModalProps> = ({
                   required
                   value={data}
                   onChange={(e) => setData(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                  className="w-full px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40"
                 />
               </div>
               <div>
                 <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   <Clock className="w-3 h-3 inline mr-1 -mt-0.5" />
-                  Orario (Opzionale)
+                  Ora Inizio
                 </label>
                 <input
                   type="time"
+                  required
                   value={ora}
-                  onChange={(e) => setOra(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                  onChange={(e) => handleStartOraChange(e.target.value)}
+                  className="w-full px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                  <Clock className="w-3 h-3 inline mr-1 -mt-0.5" />
+                  Ora Fine
+                </label>
+                <input
+                  type="time"
+                  required
+                  value={oraFine}
+                  onChange={(e) => setOraFine(e.target.value)}
+                  className="w-full px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40"
                 />
               </div>
             </div>
@@ -296,6 +378,61 @@ export const CalendarReminderModal: React.FC<CalendarReminderModalProps> = ({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Notifica sul Dispositivo (Profilo Insegnante solo a lui / Profilo Admin solo agli Admin) */}
+            <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-800/50 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNotificaAttiva((prev) => !prev)}
+                  className="flex items-center gap-2 text-left cursor-pointer"
+                >
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                      notificaAttiva
+                        ? 'bg-fuchsia-600 text-white shadow-sm'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                    }`}
+                  >
+                    {notificaAttiva ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                      <span>Notifica sul dispositivo</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase ${
+                          notificaAttiva
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                            : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                        }`}
+                      >
+                        {notificaAttiva ? 'Attiva' : 'Disattivata'}
+                      </span>
+                    </div>
+                    <p className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400">
+                      {isAdmin
+                        ? '👑 Inviata solo ai dispositivi con profilo Amministratore'
+                        : `🔒 Inviata solo al tuo profilo (${user.nome})`}
+                    </p>
+                  </div>
+                </button>
+
+                {notificaAttiva && (
+                  <select
+                    value={anticipoNotificaMinuti}
+                    onChange={(e) => setAnticipoNotificaMinuti(Number(e.target.value))}
+                    className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[11px] font-extrabold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 cursor-pointer"
+                    title="Quando ricevere l'avviso sul dispositivo"
+                  >
+                    <option value={0}>All&apos;ora esatta</option>
+                    <option value={5}>5 min prima + ora esatta</option>
+                    <option value={15}>15 min prima + ora esatta</option>
+                    <option value={30}>30 min prima + ora esatta</option>
+                    <option value={60}>1 ora prima + ora esatta</option>
+                  </select>
+                )}
               </div>
             </div>
 

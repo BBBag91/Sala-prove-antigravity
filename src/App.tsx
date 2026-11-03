@@ -30,6 +30,7 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { LoginView } from './components/LoginView';
 import { CalendarDashboardView } from './components/CalendarDashboardView';
 import { MorningNotificationWatcher } from './components/MorningNotificationWatcher';
+import { ReminderNotificationWatcher } from './components/ReminderNotificationWatcher';
 
 // Lazy loading views and modals for ultra-fast initial bundle size and instant loading
 const ShiftsView = lazy(() => import('./components/ShiftsView').then(m => ({ default: m.ShiftsView })));
@@ -1269,6 +1270,9 @@ const AppContent: React.FC = () => {
       <MorningNotificationWatcher
         onOpenBriefingModal={() => setIsBriefingModalOpen(true)}
       />
+
+      {/* Watcher notifiche promemoria sul dispositivo in uso (Profilo Insegnante solo a lui / Profilo Admin solo agli Admin) */}
+      <ReminderNotificationWatcher />
 
       {/* Modal Riepilogo Mattutino 10:00 (caricato on-demand) */}
       {isBriefingModalOpen && (

@@ -23,6 +23,7 @@ interface BookingModalProps {
   initialRoomId?: string;
   initialType?: BookingType;
   bookingToEdit?: Booking | null;
+  onSwitchToReminder?: (date: string, startTime: string) => void;
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({
@@ -33,6 +34,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   initialRoomId,
   initialType,
   bookingToEdit,
+  onSwitchToReminder,
 }) => {
   const { clients, rooms, staff, bookings, addBooking, updateBooking, updateMultipleBookings, deleteBooking } = useApp();
   const { isAdmin, isTeacher, user } = useAuth();
@@ -135,6 +137,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [statoPagamento, setStatoPagamento] = useState<PaymentStatus>(() => bookingToEdit?.statoPagamento || 'da_saldare');
   const [metodoPagamento, setMetodoPagamento] = useState<PaymentMethod>(() => bookingToEdit?.metodoPagamento || 'pos');
   const [richiesteStrumentazione, setRichiesteStrumentazione] = useState(() => bookingToEdit?.richiesteStrumentazione || '');
+  const [affittoPiatti, setAffittoPiatti] = useState<boolean>(() =>
+    Boolean(bookingToEdit?.richiesteStrumentazione?.toLowerCase().includes('piatti'))
+  );
   const [note, setNote] = useState(() => bookingToEdit?.note || '');
   const [isPastConfirmOpen, setIsPastConfirmOpen] = useState(false);
   const [isWhatsAppReminderOpen, setIsWhatsAppReminderOpen] = useState(false);
@@ -208,9 +213,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         });
       }
       const disc = bookingToEdit.sconto || 0;
+      const hasPiatti = Boolean(bookingToEdit.richiesteStrumentazione?.toLowerCase().includes('piatti'));
+      setAffittoPiatti(hasPiatti);
       setSconto(disc);
       setTariffaTotale(bookingToEdit.tariffaTotale);
-      setTariffaBase((bookingToEdit.tariffaTotale || 0) + disc);
+      setTariffaBase(Math.max(0, (bookingToEdit.tariffaTotale || 0) + disc - (hasPiatti ? 5 : 0)));
       setCustomTariffa(true);
       setStatoPagamento(bookingToEdit.statoPagamento);
       setMetodoPagamento(bookingToEdit.metodoPagamento || 'pos');
@@ -255,6 +262,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         conteggioOccorrenze: 4,
       });
       setSconto(0);
+      setAffittoPiatti(false);
       setCustomTariffa(false);
       setStatoPagamento('da_saldare');
       setMetodoPagamento('pos');
@@ -401,13 +409,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setTariffaBase(0);
       setTariffaTotale(0);
       setSconto(0);
+      setAffittoPiatti(false);
       return;
     }
     const room = rooms.find((r) => r.id === salaId);
     if (!room) {
       if (!customTariffa) {
         setTariffaBase(0);
-        setTariffaTotale(0);
+        setTariffaTotale(affittoPiatti ? 5 : 0);
       }
       return;
     }
@@ -416,15 +425,27 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const base = Math.round(hours * rate);
     setTariffaBase(base);
     if (!customTariffa) {
-      setTariffaTotale(Math.max(0, base - (Number(sconto) || 0)));
+      const piattiExtra = affittoPiatti ? 5 : 0;
+      setTariffaTotale(Math.max(0, base - (Number(sconto) || 0) + piattiExtra));
     }
-  }, [salaId, tipo, oraInizio, oraFine, customTariffa, rooms, sconto]);
+  }, [salaId, tipo, oraInizio, oraFine, customTariffa, rooms, sconto, affittoPiatti]);
+
+  const handleToggleAffittoPiatti = () => {
+    const next = !affittoPiatti;
+    setAffittoPiatti(next);
+    setRichiesteStrumentazione(next ? '🥁 Affitto Piatti Sala (+5€)' : '');
+    const base = tariffaBase === '' ? 0 : Number(tariffaBase);
+    const disc = sconto === '' ? 0 : Number(sconto);
+    const piattiExtra = next ? 5 : 0;
+    setTariffaTotale(Math.max(0, base - disc + piattiExtra));
+  };
 
   const handleScontoChange = (val: string | number) => {
     setSconto(val);
     const disc = val === '' ? 0 : Math.max(0, Number(val));
     const base = tariffaBase === '' ? 0 : Number(tariffaBase);
-    setTariffaTotale(Math.max(0, base - disc));
+    const piattiExtra = affittoPiatti ? 5 : 0;
+    setTariffaTotale(Math.max(0, base - disc + piattiExtra));
   };
 
   const handleTariffaBaseChange = (val: string | number) => {
@@ -432,7 +453,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setCustomTariffa(true);
     const base = val === '' ? 0 : Math.max(0, Number(val));
     const disc = sconto === '' ? 0 : Number(sconto);
-    setTariffaTotale(Math.max(0, base - disc));
+    const piattiExtra = affittoPiatti ? 5 : 0;
+    setTariffaTotale(Math.max(0, base - disc + piattiExtra));
   };
 
   // Calcolo delle sale già occupate/in conflitto nella data e orari correnti
@@ -1254,34 +1276,48 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               )
             )}
 
-            {/* Tipo prenotazione: Prove vs Lezione */}
+            {/* Tipo prenotazione: Prove vs Lezione vs Promemoria */}
             <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                 Tipo Prenotazione
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+              <div className={`grid grid-cols-1 ${!bookingToEdit && onSwitchToReminder ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2.5 sm:gap-3`}>
                 <button
                   type="button"
                   onClick={() => handleSelectTipo('prove')}
-                  className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border text-sm font-semibold transition-all ${tipo === 'prove'
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-semibold transition-all cursor-pointer ${tipo === 'prove'
                       ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                 >
-                  <Music2 className="w-4 h-4 text-indigo-600" />
-                  Prove Musicali (Band / Solista)
+                  <Music2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span className="truncate">Prove Musicali</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSelectTipo('lezione')}
-                  className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border text-sm font-semibold transition-all ${tipo === 'lezione'
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-semibold transition-all cursor-pointer ${tipo === 'lezione'
                       ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                 >
-                  <GraduationCap className="w-4 h-4 text-indigo-600" />
-                  Lezione di Musica / Canto
+                  <GraduationCap className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span className="truncate">Lezione (5€/h Sala)</span>
                 </button>
+                {!bookingToEdit && onSwitchToReminder && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onSwitchToReminder(data, oraInizio);
+                    }}
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border-2 border-dashed border-fuchsia-500 bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-900 dark:text-fuchsia-200 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/50 text-sm font-black transition-all cursor-pointer shadow-xs"
+                    title="Crea un promemoria o riunione sulla griglia oraria senza addebitare l'ora alla sala"
+                  >
+                    <span className="text-base leading-none shrink-0">📌</span>
+                    <span className="truncate">Promemoria (0€ Sala)</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1741,23 +1777,42 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
 
 
-            {/* Strumentazione Necessaria per il cliente */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                Descrizione Strumentazione Necessaria / Setup Richiesto
-              </label>
-              <textarea
-                rows={2}
-                value={richiesteStrumentazione}
-                onChange={(e) => setRichiesteStrumentazione(e.target.value)}
-                placeholder="Es. Batteria 5 pezzi con piatti, 2 ampli Marshall, 3 microfoni voce..."
-                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-              />
-            </div>
-
-            {/* Importo, Sconto & Pagamento (Solo per Prove Musicali) */}
+            {/* Importo, Piatti Sala (+5€), Sconto & Pagamento (Solo per Prove Musicali) */}
             {tipo !== 'lezione' ? (
               <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+                {/* Pulsante Flag "Piatti Sala (+5€ affitto piatti)" */}
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-lg leading-none">🥁</span>
+                    <div>
+                      <p className="text-xs font-extrabold text-slate-800 uppercase tracking-tight">
+                        Piatti Sala (Affitto Piatti)
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        Aggiunge automaticamente <strong>+5 €</strong> alla tariffa totale della prova
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleAffittoPiatti}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+                      affittoPiatti
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm scale-[1.02]'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                    }`}
+                  >
+                    {affittoPiatti ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Piatti Sala (+5€ Attivo)</span>
+                      </>
+                    ) : (
+                      <span>+ Piatti Sala (+5€)</span>
+                    )}
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Tariffa Base (€) */}
                   <div>
@@ -1820,8 +1875,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                   {/* Tariffa Totale Finale (€) */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                      Tariffa Totale (€)
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
+                      <span>Tariffa Totale (€)</span>
+                      {affittoPiatti && (
+                        <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                          +5€ Piatti
+                        </span>
+                      )}
                     </label>
                     <div className="relative">
                       <input
