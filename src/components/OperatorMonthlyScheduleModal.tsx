@@ -17,6 +17,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { PrimaryWorkShiftDate, StaffMember } from '../types';
 import { MESI_ITALIANI } from '../utils/dateUtils';
+import { generateUUID } from '../utils/uuid';
 
 export interface OperatorMonthlyScheduleModalProps {
   isOpen: boolean;
@@ -148,7 +149,7 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
       const slots = existingEntries
         .filter((item) => !item.indisponibileTotale && item.oraInizio && item.oraFine)
         .map((item, idx) => ({
-          id: item.id || `slot_${idx}_${Date.now()}`,
+          id: item.id || generateUUID(),
           oraInizio: item.oraInizio || '08:30',
           oraFine: item.oraFine || '17:00',
           motivo: item.motivo || '',
@@ -156,7 +157,7 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
 
       if (slots.length === 0 && !isTotal) {
         slots.push({
-          id: `slot_0_${Date.now()}`,
+          id: generateUUID(),
           oraInizio: '08:30',
           oraFine: '17:00',
           motivo: '',
@@ -177,7 +178,7 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
         const firstShift = weeklyShifts[0];
         setDaySlots([
           {
-            id: `slot_0_${Date.now()}`,
+            id: generateUUID(),
             oraInizio: firstShift.oraInizio || '08:30',
             oraFine: firstShift.oraFine || '17:00',
             motivo: firstShift.descrizione || '',
@@ -186,7 +187,7 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
       } else {
         setDaySlots([
           {
-            id: `slot_0_${Date.now()}`,
+            id: generateUUID(),
             oraInizio: '08:30',
             oraFine: '17:00',
             motivo: '',
@@ -213,7 +214,7 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
     setDaySlots((prev) => [
       ...prev,
       {
-        id: `slot_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        id: generateUUID(),
         oraInizio: defStart,
         oraFine: defEnd,
         motivo: '',
@@ -320,7 +321,7 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
       if (daySlots.length <= 1) {
         setDaySlots([
           {
-            id: `slot_preset_${Date.now()}`,
+            id: generateUUID(),
             oraInizio: pStart,
             oraFine: pEnd,
             motivo: pMotivo,
@@ -330,7 +331,7 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
         setDaySlots((prev) => [
           ...prev,
           {
-            id: `slot_preset_${Date.now()}`,
+            id: generateUUID(),
             oraInizio: pStart,
             oraFine: pEnd,
             motivo: pMotivo,

@@ -6,6 +6,7 @@ import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
 import { computeDailyShifts, autoAssignWeeklyShifts, autoAssignMonthlyShifts } from '../utils/shiftUtils';
 import { isSupabaseConfigured, setSupabaseCredentials, supabase } from '../lib/supabase';
 import { supabaseService } from '../services/supabaseService';
+import { generateUUID } from '../utils/uuid';
 
 interface AppContextType {
   // Data
@@ -111,51 +112,18 @@ function safeLocalStorageSet(key: string, value: unknown): void {
   }
 }
 
-// Deduplicazione robusta a monte:
-// 1. Garantisce un solo evento per data, sala, orario e cliente
-// 2. Garantisce che lo stesso allievo/cliente non abbia prenotazioni duplicate contemporanee in sale diverse (es. Studiolo vs Sala Grande)
+// PROTEZIONE CALENDARIO:
+// Deduplicazione minimale a salvaguardia del calendario: garantisce unicità per ID esatto
+// senza MAI eliminare, alterare, fondere o modificare le prenotazioni legittime di sale diverse o lezioni.
 export function deduplicateBookings(bookingsList: Booking[]): Booking[] {
-  // Pass 1: Deduplicazione esatta su slot, sala e cliente
-  const seenExact = new Map<string, Booking>();
+  if (!Array.isArray(bookingsList)) return [];
+  const byId = new Map<string, Booking>();
   for (const b of bookingsList) {
-    const sig = `${b.data}###${b.salaId}###${b.oraInizio}###${b.oraFine}###${(b.clienteNome || '').trim().toLowerCase()}`;
-    if (!seenExact.has(sig)) {
-      seenExact.set(sig, b);
-    } else {
-      const existing = seenExact.get(sig)!;
-      if (existing.statoPagamento !== 'pagato' && b.statoPagamento === 'pagato') {
-        seenExact.set(sig, b);
-      }
+    if (b && b.id) {
+      byId.set(b.id, b);
     }
   }
-
-  // Pass 2: Risoluzione conflitti per lo stesso cliente nello stesso orario in sale differenti
-  const clientSlotMap = new Map<string, Booking>();
-  for (const b of seenExact.values()) {
-    const clientNorm = (b.clienteNome || '').trim().toLowerCase();
-    if (!clientNorm) {
-      clientSlotMap.set(b.id, b);
-      continue;
-    }
-    const slotKey = `${b.data}###${b.oraInizio}###${b.oraFine}###${clientNorm}`;
-    if (!clientSlotMap.has(slotKey)) {
-      clientSlotMap.set(slotKey, b);
-    } else {
-      const existing = clientSlotMap.get(slotKey)!;
-      // Se una delle due è in Studiolo ed è lezione, prediligi sempre lo Studiolo
-      const bIsStudiolo = (b.salaNome || '').toLowerCase().includes('studiolo') || b.salaId.includes('1790981409646');
-      const existingIsStudiolo = (existing.salaNome || '').toLowerCase().includes('studiolo') || existing.salaId.includes('1790981409646');
-      if (bIsStudiolo && !existingIsStudiolo) {
-        clientSlotMap.set(slotKey, b);
-      } else if (!bIsStudiolo && existingIsStudiolo) {
-        // Mantieni existing
-      } else if (existing.statoPagamento !== 'pagato' && b.statoPagamento === 'pagato') {
-        clientSlotMap.set(slotKey, b);
-      }
-    }
-  }
-
-  return Array.from(clientSlotMap.values());
+  return Array.from(byId.values());
 }
 
 /**
@@ -289,17 +257,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
     const parsed = safeLocalStorageGet<Booking[]>(STORAGE_KEYS.BOOKINGS, INITIAL_BOOKINGS);
-    const sanitized = parsed.map((b) => {
-      if (b.id === 'book-1' && !b.richiesteStrumentazione?.includes('Batteria 5 pezzi')) {
-        return {
-          ...b,
-          richiesteStrumentazione:
-            'Batteria 5 pezzi completa con set piatti; 2 ampli chitarra valvolari (Marshall/Fender); 1 testata per basso; 3 microfoni voce SM58 con aste; 1 cavo Jack ausiliario per sampler; Set piatti completo e 3 microfoni SM58 posizionati.',
-        };
-      }
-      return b;
-    });
-    return deduplicateBookings(sanitized);
+    return deduplicateBookings(parsed);
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() =>
@@ -407,7 +365,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (Array.isArray(parsed) && parsed.length > 0) {
             setClients(parsed);
           }
-        } catch {}
+        } catch { }
       }
     };
     window.addEventListener('storage', handleStorageChange);
@@ -446,18 +404,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setStaff((prevLocal) => deduplicateStaff([...remote.staff, ...prevLocal]));
         }
         if (remote.bookings) {
-          const sanitized = remote.bookings.map((b) => {
-            if (isLessonBooking(b)) {
-              return {
-                ...b,
-                tipo: 'lezione' as const,
-                operatoreAssegnatoId: undefined,
-                operatoreAssegnatoNome: undefined,
-              };
-            }
-            return b;
-          });
-          setBookings(deduplicateBookings(sanitized));
+          // PROTEZIONE CALENDARIO: mantieni intatte al 100% tutte le prenotazioni del DB
+          setBookings(deduplicateBookings(remote.bookings));
         }
         if (remote.clients && remote.clients.length > 0) {
           setClients((prevLocal) => {
@@ -616,7 +564,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addRoom = (roomData: Omit<Room, 'id'>) => {
     const newRoom: Room = {
       ...roomData,
-      id: `room-${Date.now()}`,
+      id: generateUUID(),
     };
     setRooms((prev) => [...prev, newRoom]);
     if (configured) {
@@ -646,7 +594,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addStaff = async (memberData: Omit<StaffMember, 'id'>): Promise<StaffMember> => {
     const newMember: StaffMember = {
       ...memberData,
-      id: `staff-${Date.now()}`,
+      id: generateUUID(),
     };
     setStaff((prev) => [...prev, newMember]);
     if (configured) {
@@ -703,7 +651,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ) => {
     const op = operatorId ? staff.find((st) => st.id === operatorId) : undefined;
     const opName = op ? `${op.nome} ${op.cognome}` : (customOperatorName?.trim() || undefined);
-    const effectiveOpId = operatorId || (customOperatorName?.trim() ? `manual-op-${Date.now()}` : undefined);
+    const effectiveOpId = operatorId || (customOperatorName?.trim() ? generateUUID() : undefined);
 
     const baseStart = turnoNumero === 1 ? '17:00' : '20:00';
     const baseEnd = turnoNumero === 1 ? '20:00' : '23:00';
@@ -833,9 +781,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newClient: Client = hasId
       ? (clientData as Client)
       : {
-          ...clientData,
-          id: `cli-${Date.now()}`,
-        };
+        ...clientData,
+        id: generateUUID(),
+      };
 
     setClients((prev) => {
       // Evita duplicati: controlla sia per ID che per Codice Fiscale
@@ -863,11 +811,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((b) =>
         b.clienteId === updated.id
           ? {
-              ...b,
-              clienteNome: `${updated.nome} ${updated.cognome}${
-                updated.gruppoBand ? ` (${updated.gruppoBand})` : ''
+            ...b,
+            clienteNome: `${updated.nome} ${updated.cognome}${updated.gruppoBand ? ` (${updated.gruppoBand})` : ''
               }`,
-            }
+          }
           : b
       )
     );
@@ -902,7 +849,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         datesToBook = generateRecurrenceDates(bookingData.data, bookingData.recurrenceConfig);
         isRecurring = datesToBook.length > 1;
         if (isRecurring) {
-          recurrenceId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+          recurrenceId = generateUUID();
         }
       } else if (bookingData.ripetizioneSettimanale) {
         const repeatWeeks = bookingData.repeatWeeks || 4;
@@ -915,7 +862,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         isRecurring = datesToBook.length > 1;
         if (isRecurring) {
-          recurrenceId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+          recurrenceId = generateUUID();
         }
       }
     }
@@ -977,7 +924,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const isLesson = isLessonBooking(bookingData);
       const newBookings: Booking[] = uniqueDates.map((dateStr, idx) => ({
-        id: `book-${Date.now()}-${idx}`,
+        id: generateUUID(),
         clienteId: bookingData.clienteId,
         clienteNome: bookingData.clienteNome,
         salaId: bookingData.salaId,
@@ -1126,7 +1073,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addExpense = (expenseData: Omit<Expense, 'id'>) => {
     const newExpense: Expense = {
       ...expenseData,
-      id: `exp-${Date.now()}`,
+      id: generateUUID(),
     };
     setExpenses((prev) => [newExpense, ...prev]);
     if (configured) {
@@ -1152,7 +1099,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addIncome = (incomeData: Omit<ManualIncome, 'id'>) => {
     const newIncome: ManualIncome = {
       ...incomeData,
-      id: `inc-${Date.now()}`,
+      id: generateUUID(),
     };
     setIncomes((prev) => [newIncome, ...prev]);
     if (configured) {

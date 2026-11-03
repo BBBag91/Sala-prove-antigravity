@@ -13,6 +13,7 @@ import { checkOperatorsCoverageForTimeSlot } from '../utils/scheduler';
 import { RoomFloorPlanSelector } from './RoomFloorPlanSelector';
 import { BookingWhatsAppModal } from './BookingWhatsAppModal';
 import { checkTeacherBookingPermissions } from '../utils/bookingPermissions';
+import { generateUUID } from '../utils/uuid';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -612,7 +613,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         : '';
 
     const finalClienteId = isManualClient
-      ? (bookingToEdit?.clienteId?.startsWith('manual-') ? bookingToEdit.clienteId : `manual-${Date.now()}`)
+      ? (bookingToEdit?.clienteId || generateUUID())
       : (selectedClient?.id || '');
 
     if (!finalClienteNome || !selectedRoom) return;
@@ -644,7 +645,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (bookingToEdit) {
       // Se era una prenotazione singola e l'utente ha attivato la ripetizione
       if (!bookingToEdit.gruppoRicorrenzaId && isRecurring) {
-        const newRecId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        const newRecId = generateUUID();
         const weeks = repeatOption === 'per_sempre' ? 52 : (Number(repeatOption) || recurrenceConfig.conteggioOccorrenze || 4);
 
         updateBooking({
@@ -865,7 +866,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         : '';
 
     const finalClienteId = isManualClient
-      ? (bookingToEdit?.clienteId?.startsWith('manual-') ? bookingToEdit.clienteId : `manual-${Date.now()}`)
+      ? (bookingToEdit?.clienteId || generateUUID())
       : (selectedClient?.id || '');
 
     if (!finalClienteNome) {

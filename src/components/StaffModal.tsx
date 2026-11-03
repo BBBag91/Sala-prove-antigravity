@@ -5,6 +5,7 @@ import { PrimaryWorkShift, StaffMember, StaffRole, TeacherBillingCycle } from '.
 import { GIORNI_CALENDARIO } from '../utils/dateUtils';
 import { handleNumericFocus, handleNumericClick, handleNumericBlur } from '../utils/inputUtils';
 import { OperatorMonthlyScheduleModal } from './OperatorMonthlyScheduleModal';
+import { generateUUID } from '../utils/uuid';
 
 interface StaffModalProps {
   isOpen: boolean;
@@ -91,7 +92,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
 
   const handleAddShift = () => {
     const newShift: PrimaryWorkShift = {
-      id: `shift-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: generateUUID(),
       giornoSettimana: draftGiorno,
       oraInizio: draftInizio,
       oraFine: draftFine,
@@ -104,7 +105,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
     // Adds Mon-Fri 08:30-17:00 (1 sola fascia per giorno lavorativo)
     const weekdays = [1, 2, 3, 4, 5];
     const shifts: PrimaryWorkShift[] = weekdays.map((day) => ({
-      id: `shift-${Date.now()}-${day}`,
+      id: generateUUID(),
       giornoSettimana: day,
       oraInizio: '08:30',
       oraFine: '17:00',

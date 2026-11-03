@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient, User as SupabaseUser } from '@supabase/supabase-js';
 import { AuthUser, UserRole, isValidUserRole } from '../types';
 import { supabase, getSupabaseUrl, getSupabaseKey, isSupabaseConfigured } from '../lib/supabase';
+import { generateUUID } from '../utils/uuid';
 
 export interface CreateUserParams {
   email: string;
@@ -696,7 +697,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: error.message };
       }
 
-      const newUserId = data.user?.id || `usr-${Date.now()}`;
+      const newUserId = data.user?.id || generateUUID();
       const newAccount: RegisteredAccount = {
         id: newUserId,
         email: trimmedEmail,

@@ -35,6 +35,7 @@ import {
   isHoneypotTriggered,
   formSubmitRateLimiter,
 } from '../utils/security';
+import { generateUUID } from '../utils/uuid';
 
 export const PublicMembershipFormView: React.FC = () => {
   // Form State
@@ -229,7 +230,7 @@ export const PublicMembershipFormView: React.FC = () => {
         : '';
 
       const newClient: Client = {
-        id: `cli-${Date.now()}`,
+        id: generateUUID(),
         nome: safeNome,
         cognome: safeCognome,
         codiceFiscale: cleanCf,

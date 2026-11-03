@@ -17,6 +17,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { DailyShiftComputed, WorkShift, isLessonBooking } from '../types';
 import { checkOperatorShiftAvailability } from '../utils/shiftUtils';
+import { generateUUID } from '../utils/uuid';
 
 interface ShiftQuickModalProps {
   isOpen: boolean;
@@ -158,7 +159,7 @@ export const ShiftQuickModal: React.FC<ShiftQuickModalProps> = ({
         oraFineBase: shiftComputed.oraFineBase,
         oraInizioEffettiva: customStart,
         oraFineEffettiva: customEnd,
-        operatoreId: effectiveOpId || (customName ? `manual-op-${Date.now()}` : undefined),
+        operatoreId: effectiveOpId || (customName ? generateUUID() : undefined),
         operatoreNome: opNome,
         note,
         isCustomHours: true,

@@ -42,6 +42,7 @@ import {
 } from '../utils/dateUtils';
 import { StudentDetailModal } from './StudentDetailModal';
 import { generateStudentRegistryPdf } from '../utils/studentRegistryPdf';
+import { generateUUID } from '../utils/uuid';
 
 export const AllieviView: React.FC = () => {
   const { clients, bookings, staff, addClient, studioInfo } = useApp();
@@ -519,7 +520,7 @@ export const AllieviView: React.FC = () => {
     if (!newNome.trim() || !newCognome.trim()) return;
 
     const assignedTeacher = staff.find((s) => s.id === newTeacherId);
-    const newStudentId = `cli-${Date.now()}`;
+    const newStudentId = generateUUID();
     const curYear = new Date().getFullYear();
 
     const newStudentObj: Client = {
