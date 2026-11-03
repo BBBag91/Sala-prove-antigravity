@@ -17,10 +17,17 @@ import {
   AlertCircle,
   ExternalLink,
   Lock,
+  Pin,
+  Circle,
 } from 'lucide-react';
 import { Booking, Room, StaffMember, PaymentMethod, PaymentStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { checkTeacherBookingPermissions } from '../utils/bookingPermissions';
+import {
+  CalendarReminder,
+  getReminderColorStyle,
+  reminderService,
+} from '../services/reminderService';
 import {
   formatDateToISO,
   parseISODate,
@@ -57,6 +64,8 @@ export interface MonthCalendarViewProps {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onGoToday: () => void;
+  remindersByDay?: Record<string, CalendarReminder[]>;
+  onOpenReminderModal?: (dateStr?: string, reminder?: CalendarReminder | null) => void;
 }
 
 export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
@@ -75,6 +84,8 @@ export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
   onPrevMonth,
   onNextMonth,
   onGoToday,
+  remindersByDay = {},
+  onOpenReminderModal,
 }) => {
   const { user } = useAuth();
   const year = currentDate.getFullYear();
@@ -245,6 +256,7 @@ export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
             <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {calendarDays.map((calDay) => {
                 const dayBookings = bookingsByDate[calDay.dateStr] || [];
+                const dayRems = remindersByDay[calDay.dateStr] || [];
                 const isSelected = calDay.dateStr === selectedDateStr;
                 const isToday = calDay.dateStr === todayStr;
                 const isCurrentMonth = calDay.isCurrentMonth;
@@ -268,8 +280,16 @@ export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
                           ? 'ring-2 ring-blue-500/40 dark:ring-yellow-400/50 bg-blue-50/50 dark:bg-yellow-400/5'
                           : 'hover:bg-slate-100 dark:hover:bg-neutral-900/80 text-slate-800 dark:text-neutral-200'
                     }`}
-                    title={`${calDay.dayOfMonth} ${MESI_ITALIANI[calDay.date.getMonth()]} - ${bCount} eventi (Doppio clic per aggiungere evento)`}
+                    title={`${calDay.dayOfMonth} ${MESI_ITALIANI[calDay.date.getMonth()]} - ${bCount} eventi${dayRems.length > 0 ? `, ${dayRems.length} promemoria` : ''} (Doppio clic per aggiungere evento)`}
                   >
+                    {dayRems.length > 0 && (
+                      <span
+                        className="absolute top-1 right-1 text-[9px] leading-none"
+                        title={`${dayRems.length} promemoria`}
+                      >
+                        📌
+                      </span>
+                    )}
                     {/* Cerchio del numero del giorno: se selezionato è pieno blu (#0284c7 / #2563eb) con testo bianco proprio come nello screenshot! */}
                     <div
                       className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-sm sm:text-base font-extrabold transition-transform group-hover:scale-105 ${
@@ -384,7 +404,19 @@ export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
               </div>
 
               {/* Azioni rapide per il giorno */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                {onOpenReminderModal && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenReminderModal(selectedDateStr, null)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/30 text-xs font-extrabold transition-all cursor-pointer"
+                    title="Aggiungi o gestisci promemoria per questo giorno"
+                  >
+                    <Pin className="w-3.5 h-3.5 -rotate-12" />
+                    <span>+ Promemoria</span>
+                  </button>
+                )}
+
                 {onSwitchToDayView && (
                   <button
                     type="button"
@@ -408,6 +440,72 @@ export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Promemoria del Giorno Selezionato (se presenti) */}
+            {(remindersByDay[selectedDateStr]?.length || 0) > 0 && (
+              <div className="space-y-1.5 pb-2 border-b border-slate-100 dark:border-neutral-900">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                    <Pin className="w-3 h-3 -rotate-12" />
+                    Promemoria del giorno ({remindersByDay[selectedDateStr].length})
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {remindersByDay[selectedDateStr].map((rem) => {
+                    const rStyle = getReminderColorStyle(rem.colore);
+                    const isPublic = rem.visibilita === 'tutti' || rem.autoreRuolo === 'admin';
+                    return (
+                      <div
+                        key={rem.id}
+                        onClick={() => onOpenReminderModal?.(selectedDateStr, rem)}
+                        className={`p-2.5 rounded-xl border transition-all cursor-pointer hover:shadow-sm flex items-start justify-between gap-2 ${
+                          rStyle.bg
+                        } ${rStyle.border} ${rem.completato ? 'opacity-60' : ''}`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px]">
+                              {isPublic ? '👑' : '🔒'}
+                            </span>
+                            {rem.ora && (
+                              <span className={`px-1 py-0.2 rounded text-[9px] font-black ${rStyle.badge}`}>
+                                {rem.ora}
+                              </span>
+                            )}
+                            <span
+                              className={`text-xs font-extrabold truncate ${rStyle.text} ${
+                                rem.completato ? 'line-through' : ''
+                              }`}
+                            >
+                              {rem.titolo}
+                            </span>
+                          </div>
+                          {rem.note && (
+                            <p className={`text-[10px] mt-0.5 line-clamp-1 opacity-80 ${rStyle.text}`}>
+                              {rem.note}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            reminderService.toggleCompleted(rem.id);
+                          }}
+                          className="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 shrink-0 cursor-pointer"
+                        >
+                          {rem.completato ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          ) : (
+                            <Circle className="w-3.5 h-3.5 opacity-60 hover:opacity-100" />
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Lista Prenotazioni del Giorno */}
             <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
