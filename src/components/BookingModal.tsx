@@ -607,9 +607,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const finalClienteNome = isManualClient
       ? manualClientName.trim()
       : selectedClient
-        ? `${selectedClient.nome} ${selectedClient.cognome}${
-            selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''
-          }`
+        ? `${selectedClient.nome} ${selectedClient.cognome}${selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''
+        }`
         : '';
 
     const finalClienteId = isManualClient
@@ -630,16 +629,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const isRecurring = ripetizioneSettimanale || recurrenceConfig.attiva;
     const activeConfig: RecurrenceConfig | undefined = isRecurring
       ? {
-          attiva: true,
-          frequenza: recurrenceConfig.frequenza || 'settimanale',
-          intervallo: recurrenceConfig.intervallo || 1,
-          tipoFine: repeatOption === 'per_sempre' ? 'per_sempre' : (recurrenceConfig.tipoFine || 'per_sempre'),
-          conteggioOccorrenze: repeatOption === 'per_sempre' ? undefined : (recurrenceConfig.conteggioOccorrenze || Number(repeatOption) || 4),
-          dataFine: recurrenceConfig.dataFine,
-          giorniSettimana: recurrenceConfig.giorniSettimana && recurrenceConfig.giorniSettimana.length > 0
-            ? recurrenceConfig.giorniSettimana
-            : [parseISODate(data).getDay()],
-        }
+        attiva: true,
+        frequenza: recurrenceConfig.frequenza || 'settimanale',
+        intervallo: recurrenceConfig.intervallo || 1,
+        tipoFine: repeatOption === 'per_sempre' ? 'per_sempre' : (recurrenceConfig.tipoFine || 'per_sempre'),
+        conteggioOccorrenze: repeatOption === 'per_sempre' ? undefined : (recurrenceConfig.conteggioOccorrenze || Number(repeatOption) || 4),
+        dataFine: recurrenceConfig.dataFine,
+        giorniSettimana: recurrenceConfig.giorniSettimana && recurrenceConfig.giorniSettimana.length > 0
+          ? recurrenceConfig.giorniSettimana
+          : [parseISODate(data).getDay()],
+      }
       : undefined;
 
     if (bookingToEdit) {
@@ -679,10 +678,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         const allDates = activeConfig
           ? generateRecurrenceDates(data, activeConfig)
           : Array.from({ length: weeks }, (_, i) => {
-              const d = new Date(parseISODate(data));
-              d.setDate(d.getDate() + i * 7);
-              return formatDateToISO(d);
-            });
+            const d = new Date(parseISODate(data));
+            d.setDate(d.getDate() + i * 7);
+            return formatDateToISO(d);
+          });
         const futureDates = allDates.filter((dStr) => dStr !== data);
 
         for (const nextDateStr of futureDates) {
@@ -860,9 +859,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const finalClienteNome = isManualClient
       ? manualClientName.trim()
       : selectedClient
-        ? `${selectedClient.nome} ${selectedClient.cognome}${
-            selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''
-          }`
+        ? `${selectedClient.nome} ${selectedClient.cognome}${selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''
+        }`
         : '';
 
     const finalClienteId = isManualClient
@@ -1110,13 +1108,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <button
                     type="submit"
                     disabled={isActionBlocked || isSubmitting}
-                    className={`w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 shrink-0 whitespace-nowrap ${
-                      isOtherTeacherLesson
+                    className={`w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 shrink-0 whitespace-nowrap ${isOtherTeacherLesson
                         ? 'bg-slate-400 dark:bg-neutral-700 text-white cursor-not-allowed opacity-80'
                         : isActionBlocked
                           ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
                           : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
-                    }`}
+                      }`}
                     title={
                       isOtherTeacherLesson
                         ? teacherPerms.reason
@@ -1170,813 +1167,805 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
             )}
-          {/* Alert Festività Nazionali & Domeniche */}
-          {holidayInfo.isHolidayOrSunday && (
-            tipo === 'prove' ? (
-              <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-500 dark:border-rose-600 rounded-xl flex items-start gap-3 shadow-sm">
-                <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
-                  <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-                </div>
-                <div className="text-xs text-rose-950 dark:text-rose-100 space-y-1.5 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-black text-sm text-rose-800 dark:text-rose-300">
-                      🚫 Sala Prove Chiusa per Festività: {holidayInfo.name}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-600 text-white tracking-wide shadow-2xs">
-                      Solo Lezioni Consentite
-                    </span>
+            {/* Alert Festività Nazionali & Domeniche */}
+            {holidayInfo.isHolidayOrSunday && (
+              tipo === 'prove' ? (
+                <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-500 dark:border-rose-600 rounded-xl flex items-start gap-3 shadow-sm">
+                  <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                   </div>
-                  <p className="text-rose-800 dark:text-rose-200/90 leading-relaxed font-medium">
-                    Il giorno <strong>{data}</strong> è contrassegnato in rosso sul calendario come festività (<strong>{holidayInfo.name}</strong>). La prenotazione della sala prove per band è bloccata. <em>Se intendi inserire una lezione di musica con docente, seleziona il tipo <strong>Lezione</strong> qui sotto per procedere liberamente.</em>
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-700/60 rounded-xl flex items-start gap-3">
-                <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
-                <div className="text-xs text-purple-950 dark:text-purple-100 space-y-0.5">
-                  <div className="font-bold text-sm text-purple-900 dark:text-purple-300">
-                    🎓 Giorno Festivo ({holidayInfo.name}): Lezione Consentita
-                  </div>
-                  <p className="text-purple-800 dark:text-purple-200/90 leading-relaxed">
-                    La sala prove per band è chiusa, ma le lezioni di musica e canto con il docente sono pienamente ammesse e confermabili.
-                  </p>
-                </div>
-              </div>
-            )
-          )}
-
-          {/* Alert Presidio Operatori (Lavoro Primario) */}
-          {!holidayInfo.isHolidayOrSunday && !operatorCoverage.hasCoverage && (
-            tipo === 'prove' ? (
-              <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-400 dark:border-rose-600 rounded-xl flex items-start gap-3 shadow-sm">
-                <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
-                  <AlertTriangle className="w-5 h-5 text-rose-600" />
-                </div>
-                <div className="text-xs text-rose-950 dark:text-rose-100 space-y-1.5 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-black text-sm text-rose-800 dark:text-rose-300">
-                      🚨 Sala Prove Chiusa - Nessun Operatore Presente
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-600 text-white tracking-wide shadow-2xs">
-                      Solo Lezioni Consentite
-                    </span>
-                  </div>
-                  <p className="text-rose-800 dark:text-rose-200/90 leading-relaxed font-medium">
-                    Nessuno dei {operatorCoverage.totalOperatorsCount} operatori della struttura è disponibile per presidio il <strong>{data}</strong> dalle <strong>{oraInizio}</strong> alle <strong>{oraFine}</strong> a causa dei turni di lavoro primario. Non è possibile prenotare la sala prove per band. <em>Seleziona <strong>Lezione</strong> qui sotto se desideri inserire una lezione di musica con docente.</em>
-                  </p>
-                  {operatorCoverage.unavailableOperators.length > 0 && (
-                    <div className="mt-1 pt-1.5 border-t border-rose-200 dark:border-rose-800/60">
-                      <span className="font-bold text-[11px] text-rose-900 dark:text-rose-200 block mb-0.5">
-                        Dettaglio indisponibilità lavoro primario:
+                  <div className="text-xs text-rose-950 dark:text-rose-100 space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-sm text-rose-800 dark:text-rose-300">
+                        🚫 Sala Prove Chiusa per Festività: {holidayInfo.name}
                       </span>
-                      <ul className="space-y-0.5 text-rose-700 dark:text-rose-300 text-[11px]">
-                        {operatorCoverage.unavailableOperators.map((u, idx) => (
-                          <li key={idx} className="flex items-start gap-1">
-                            <span className="font-bold shrink-0">• {u.operator.nome} {u.operator.cognome}:</span>
-                            <span>{u.reason}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-600 text-white tracking-wide shadow-2xs">
+                        Solo Lezioni Consentite
+                      </span>
                     </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-700/60 rounded-xl flex items-start gap-3">
-                <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
-                <div className="text-xs text-purple-950 dark:text-purple-100 space-y-0.5">
-                  <div className="font-bold text-sm text-purple-900 dark:text-purple-300">
-                    🎓 Nessun Presidio Operatore: Lezione Consentita
+                    <p className="text-rose-800 dark:text-rose-200/90 leading-relaxed font-medium">
+                      Il giorno <strong>{data}</strong> è contrassegnato in rosso sul calendario come festività (<strong>{holidayInfo.name}</strong>). La prenotazione della sala prove per band è bloccata. <em>Se intendi inserire una lezione di musica con docente, seleziona il tipo <strong>Lezione</strong> qui sotto per procedere liberamente.</em>
+                    </p>
                   </div>
-                  <p className="text-purple-800 dark:text-purple-200/90 leading-relaxed">
-                    Gli operatori di sala sono assenti per lavoro primario, ma le lezioni di musica con il docente sono autonome e confermabili regolarmente.
-                  </p>
                 </div>
-              </div>
-            )
-          )}
+              ) : (
+                <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-700/60 rounded-xl flex items-start gap-3">
+                  <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                  <div className="text-xs text-purple-950 dark:text-purple-100 space-y-0.5">
+                    <div className="font-bold text-sm text-purple-900 dark:text-purple-300">
+                      🎓 Giorno Festivo ({holidayInfo.name}): Lezione Consentita
+                    </div>
+                    <p className="text-purple-800 dark:text-purple-200/90 leading-relaxed">
+                      La sala prove per band è chiusa, ma le lezioni di musica e canto con il docente sono pienamente ammesse e confermabili.
+                    </p>
+                  </div>
+                </div>
+              )
+            )}
 
-          {/* Tipo prenotazione: Prove vs Lezione */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              Tipo Prenotazione
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-              <button
-                type="button"
-                onClick={() => handleSelectTipo('prove')}
-                className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border text-sm font-semibold transition-all ${
-                  tipo === 'prove'
-                    ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <Music2 className="w-4 h-4 text-indigo-600" />
-                Prove Musicali (Band / Solista)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelectTipo('lezione')}
-                className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border text-sm font-semibold transition-all ${
-                  tipo === 'lezione'
-                    ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <GraduationCap className="w-4 h-4 text-indigo-600" />
-                Lezione di Musica / Canto
-              </button>
-            </div>
-          </div>
+            {/* Alert Presidio Operatori (Lavoro Primario) */}
+            {!holidayInfo.isHolidayOrSunday && !operatorCoverage.hasCoverage && (
+              tipo === 'prove' ? (
+                <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-400 dark:border-rose-600 rounded-xl flex items-start gap-3 shadow-sm">
+                  <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertTriangle className="w-5 h-5 text-rose-600" />
+                  </div>
+                  <div className="text-xs text-rose-950 dark:text-rose-100 space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-sm text-rose-800 dark:text-rose-300">
+                        🚨 Sala Prove Chiusa - Nessun Operatore Presente
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-600 text-white tracking-wide shadow-2xs">
+                        Solo Lezioni Consentite
+                      </span>
+                    </div>
+                    <p className="text-rose-800 dark:text-rose-200/90 leading-relaxed font-medium">
+                      Nessuno dei {operatorCoverage.totalOperatorsCount} operatori della struttura è disponibile per presidio il <strong>{data}</strong> dalle <strong>{oraInizio}</strong> alle <strong>{oraFine}</strong> a causa dei turni di lavoro primario. Non è possibile prenotare la sala prove per band. <em>Seleziona <strong>Lezione</strong> qui sotto se desideri inserire una lezione di musica con docente.</em>
+                    </p>
+                    {operatorCoverage.unavailableOperators.length > 0 && (
+                      <div className="mt-1 pt-1.5 border-t border-rose-200 dark:border-rose-800/60">
+                        <span className="font-bold text-[11px] text-rose-900 dark:text-rose-200 block mb-0.5">
+                          Dettaglio indisponibilità lavoro primario:
+                        </span>
+                        <ul className="space-y-0.5 text-rose-700 dark:text-rose-300 text-[11px]">
+                          {operatorCoverage.unavailableOperators.map((u, idx) => (
+                            <li key={idx} className="flex items-start gap-1">
+                              <span className="font-bold shrink-0">• {u.operator.nome} {u.operator.cognome}:</span>
+                              <span>{u.reason}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-700/60 rounded-xl flex items-start gap-3">
+                  <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                  <div className="text-xs text-purple-950 dark:text-purple-100 space-y-0.5">
+                    <div className="font-bold text-sm text-purple-900 dark:text-purple-300">
+                      🎓 Nessun Presidio Operatore: Lezione Consentita
+                    </div>
+                    <p className="text-purple-800 dark:text-purple-200/90 leading-relaxed">
+                      Gli operatori di sala sono assenti per lavoro primario, ma le lezioni di musica con il docente sono autonome e confermabili regolarmente.
+                    </p>
+                  </div>
+                </div>
+              )
+            )}
 
-          {/* Cliente & Sala */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Tipo prenotazione: Prove vs Lezione */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  {isManualClient ? 'Nome Band / Cliente (Inserimento Manuale) *' : 'Cliente / Tesserato *'}
-                </label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Tipo Prenotazione
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    const next = !isManualClient;
-                    setIsManualClient(next);
-                    if (next && !manualClientName && selectedClient) {
-                      setManualClientName(`${selectedClient.nome} ${selectedClient.cognome}${selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''}`);
-                    }
-                    if (!next && !clienteId && clients.length > 0) {
-                      setClienteId(clients[0].id);
-                    }
-                  }}
-                  className="text-[11px] font-bold text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-1 cursor-pointer bg-neutral-900 px-2 py-0.5 rounded border border-yellow-500/30"
-                  title={isManualClient ? 'Passa alla selezione da anagrafica tesserati' : 'Inserisci manualmente band o cliente'}
+                  onClick={() => handleSelectTipo('prove')}
+                  className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border text-sm font-semibold transition-all ${tipo === 'prove'
+                      ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
                 >
-                  {isManualClient ? (
-                    <>
-                      <Users className="w-3 h-3" />
-                      <span>Scegli da anagrafica</span>
-                    </>
-                  ) : (
-                    <>
-                      <Edit3 className="w-3 h-3" />
-                      <span>Inserimento manuale</span>
-                    </>
-                  )}
+                  <Music2 className="w-4 h-4 text-indigo-600" />
+                  Prove Musicali (Band / Solista)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectTipo('lezione')}
+                  className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border text-sm font-semibold transition-all ${tipo === 'lezione'
+                      ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                >
+                  <GraduationCap className="w-4 h-4 text-indigo-600" />
+                  Lezione di Musica / Canto
                 </button>
               </div>
-
-              {isManualClient ? (
-                <div className="space-y-1.5">
-                  <input
-                    type="text"
-                    required
-                    value={manualClientName}
-                    onChange={(e) => setManualClientName(e.target.value)}
-                    placeholder="Nome band o cliente (es. The Velvet Echoes, Mario Rossi...)"
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-yellow-500/40 bg-neutral-950 text-yellow-100 text-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none placeholder:text-neutral-500"
-                  />
-                  <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                    <span className="text-yellow-400/80">✨ Inserimento manuale (predefinito)</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsManualClient(false);
-                        if (!clienteId && clients.length > 0) {
-                          setClienteId(clients[0].id);
-                        }
-                      }}
-                      className="text-yellow-400 hover:underline cursor-pointer flex items-center gap-1"
-                    >
-                      <Users className="w-3 h-3" />
-                      <span>Scegli da lista tesserati</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <select
-                    required
-                    value={clienteId}
-                    onChange={(e) => {
-                      if (e.target.value === '__manual__') {
-                        setIsManualClient(true);
-                      } else {
-                        handleClientChange(e.target.value);
-                      }
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-                  >
-                    <option value="">-- Seleziona cliente --</option>
-                    <option value="__manual__" className="text-yellow-400 font-bold bg-neutral-900">
-                      ✍️ Inserimento manuale (non tesserato / ospite)...
-                    </option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nome} {c.cognome} {c.gruppoBand ? `[${c.gruppoBand}]` : ''} - Tessera:{' '}
-                        {c.statoTesseramento === 'attivo'
-                          ? 'Attiva'
-                          : c.statoTesseramento === 'da_tesserare'
-                            ? 'Da Tesserare'
-                            : c.statoTesseramento === 'in_attesa'
-                              ? 'Inviato all\'Ente'
-                              : 'Scaduta'}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedClient && selectedClient.statoTesseramento !== 'attivo' && (
-                    <div className="mt-1.5 flex items-center gap-1 text-xs text-amber-700 font-medium">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>
-                        {selectedClient.statoTesseramento === 'da_tesserare'
-                          ? 'Tesseramento da inviare all\'ente (presente nel file Excel).'
-                          : selectedClient.statoTesseramento === 'in_attesa'
-                          ? 'Tesseramento inviato all\'ente (in attesa di ricezione tessera).'
-                          : 'Attenzione: tesseramento scaduto. Da rinnovare!'}
-                      </span>
-                    </div>
-                  )}
-                </>
-              )}
             </div>
 
+            {/* Cliente & Sala */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    {isManualClient ? 'Nome Band / Cliente (Inserimento Manuale) *' : 'Cliente / Tesserato *'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !isManualClient;
+                      setIsManualClient(next);
+                      if (next && !manualClientName && selectedClient) {
+                        setManualClientName(`${selectedClient.nome} ${selectedClient.cognome}${selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''}`);
+                      }
+                      if (!next && !clienteId && clients.length > 0) {
+                        setClienteId(clients[0].id);
+                      }
+                    }}
+                    className="text-[11px] font-bold text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-1 cursor-pointer bg-neutral-900 px-2 py-0.5 rounded border border-yellow-500/30"
+                    title={isManualClient ? 'Passa alla selezione da anagrafica tesserati' : 'Inserisci manualmente band o cliente'}
+                  >
+                    {isManualClient ? (
+                      <>
+                        <Users className="w-3 h-3" />
+                        <span>Scegli da anagrafica</span>
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="w-3 h-3" />
+                        <span>Inserimento manuale</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {isManualClient ? (
+                  <div className="space-y-1.5">
+                    <input
+                      type="text"
+                      required
+                      value={manualClientName}
+                      onChange={(e) => setManualClientName(e.target.value)}
+                      placeholder="Nome band o cliente (es. The Velvet Echoes, Mario Rossi...)"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-yellow-500/40 bg-neutral-950 text-yellow-100 text-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none placeholder:text-neutral-500"
+                    />
+                    <div className="flex items-center justify-between text-[11px] text-neutral-400">
+                      <span className="text-yellow-400/80">✨ Inserimento manuale (predefinito)</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsManualClient(false);
+                          if (!clienteId && clients.length > 0) {
+                            setClienteId(clients[0].id);
+                          }
+                        }}
+                        className="text-yellow-400 hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <Users className="w-3 h-3" />
+                        <span>Scegli da lista tesserati</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      required
+                      value={clienteId}
+                      onChange={(e) => {
+                        if (e.target.value === '__manual__') {
+                          setIsManualClient(true);
+                        } else {
+                          handleClientChange(e.target.value);
+                        }
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    >
+                      <option value="">-- Seleziona cliente --</option>
+                      <option value="__manual__" className="text-yellow-400 font-bold bg-neutral-900">
+                        ✍️ Inserimento manuale (non tesserato / ospite)...
+                      </option>
+                      {clients.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nome} {c.cognome} {c.gruppoBand ? `[${c.gruppoBand}]` : ''} - Tessera:{' '}
+                          {c.statoTesseramento === 'attivo'
+                            ? 'Attiva'
+                            : c.statoTesseramento === 'da_tesserare'
+                              ? 'Da Tesserare'
+                              : c.statoTesseramento === 'in_attesa'
+                                ? 'Inviato all\'Ente'
+                                : 'Scaduta'}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedClient && selectedClient.statoTesseramento !== 'attivo' && (
+                      <div className="mt-1.5 flex items-center gap-1 text-xs text-amber-700 font-medium">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          {selectedClient.statoTesseramento === 'da_tesserare'
+                            ? 'Tesseramento da inviare all\'ente (presente nel file Excel).'
+                            : selectedClient.statoTesseramento === 'in_attesa'
+                              ? 'Tesseramento inviato all\'ente (in attesa di ricezione tessera).'
+                              : 'Attenzione: tesseramento scaduto. Da rinnovare!'}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Sala Prove *
+                  </label>
+                  {data && oraInizio && oraFine && (
+                    <span
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${availableRooms.length > 0
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                          : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                        }`}
+                    >
+                      {availableRooms.length} su {rooms.length} {availableRooms.length === 1 ? 'libera' : 'libere'}
+                    </span>
+                  )}
+                </div>
+                <RoomFloorPlanSelector
+                  rooms={rooms}
+                  selectedRoomId={salaId}
+                  onSelectRoom={(newRoomId) => setSalaId(newRoomId)}
+                  availableRooms={availableRooms}
+                  occupiedRooms={occupiedRooms}
+                  tipo={tipo}
+                  data={data}
+                  oraInizio={oraInizio}
+                  oraFine={oraFine}
+                />
+                <input type="hidden" name="salaId" value={salaId} />
+
+                {/* Avviso in tempo reale se la sala scelta ha un conflitto */}
+                {salaId && overlappingBookingsByRoom.has(salaId) && (
+                  <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-300 text-red-800 text-xs flex items-start gap-2 animate-in fade-in duration-150">
+                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block font-bold">Sala già occupata in questa fascia oraria!</strong>
+                      <span>
+                        {(overlappingBookingsByRoom.get(salaId) || []).map((c) => `${c.clienteNome} (${c.oraInizio} - ${c.oraFine})`).join(', ')}
+                      </span>
+                      <span className="block mt-1 font-semibold text-red-900">
+                        Scegli un'altra sala libera dall'elenco per confermare.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Notifica se tutte le sale sono sature nell'orario */}
+                {availableRooms.length === 0 && rooms.length > 0 && (
+                  <div className="mt-2 p-2.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>Tutte le sale risultano occupate tra le {oraInizio} e le {oraFine}. Cambia orario o data.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Insegnante (se lezione) */}
+            {tipo === 'lezione' && (
+              <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 rounded-lg">
+                {isAutoTeacher && currentTeacherStaff ? (
+                  /* Profilo Insegnante Personale: Assegnazione automatica diretta senza menù a tendina */
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
+                        Docente Incaricato (Assegnato Automaticamente)
+                      </label>
+                      <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1 shadow-2xs">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        Tuo Profilo Docente
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3 bg-white dark:bg-neutral-900 rounded-xl border border-indigo-200 dark:border-indigo-800/60 shadow-xs">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-xs"
+                        style={{ backgroundColor: currentTeacherStaff.coloreBadge || '#8b5cf6' }}
+                      >
+                        {currentTeacherStaff.nome[0]}{currentTeacherStaff.cognome[0]}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 dark:text-white text-sm block truncate">
+                            {currentTeacherStaff.nome} {currentTeacherStaff.cognome}
+                          </span>
+                          <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                            Docente
+                          </span>
+                        </div>
+                        <span className="text-xs text-slate-500 dark:text-neutral-400 block truncate mt-0.5">
+                          {currentTeacherStaff.materieInsegnamento || 'Lezione Didattica'} {currentTeacherStaff.telefono ? `• ${currentTeacherStaff.telefono}` : ''}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4" />
+                          Collegato
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Avviso in tempo reale se il docente è già occupato altrove */}
+                    {overlappingBookingsByTeacher.has(currentTeacherStaff.id) && (
+                      <div className="p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-300 text-xs flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="block font-bold">Attenzione: hai già un'altra lezione in questa fascia oraria!</strong>
+                          <span>
+                            {(overlappingBookingsByTeacher.get(currentTeacherStaff.id) || []).map((c) => `• ${c.clienteNome} in ${c.salaNome || 'Sala'} (${c.oraInizio} - ${c.oraFine})`).join(' ')}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Profilo Amministratore (o account generale): Menù a tendina completo con scelta libera di tutti i docenti */
+                  <>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
+                        Docente / Insegnante incaricato *
+                      </label>
+                      {data && oraInizio && oraFine && (
+                        <span
+                          className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${availableTeachers.length > 0
+                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                              : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                            }`}
+                        >
+                          {availableTeachers.length} su {teacherCandidates.length} {availableTeachers.length === 1 ? 'disponibile' : 'disponibili'}
+                        </span>
+                      )}
+                    </div>
+                    <select
+                      value={insegnanteId}
+                      onChange={(e) => setInsegnanteId(e.target.value)}
+                      className={`w-full px-3.5 py-2.5 rounded-lg border text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all ${insegnanteId && overlappingBookingsByTeacher.has(insegnanteId)
+                          ? 'border-red-500 bg-red-50 text-red-900 ring-2 ring-red-400'
+                          : 'border-indigo-300 bg-white text-slate-800'
+                        }`}
+                    >
+                      <option value="">-- Seleziona insegnante ({availableTeachers.length} disponibili) --</option>
+                      {/* Insegnanti Disponibili */}
+                      {availableTeachers.map((t) => (
+                        <option key={t.id} value={t.id} className="font-bold text-slate-900">
+                          ✓ {t.nome} {t.cognome} {t.materieInsegnamento ? `(${t.materieInsegnamento})` : ''}
+                        </option>
+                      ))}
+                      {/* Insegnanti già impegnati in altra lezione: disabilitati e non selezionabili */}
+                      {occupiedTeachers.length > 0 && (
+                        <optgroup label="── Insegnanti già impegnati in altra lezione (Non selezionabili) ──">
+                          {occupiedTeachers.map(({ teacher: t, conflicts }) => (
+                            <option
+                              key={t.id}
+                              value={t.id}
+                              disabled
+                              className="text-slate-400 bg-slate-100 italic"
+                            >
+                              🚫 {t.nome} {t.cognome} - OCCUPATO/A ({conflicts.map((c) => `${c.clienteNome} in ${c.salaNome || 'Sala'} ${c.oraInizio}-${c.oraFine}`).join(', ')})
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </select>
+
+                    {/* Avviso in tempo reale se l'insegnante scelto ha un conflitto */}
+                    {insegnanteId && overlappingBookingsByTeacher.has(insegnanteId) && (
+                      <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-300 text-red-800 text-xs flex items-start gap-2 animate-in fade-in duration-150">
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="block font-bold">Insegnante già occupato/a in questa fascia oraria!</strong>
+                          <span>
+                            {(overlappingBookingsByTeacher.get(insegnanteId) || []).map((c) => `• ${c.clienteNome} in ${c.salaNome || 'Sala'} (${c.oraInizio} - ${c.oraFine})`).join(' ')}
+                          </span>
+                          <span className="block mt-1 font-semibold text-red-900">
+                            Seleziona un altro insegnante disponibile tra quelli liberi.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notifica se tutti gli insegnanti sono occupati */}
+                    {availableTeachers.length === 0 && teacherCandidates.length > 0 && (
+                      <div className="mt-2 p-2.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>Tutti gli insegnanti risultano già impegnati tra le {oraInizio} e le {oraFine}. Cambia orario o data.</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Data Prenotazione */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Sala Prove *
+                  <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Data Prenotazione *
                 </label>
-                {data && oraInizio && oraFine && (
-                  <span
-                    className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                      availableRooms.length > 0
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                        : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-                    }`}
-                  >
-                    {availableRooms.length} su {rooms.length} {availableRooms.length === 1 ? 'libera' : 'libere'}
-                  </span>
-                )}
-              </div>
-              <RoomFloorPlanSelector
-                rooms={rooms}
-                selectedRoomId={salaId}
-                onSelectRoom={(newRoomId) => setSalaId(newRoomId)}
-                availableRooms={availableRooms}
-                occupiedRooms={occupiedRooms}
-                tipo={tipo}
-                data={data}
-                oraInizio={oraInizio}
-                oraFine={oraFine}
-              />
-              <input type="hidden" name="salaId" value={salaId} />
-
-              {/* Avviso in tempo reale se la sala scelta ha un conflitto */}
-              {salaId && overlappingBookingsByRoom.has(salaId) && (
-                <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-300 text-red-800 text-xs flex items-start gap-2 animate-in fade-in duration-150">
-                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block font-bold">Sala già occupata in questa fascia oraria!</strong>
-                    <span>
-                      {(overlappingBookingsByRoom.get(salaId) || []).map((c) => `${c.clienteNome} (${c.oraInizio} - ${c.oraFine})`).join(', ')}
-                    </span>
-                    <span className="block mt-1 font-semibold text-red-900">
-                      Scegli un'altra sala libera dall'elenco per confermare.
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Notifica se tutte le sale sono sature nell'orario */}
-              {availableRooms.length === 0 && rooms.length > 0 && (
-                <div className="mt-2 p-2.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>Tutte le sale risultano occupate tra le {oraInizio} e le {oraFine}. Cambia orario o data.</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Insegnante (se lezione) */}
-          {tipo === 'lezione' && (
-            <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 rounded-lg">
-              {isAutoTeacher && currentTeacherStaff ? (
-                /* Profilo Insegnante Personale: Assegnazione automatica diretta senza menù a tendina */
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
-                      Docente Incaricato (Assegnato Automaticamente)
-                    </label>
-                    <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1 shadow-2xs">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                      Tuo Profilo Docente
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-3 bg-white dark:bg-neutral-900 rounded-xl border border-indigo-200 dark:border-indigo-800/60 shadow-xs">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-xs"
-                      style={{ backgroundColor: currentTeacherStaff.coloreBadge || '#8b5cf6' }}
-                    >
-                      {currentTeacherStaff.nome[0]}{currentTeacherStaff.cognome[0]}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 dark:text-white text-sm block truncate">
-                          {currentTeacherStaff.nome} {currentTeacherStaff.cognome}
-                        </span>
-                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
-                          Docente
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-500 dark:text-neutral-400 block truncate mt-0.5">
-                        {currentTeacherStaff.materieInsegnamento || 'Lezione Didattica'} {currentTeacherStaff.telefono ? `• ${currentTeacherStaff.telefono}` : ''}
-                      </span>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-4 h-4" />
-                        Collegato
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Avviso in tempo reale se il docente è già occupato altrove */}
-                  {overlappingBookingsByTeacher.has(currentTeacherStaff.id) && (
-                    <div className="p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-300 text-xs flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="block font-bold">Attenzione: hai già un'altra lezione in questa fascia oraria!</strong>
-                        <span>
-                          {(overlappingBookingsByTeacher.get(currentTeacherStaff.id) || []).map((c) => `• ${c.clienteNome} in ${c.salaNome || 'Sala'} (${c.oraInizio} - ${c.oraFine})`).join(' ')}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* Profilo Amministratore (o account generale): Menù a tendina completo con scelta libera di tutti i docenti */
-                <>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
-                      Docente / Insegnante incaricato *
-                    </label>
-                    {data && oraInizio && oraFine && (
-                      <span
-                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                          availableTeachers.length > 0
-                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                            : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-                        }`}
-                      >
-                        {availableTeachers.length} su {teacherCandidates.length} {availableTeachers.length === 1 ? 'disponibile' : 'disponibili'}
-                      </span>
-                    )}
-                  </div>
-                  <select
-                    value={insegnanteId}
-                    onChange={(e) => setInsegnanteId(e.target.value)}
-                    className={`w-full px-3.5 py-2.5 rounded-lg border text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all ${
-                      insegnanteId && overlappingBookingsByTeacher.has(insegnanteId)
-                        ? 'border-red-500 bg-red-50 text-red-900 ring-2 ring-red-400'
-                        : 'border-indigo-300 bg-white text-slate-800'
-                    }`}
-                  >
-                    <option value="">-- Seleziona insegnante ({availableTeachers.length} disponibili) --</option>
-                    {/* Insegnanti Disponibili */}
-                    {availableTeachers.map((t) => (
-                      <option key={t.id} value={t.id} className="font-bold text-slate-900">
-                        ✓ {t.nome} {t.cognome} {t.materieInsegnamento ? `(${t.materieInsegnamento})` : ''}
-                      </option>
-                    ))}
-                    {/* Insegnanti già impegnati in altra lezione: disabilitati e non selezionabili */}
-                    {occupiedTeachers.length > 0 && (
-                      <optgroup label="── Insegnanti già impegnati in altra lezione (Non selezionabili) ──">
-                        {occupiedTeachers.map(({ teacher: t, conflicts }) => (
-                          <option
-                            key={t.id}
-                            value={t.id}
-                            disabled
-                            className="text-slate-400 bg-slate-100 italic"
-                          >
-                            🚫 {t.nome} {t.cognome} - OCCUPATO/A ({conflicts.map((c) => `${c.clienteNome} in ${c.salaNome || 'Sala'} ${c.oraInizio}-${c.oraFine}`).join(', ')})
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                  </select>
-
-                  {/* Avviso in tempo reale se l'insegnante scelto ha un conflitto */}
-                  {insegnanteId && overlappingBookingsByTeacher.has(insegnanteId) && (
-                    <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-300 text-red-800 text-xs flex items-start gap-2 animate-in fade-in duration-150">
-                      <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="block font-bold">Insegnante già occupato/a in questa fascia oraria!</strong>
-                        <span>
-                          {(overlappingBookingsByTeacher.get(insegnanteId) || []).map((c) => `• ${c.clienteNome} in ${c.salaNome || 'Sala'} (${c.oraInizio} - ${c.oraFine})`).join(' ')}
-                        </span>
-                        <span className="block mt-1 font-semibold text-red-900">
-                          Seleziona un altro insegnante disponibile tra quelli liberi.
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Notifica se tutti gli insegnanti sono occupati */}
-                  {availableTeachers.length === 0 && teacherCandidates.length > 0 && (
-                    <div className="mt-2 p-2.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>Tutti gli insegnanti risultano già impegnati tra le {oraInizio} e le {oraFine}. Cambia orario o data.</span>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Data Prenotazione */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Data Prenotazione *
-              </label>
-              {isEventInPast && (
-                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 px-2 py-0.5 rounded flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> Nel passato
-                </span>
-              )}
-            </div>
-            <input
-              type="date"
-              required
-              value={data}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className={`w-full px-3.5 py-2.5 rounded-lg border text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden ${
-                isEventInPast
-                  ? 'border-amber-400 bg-amber-50/40 text-slate-800'
-                  : 'border-slate-300 bg-white text-slate-800'
-              }`}
-            />
-          </div>
-
-          {/* Selezione Orari Smart con Menù a Scorrimento (Rotella stile iOS) */}
-          <SmartTimePicker
-            startTime={oraInizio}
-            endTime={oraFine}
-            onStartTimeChange={handleOraInizioChange}
-            onEndTimeChange={setOraFine}
-            durationHours={durationHours}
-            bookingType={tipo}
-          />
-
-          {/* Ripetizione Settimanale Fissa */}
-          <div className="p-3.5 bg-neutral-900 border border-yellow-500/40 rounded-xl space-y-2.5 shadow-sm text-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
-                <RefreshCw className={`w-4 h-4 text-yellow-400 ${ripetizioneSettimanale ? 'animate-spin-slow' : ''}`} />
-                <span className="text-sm font-bold text-yellow-300">Ripetizione Settimanale Fissa</span>
-                {bookingToEdit?.gruppoRicorrenzaId && (
-                  <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-indigo-500/80 text-white">
-                    Serie Collegata
-                  </span>
-                )}
-                {ripetizioneSettimanale && repeatOption === 'per_sempre' && (
-                  <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-yellow-400 text-black">
-                    Per sempre
+                {isEventInPast && (
+                  <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 px-2 py-0.5 rounded flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" /> Nel passato
                   </span>
                 )}
               </div>
               <input
-                type="checkbox"
-                id="ripetizione"
-                checked={ripetizioneSettimanale}
-                onChange={(e) => handleToggleRipetizione(e.target.checked)}
-                className="w-4 h-4 text-yellow-400 rounded border-neutral-700 bg-neutral-800 focus:ring-yellow-400 cursor-pointer accent-yellow-400"
+                type="date"
+                required
+                value={data}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className={`w-full px-3.5 py-2.5 rounded-lg border text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden ${isEventInPast
+                    ? 'border-amber-400 bg-amber-50/40 text-slate-800'
+                    : 'border-slate-300 bg-white text-slate-800'
+                  }`}
               />
             </div>
 
-            {ripetizioneSettimanale && (
-              <div className="pt-2 text-xs text-neutral-300 border-t border-neutral-800 space-y-2.5">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="font-semibold text-neutral-200">Ripeti per:</span>
-                  <select
-                    value={repeatOption}
-                    onChange={(e) => handleRepeatOptionChange(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-yellow-500/50 bg-neutral-950 text-xs font-bold text-yellow-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-                  >
-                    <option value="per_sempre">Per sempre</option>
-                    <option value="2">2 settimane consecutive</option>
-                    <option value="4">4 settimane (1 mese)</option>
-                    <option value="8">8 settimane (2 mesi)</option>
-                    <option value="12">12 settimane (3 mesi)</option>
-                    <option value="24">24 settimane (6 mesi)</option>
-                    <option value="52">52 settimane (12 mesi)</option>
-                    <option value="personalizzata">⚙️ Personalizzata (giorni specifici, fine al...)</option>
-                  </select>
+            {/* Selezione Orari Smart con Menù a Scorrimento (Rotella stile iOS) */}
+            <SmartTimePicker
+              startTime={oraInizio}
+              endTime={oraFine}
+              onStartTimeChange={handleOraInizioChange}
+              onEndTimeChange={setOraFine}
+              durationHours={durationHours}
+              bookingType={tipo}
+            />
 
-                  <button
-                    type="button"
-                    onClick={() => setIsRecurrenceModalOpen(true)}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-yellow-400 border border-yellow-500/30 transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>⚙️ Giorni / Dettagli</span>
-                  </button>
-                </div>
-
-                <div className="text-xs text-neutral-400">
-                  {repeatOption === 'per_sempre' ? (
-                    <span className="text-yellow-400 font-medium">
-                      ✨ (Verranno create prenotazioni fisse ogni settimana per sempre, senza data di scadenza)
+            {/* Ripetizione Settimanale Fissa */}
+            <div className="p-3.5 bg-neutral-900 border border-yellow-500/40 rounded-xl space-y-2.5 shadow-sm text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <RefreshCw className={`w-4 h-4 text-yellow-400 ${ripetizioneSettimanale ? 'animate-spin-slow' : ''}`} />
+                  <span className="text-sm font-bold text-yellow-300">Ripetizione Settimanale Fissa</span>
+                  {bookingToEdit?.gruppoRicorrenzaId && (
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-indigo-500/80 text-white">
+                      Serie Collegata
                     </span>
-                  ) : repeatOption === 'personalizzata' ? (
-                    <span className="text-yellow-400 font-medium">
-                      Regola personalizzata: {getRecurrenceSummary(recurrenceConfig, data)}
-                    </span>
-                  ) : (
-                    <span>
-                      (Verranno create {repeatWeeks} prenotazioni nello stesso giorno e orario)
+                  )}
+                  {ripetizioneSettimanale && repeatOption === 'per_sempre' && (
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-yellow-400 text-black">
+                      Per sempre
                     </span>
                   )}
                 </div>
-
-                {bookingToEdit?.gruppoRicorrenzaId && (
-                  <p className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-500/30 rounded-md px-2.5 py-1.5">
-                    💡 Questa prenotazione fa già parte di una serie ricorrente. Al salvataggio ti verrà chiesto se aggiornare l'intera serie o solo questo singolo giorno.
-                  </p>
-                )}
-
-                {/* Giorni della settimana selezionabili */}
-                {recurrenceConfig.giorniSettimana && recurrenceConfig.giorniSettimana.length > 0 && (
-                  <div className="flex items-center gap-1.5 pt-1 border-t border-neutral-800/80">
-                    <span className="text-[11px] text-neutral-400">Giorni fissati:</span>
-                    {[
-                      { index: 1, label: 'LUN' },
-                      { index: 2, label: 'MAR' },
-                      { index: 3, label: 'MER' },
-                      { index: 4, label: 'GIO' },
-                      { index: 5, label: 'VEN' },
-                      { index: 6, label: 'SAB' },
-                      { index: 0, label: 'DOM' },
-                    ].map((d) => {
-                      const sel = recurrenceConfig.giorniSettimana.includes(d.index);
-                      return (
-                        <button
-                          key={d.index}
-                          type="button"
-                          onClick={() => {
-                            const exists = recurrenceConfig.giorniSettimana.includes(d.index);
-                            let newDays: number[];
-                            if (exists) {
-                              newDays = recurrenceConfig.giorniSettimana.filter((x) => x !== d.index);
-                              if (newDays.length === 0) newDays = [d.index];
-                            } else {
-                              newDays = [...recurrenceConfig.giorniSettimana, d.index];
-                            }
-                            setRecurrenceConfig((prev) => ({ ...prev, giorniSettimana: newDays }));
-                          }}
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
-                            sel
-                              ? 'bg-yellow-400 text-black font-extrabold ring-2 ring-yellow-300 scale-105'
-                              : 'bg-neutral-800 text-neutral-400 hover:text-yellow-300 hover:bg-neutral-700'
-                          }`}
-                        >
-                          {d.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                <input
+                  type="checkbox"
+                  id="ripetizione"
+                  checked={ripetizioneSettimanale}
+                  onChange={(e) => handleToggleRipetizione(e.target.checked)}
+                  className="w-4 h-4 text-yellow-400 rounded border-neutral-700 bg-neutral-800 focus:ring-yellow-400 cursor-pointer accent-yellow-400"
+                />
               </div>
-            )}
-          </div>
 
+              {ripetizioneSettimanale && (
+                <div className="pt-2 text-xs text-neutral-300 border-t border-neutral-800 space-y-2.5">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="font-semibold text-neutral-200">Ripeti per:</span>
+                    <select
+                      value={repeatOption}
+                      onChange={(e) => handleRepeatOptionChange(e.target.value)}
+                      className="px-3 py-1.5 rounded-lg border border-yellow-500/50 bg-neutral-950 text-xs font-bold text-yellow-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+                    >
+                      <option value="per_sempre">Per sempre</option>
+                      <option value="2">2 settimane consecutive</option>
+                      <option value="4">4 settimane (1 mese)</option>
+                      <option value="8">8 settimane (2 mesi)</option>
+                      <option value="12">12 settimane (3 mesi)</option>
+                      <option value="24">24 settimane (6 mesi)</option>
+                      <option value="52">52 settimane (12 mesi)</option>
+                      <option value="personalizzata">⚙️ Personalizzata (giorni specifici, fine al...)</option>
+                    </select>
 
-
-          {/* Strumentazione Necessaria per il cliente */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-              Descrizione Strumentazione Necessaria / Setup Richiesto
-            </label>
-            <textarea
-              rows={2}
-              value={richiesteStrumentazione}
-              onChange={(e) => setRichiesteStrumentazione(e.target.value)}
-              placeholder="Es. Batteria 5 pezzi con piatti, 2 ampli Marshall, 3 microfoni voce..."
-              className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-            />
-          </div>
-
-          {/* Importo, Sconto & Pagamento (Solo per Prove Musicali) */}
-          {tipo !== 'lezione' ? (
-            <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Tariffa Base (€) */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Tariffa Base (€)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={tariffaBase}
-                      onFocus={handleNumericFocus}
-                      onClick={handleNumericClick}
-                      onBlur={handleNumericBlur}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '' || /^\d*$/.test(val)) {
-                          handleTariffaBaseChange(val);
-                        }
-                      }}
-                      placeholder=""
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
-                    />
-                    <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsRecurrenceModalOpen(true)}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-yellow-400 border border-yellow-500/30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>⚙️ Giorni / Dettagli</span>
+                    </button>
                   </div>
-                </div>
 
-                {/* Sconto (€) */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
-                    <span>Sconto (€)</span>
-                    {Number(sconto) > 0 && (
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                        -{sconto}€
+                  <div className="text-xs text-neutral-400">
+                    {repeatOption === 'per_sempre' ? (
+                      <span className="text-yellow-400 font-medium">
+                        ✨ (Verranno create prenotazioni fisse ogni settimana per sempre, senza data di scadenza)
+                      </span>
+                    ) : repeatOption === 'personalizzata' ? (
+                      <span className="text-yellow-400 font-medium">
+                        Regola personalizzata: {getRecurrenceSummary(recurrenceConfig, data)}
+                      </span>
+                    ) : (
+                      <span>
+                        (Verranno create {repeatWeeks} prenotazioni nello stesso giorno e orario)
                       </span>
                     )}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={sconto === 0 || sconto === '0' ? '' : sconto}
-                      placeholder="0"
-                      onFocus={handleNumericFocus}
-                      onClick={handleNumericClick}
-                      onBlur={handleNumericBlur}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '' || /^\d*$/.test(val)) {
-                          handleScontoChange(val);
-                        }
-                      }}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
-                    />
-                    <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
                   </div>
-                </div>
 
-                {/* Tariffa Totale Finale (€) */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Tariffa Totale (€)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={tariffaTotale}
-                      onFocus={handleNumericFocus}
-                      onClick={handleNumericClick}
-                      onBlur={handleNumericBlur}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '' || /^\d*$/.test(val)) {
-                          setCustomTariffa(true);
-                          setTariffaTotale(val);
-                        }
-                      }}
-                      placeholder=""
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
-                    />
-                    <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
-                  </div>
-                </div>
-              </div>
+                  {bookingToEdit?.gruppoRicorrenzaId && (
+                    <p className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-500/30 rounded-md px-2.5 py-1.5">
+                      💡 Questa prenotazione fa già parte di una serie ricorrente. Al salvataggio ti verrà chiesto se aggiornare l'intera serie o solo questo singolo giorno.
+                    </p>
+                  )}
 
-              {/* Stato Pagamento & Metodo Pagamento */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Stato Pagamento
-                  </label>
-                  <select
-                    value={statoPagamento}
-                    onChange={(e) => setStatoPagamento(e.target.value as PaymentStatus)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-800"
-                  >
-                    <option value="da_saldare">⏳ Da Saldare</option>
-                    <option value="pagato">✅ Pagato</option>
-                  </select>
+                  {/* Giorni della settimana selezionabili */}
+                  {recurrenceConfig.giorniSettimana && recurrenceConfig.giorniSettimana.length > 0 && (
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-neutral-800/80">
+                      <span className="text-[11px] text-neutral-400">Giorni fissati:</span>
+                      {[
+                        { index: 1, label: 'LUN' },
+                        { index: 2, label: 'MAR' },
+                        { index: 3, label: 'MER' },
+                        { index: 4, label: 'GIO' },
+                        { index: 5, label: 'VEN' },
+                        { index: 6, label: 'SAB' },
+                        { index: 0, label: 'DOM' },
+                      ].map((d) => {
+                        const sel = recurrenceConfig.giorniSettimana.includes(d.index);
+                        return (
+                          <button
+                            key={d.index}
+                            type="button"
+                            onClick={() => {
+                              const exists = recurrenceConfig.giorniSettimana.includes(d.index);
+                              let newDays: number[];
+                              if (exists) {
+                                newDays = recurrenceConfig.giorniSettimana.filter((x) => x !== d.index);
+                                if (newDays.length === 0) newDays = [d.index];
+                              } else {
+                                newDays = [...recurrenceConfig.giorniSettimana, d.index];
+                              }
+                              setRecurrenceConfig((prev) => ({ ...prev, giorniSettimana: newDays }));
+                            }}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${sel
+                                ? 'bg-yellow-400 text-black font-extrabold ring-2 ring-yellow-300 scale-105'
+                                : 'bg-neutral-800 text-neutral-400 hover:text-yellow-300 hover:bg-neutral-700'
+                              }`}
+                          >
+                            {d.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
+              )}
+            </div>
 
-                {statoPagamento === 'pagato' && (
+
+
+            {/* Strumentazione Necessaria per il cliente */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                Descrizione Strumentazione Necessaria / Setup Richiesto
+              </label>
+              <textarea
+                rows={2}
+                value={richiesteStrumentazione}
+                onChange={(e) => setRichiesteStrumentazione(e.target.value)}
+                placeholder="Es. Batteria 5 pezzi con piatti, 2 ampli Marshall, 3 microfoni voce..."
+                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+              />
+            </div>
+
+            {/* Importo, Sconto & Pagamento (Solo per Prove Musicali) */}
+            {tipo !== 'lezione' ? (
+              <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Tariffa Base (€) */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                      Metodo Pagamento
+                      Tariffa Base (€)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={tariffaBase}
+                        onFocus={handleNumericFocus}
+                        onClick={handleNumericClick}
+                        onBlur={handleNumericBlur}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d*$/.test(val)) {
+                            handleTariffaBaseChange(val);
+                          }
+                        }}
+                        placeholder=""
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
+                      />
+                      <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
+                    </div>
+                  </div>
+
+                  {/* Sconto (€) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                      <span>Sconto (€)</span>
+                      {Number(sconto) > 0 && (
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                          -{sconto}€
+                        </span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={sconto === 0 || sconto === '0' ? '' : sconto}
+                        placeholder="0"
+                        onFocus={handleNumericFocus}
+                        onClick={handleNumericClick}
+                        onBlur={handleNumericBlur}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d*$/.test(val)) {
+                            handleScontoChange(val);
+                          }
+                        }}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
+                      />
+                      <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
+                    </div>
+                  </div>
+
+                  {/* Tariffa Totale Finale (€) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                      Tariffa Totale (€)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={tariffaTotale}
+                        onFocus={handleNumericFocus}
+                        onClick={handleNumericClick}
+                        onBlur={handleNumericBlur}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d*$/.test(val)) {
+                            setCustomTariffa(true);
+                            setTariffaTotale(val);
+                          }
+                        }}
+                        placeholder=""
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold text-sm"
+                      />
+                      <span className="absolute right-3 top-2 text-xs text-slate-400">€</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stato Pagamento & Metodo Pagamento */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                      Stato Pagamento
                     </label>
                     <select
-                      value={metodoPagamento}
-                      onChange={(e) => setMetodoPagamento(e.target.value as PaymentMethod)}
+                      value={statoPagamento}
+                      onChange={(e) => setStatoPagamento(e.target.value as PaymentStatus)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-800"
                     >
-                      <option value="pos">POS / Carta</option>
-                      <option value="contanti">Contanti</option>
-                      <option value="bonifico">Bonifico</option>
+                      <option value="da_saldare">⏳ Da Saldare</option>
+                      <option value="pagato">✅ Pagato</option>
                     </select>
                   </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-xl flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-purple-100 border border-purple-200 text-purple-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                <GraduationCap className="w-5 h-5" />
-              </div>
-              <div className="text-xs text-purple-950 space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-purple-900">Lezione di Musica / Canto</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-200/80 text-purple-800 tracking-wide border border-purple-300/60">
-                    Quota Sala 5€/h
-                  </span>
-                </div>
-                <p className="text-purple-800/80 leading-relaxed">
-                  Per le lezioni il prezzo non viene specificato qui. La sala prove conteggerà automaticamente nella sezione <strong>Conti & Bollette</strong> la quota di utilizzo pari a <strong>5€ per ogni ora svolta</strong> dal docente, con opzione di saldo.
-                </p>
-              </div>
-            </div>
-          )}
 
-          {/* Note generali */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-              Note aggiuntive
-            </label>
-            <input
-              type="text"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Note di sala, richieste particolari o saldo rimasto..."
-              className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-            />
-          </div>
-
-          {/* Bottom Action Footer for convenience */}
-          <div className="pt-4 pb-2 border-t border-slate-200 dark:border-neutral-800 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 text-sm font-bold transition-all cursor-pointer shadow-xs"
-            >
-              Annulla
-            </button>
-            {(() => {
-              const isHolidayBlocked = holidayInfo.isHolidayOrSunday && tipo === 'prove';
-              const isCoverageBlocked = !operatorCoverage.hasCoverage && tipo === 'prove';
-              const isActionBlocked = isHolidayBlocked || isCoverageBlocked || isOtherTeacherLesson;
-
-              return (
-                <button
-                  type="submit"
-                  disabled={isActionBlocked || isSubmitting}
-                  className={`px-5 py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center gap-2 ${
-                    isOtherTeacherLesson
-                      ? 'bg-slate-400 dark:bg-neutral-700 text-white cursor-not-allowed opacity-80'
-                      : isActionBlocked
-                        ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
-                  }`}
-                  title={
-                    isOtherTeacherLesson
-                      ? teacherPerms.reason
-                      : isHolidayBlocked
-                        ? `Sala prove chiusa per festività (${holidayInfo.name}). Seleziona "Lezione" per procedere con una lezione.`
-                        : isCoverageBlocked
-                          ? 'Sala prove chiusa: nessun operatore presente per lavoro primario. Seleziona "Lezione" per procedere con una lezione.'
-                          : ''
-                  }
-                >
-                  {isOtherTeacherLesson ? (
-                    <Lock className="w-4 h-4 text-white" />
-                  ) : isActionBlocked ? (
-                    <AlertTriangle className="w-4 h-4 text-white" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4" />
+                  {statoPagamento === 'pagato' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                        Metodo Pagamento
+                      </label>
+                      <select
+                        value={metodoPagamento}
+                        onChange={(e) => setMetodoPagamento(e.target.value as PaymentMethod)}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-800"
+                      >
+                        <option value="pos">POS / Carta</option>
+                        <option value="contanti">Contanti</option>
+                        <option value="bonifico">Bonifico</option>
+                      </select>
+                    </div>
                   )}
-                  <span>
-                    {bookingToEdit
-                      ? isOtherTeacherLesson
-                        ? 'Modifica Bloccata'
-                        : 'Conferma Modifica'
-                      : 'Conferma Prenotazione'}
-                  </span>
-                </button>
-              );
-            })()}
-          </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-xl flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 border border-purple-200 text-purple-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div className="text-xs text-purple-950 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-purple-900">Lezione di Musica / Canto</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-200/80 text-purple-800 tracking-wide border border-purple-300/60">
+                      Quota Sala 5€/h
+                    </span>
+                  </div>
+                  <p className="text-purple-800/80 leading-relaxed">
+                    Per le lezioni il prezzo non viene specificato qui. La sala prove conteggerà automaticamente nella sezione <strong>Conti & Bollette</strong> la quota di utilizzo pari a <strong>5€ per ogni ora svolta</strong> dal docente, con opzione di saldo.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Note generali */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                Note aggiuntive
+              </label>
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Note di sala, richieste particolari o saldo rimasto..."
+                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+              />
+            </div>
+
+            {/* Bottom Action Footer for convenience */}
+            <div className="pt-4 pb-2 border-t border-slate-200 dark:border-neutral-800 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 text-sm font-bold transition-all cursor-pointer shadow-xs"
+              >
+                Annulla
+              </button>
+              {(() => {
+                const isHolidayBlocked = holidayInfo.isHolidayOrSunday && tipo === 'prove';
+                const isCoverageBlocked = !operatorCoverage.hasCoverage && tipo === 'prove';
+                const isActionBlocked = isHolidayBlocked || isCoverageBlocked || isOtherTeacherLesson;
+
+                return (
+                  <button
+                    type="submit"
+                    disabled={isActionBlocked || isSubmitting}
+                    className={`px-5 py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center gap-2 ${isOtherTeacherLesson
+                        ? 'bg-slate-400 dark:bg-neutral-700 text-white cursor-not-allowed opacity-80'
+                        : isActionBlocked
+                          ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
+                      }`}
+                    title={
+                      isOtherTeacherLesson
+                        ? teacherPerms.reason
+                        : isHolidayBlocked
+                          ? `Sala prove chiusa per festività (${holidayInfo.name}). Seleziona "Lezione" per procedere con una lezione.`
+                          : isCoverageBlocked
+                            ? 'Sala prove chiusa: nessun operatore presente per lavoro primario. Seleziona "Lezione" per procedere con una lezione.'
+                            : ''
+                    }
+                  >
+                    {isOtherTeacherLesson ? (
+                      <Lock className="w-4 h-4 text-white" />
+                    ) : isActionBlocked ? (
+                      <AlertTriangle className="w-4 h-4 text-white" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4" />
+                    )}
+                    <span>
+                      {bookingToEdit
+                        ? isOtherTeacherLesson
+                          ? 'Modifica Bloccata'
+                          : 'Conferma Modifica'
+                        : 'Conferma Prenotazione'}
+                    </span>
+                  </button>
+                );
+              })()}
+            </div>
 
           </div>
         </form>
@@ -2022,9 +2011,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           isManualClient
             ? manualClientName.trim()
             : selectedClient
-              ? `${selectedClient.nome} ${selectedClient.cognome}${
-                  selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''
-                }`
+              ? `${selectedClient.nome} ${selectedClient.cognome}${selectedClient.gruppoBand ? ` (${selectedClient.gruppoBand})` : ''
+              }`
               : ''
         }
         onClose={() => setIsPastConfirmOpen(false)}

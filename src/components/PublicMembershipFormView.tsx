@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileSpreadsheet,
   CheckCircle2,
@@ -22,11 +22,11 @@ import {
   AlertTriangle,
   GraduationCap,
 } from 'lucide-react';
-import { Client } from '../types';
+import { Client, StaffMember } from '../types';
 import { useApp } from '../context/AppContext';
 import { INITIAL_STAFF } from '../data/initialData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { supabaseService } from '../services/supabaseService';
+import { supabaseService, mapStaffFromDb } from '../services/supabaseService';
 import {
   sanitizeInput,
   validateCodiceFiscale,
@@ -54,11 +54,38 @@ export const PublicMembershipFormView: React.FC = () => {
   const [email, setEmail] = useState('');
   const { staff, addClient } = useApp();
 
-  // Elenco docenti/insegnanti disponibili per la scelta allievo
+  // Carica i docenti aggiornati direttamente da Supabase in modo da garantire
+  // materie e dati sempre aggiornati in tempo reale anche sul link pubblico
+  const [liveTeachers, setLiveTeachers] = useState<StaffMember[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (isSupabaseConfigured() && supabase) {
+      supabase
+        .from('staff')
+        .select('*')
+        .eq('attivo', true)
+        .then(({ data, error }) => {
+          if (!error && data && data.length > 0 && isMounted) {
+            const mapped = data.map(mapStaffFromDb);
+            const teachers = mapped.filter((s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi'));
+            if (teachers.length > 0) {
+              setLiveTeachers(teachers);
+            }
+          }
+        });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Elenco docenti/insegnanti disponibili per la scelta allievo (priorità assoluta ai dati live da Supabase)
   const availableTeachers = React.useMemo(() => {
+    if (liveTeachers.length > 0) return liveTeachers;
     const list = staff && staff.length > 0 ? staff : INITIAL_STAFF;
     return list.filter((s) => s.attivo && (s.ruolo === 'insegnante' || s.ruolo === 'entrambi'));
-  }, [staff]);
+  }, [liveTeachers, staff]);
 
   // Tipo di iscrizione: 'allievo' | 'band' (default allievo per agevolare le nuove iscrizioni ai corsi)
   const [tipoIscrizione, setTipoIscrizione] = useState<'allievo' | 'band'>('allievo');

@@ -146,7 +146,7 @@ export const INITIAL_STAFF: StaffMember[] = [
     ruolo: 'insegnante',
     email: '',
     telefono: '+39',
-    materieInsegnamento: 'Pianoforte & Tastiere',
+    materieInsegnamento: 'Batteria',
     cicloFatturazioneLezioni: 'mese_precedente_posticipato',
     coloreBadge: '#10b981',
     attivo: true,

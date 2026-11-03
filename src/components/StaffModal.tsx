@@ -230,33 +230,30 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
               <button
                 type="button"
                 onClick={() => setRuolo('operatore')}
-                className={`py-2 px-3 rounded-lg border text-xs font-semibold transition-all text-center ${
-                  ruolo === 'operatore'
+                className={`py-2 px-3 rounded-lg border text-xs font-semibold transition-all text-center ${ruolo === 'operatore'
                     ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 Solo Operatore Sala
               </button>
               <button
                 type="button"
                 onClick={() => setRuolo('insegnante')}
-                className={`py-2 px-3 rounded-lg border text-xs font-semibold transition-all text-center ${
-                  ruolo === 'insegnante'
+                className={`py-2 px-3 rounded-lg border text-xs font-semibold transition-all text-center ${ruolo === 'insegnante'
                     ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 Solo Insegnante / Docente
               </button>
               <button
                 type="button"
                 onClick={() => setRuolo('entrambi')}
-                className={`py-2 px-3 rounded-lg border text-xs font-semibold transition-all text-center ${
-                  ruolo === 'entrambi'
+                className={`py-2 px-3 rounded-lg border text-xs font-semibold transition-all text-center ${ruolo === 'entrambi'
                     ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 Operatore & Insegnante
               </button>
@@ -367,9 +364,8 @@ export const StaffModal: React.FC<StaffModalProps> = ({ isOpen, onClose, staffTo
                     key={c}
                     type="button"
                     onClick={() => setColoreBadge(c)}
-                    className={`w-7 h-7 rounded-full transition-transform ${
-                      coloreBadge === c ? 'scale-125 ring-2 ring-offset-2 ring-slate-800' : 'hover:scale-110'
-                    }`}
+                    className={`w-7 h-7 rounded-full transition-transform ${coloreBadge === c ? 'scale-125 ring-2 ring-offset-2 ring-slate-800' : 'hover:scale-110'
+                      }`}
                     style={{ backgroundColor: c }}
                   />
                 ))}
