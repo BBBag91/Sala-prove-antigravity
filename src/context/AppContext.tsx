@@ -49,7 +49,7 @@ interface AppContextType {
   autoAssignMonthlyShiftsAction: (monthStr: string, forceReassign?: boolean) => { assignedCount: number; unassignedCount: number };
 
   // Client actions
-  addClient: (client: Omit<Client, 'id'>) => void;
+  addClient: (client: Omit<Client, 'id'> | Client) => void;
   updateClient: (client: Client) => void;
   deleteClient: (id: string) => void;
 
@@ -159,10 +159,45 @@ export function deduplicateBookings(bookingsList: Booking[]): Booking[] {
 }
 
 /**
- * Deduplica la lista collaboratori/insegnanti garantendo unicità per ID e per nome/cognome normalizzato.
- * Previene che discrepanze tra localStorage e database Supabase (es. ID temporanei o generati)
- * producano docenti duplicati nei menù a tendina.
+ * Deduplica la lista clienti/tesserati garantendo unicità per ID e per Codice Fiscale.
+ * In caso di duplicato, mantiene il record con più informazioni (es. quello con tessera assegnata).
  */
+export function deduplicateClients(clientsList: Client[]): Client[] {
+  const cfMap = new Map<string, Client>();
+  const idMap = new Map<string, Client>();
+
+  for (const client of clientsList) {
+    if (!client) continue;
+
+    const cf = (client.codiceFiscale || '').trim().toUpperCase();
+
+    // Se non ha CF, usa solo l'ID come chiave
+    if (!cf) {
+      if (!idMap.has(client.id)) idMap.set(client.id, client);
+      continue;
+    }
+
+    if (!cfMap.has(cf)) {
+      cfMap.set(cf, client);
+      idMap.set(client.id, client);
+    } else {
+      const existing = cfMap.get(cf)!;
+      // Preferisci il record con numero tessera assegnato o con più dati
+      const preferNew =
+        (!existing.numeroTessera && Boolean(client.numeroTessera)) ||
+        (existing.statoTesseramento === 'da_tesserare' && client.statoTesseramento !== 'da_tesserare');
+      const winner: Client = preferNew
+        ? { ...existing, ...client }
+        : { ...client, ...existing };
+      cfMap.set(cf, winner);
+      idMap.set(winner.id, winner);
+    }
+  }
+
+  return Array.from(cfMap.values());
+}
+
+
 export function deduplicateStaff(staffList: StaffMember[]): StaffMember[] {
   const canonicalIdMap: Record<string, string> = {
     'staff-1790952646698': 'staff-1790952724237', // Luca Di Chiara
@@ -247,7 +282,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [clients, setClients] = useState<Client[]>(() => {
     const raw = safeLocalStorageGet<Client[]>(STORAGE_KEYS.CLIENTS, INITIAL_CLIENTS);
     const mockIds = new Set(['cli-1', 'cli-2', 'cli-3', 'cli-4', 'cli-5', 'cli-6', 'cli-7', 'cli-8']);
-    return raw.filter((c: Client) => !mockIds.has(c.id));
+    const filtered = raw.filter((c: Client) => !mockIds.has(c.id));
+    // Deduplicazione a monte: rimuove duplicati per Codice Fiscale già presenti in localStorage
+    return deduplicateClients(filtered);
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
@@ -305,7 +342,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setClients((prevLocal) => {
               const cleanLocal = prevLocal.filter((c) => !mockIds.has(c.id));
               const remoteIds = new Set(cleanRemote.map((c) => c.id));
-              const pendingLocal = cleanLocal.filter((localC) => !remoteIds.has(localC.id));
+              const remoteCFs = new Set(cleanRemote.map((c) => c.codiceFiscale).filter(Boolean));
+              // Mantieni solo i locali non già presenti nel remoto (né per ID né per CF)
+              const pendingLocal = cleanLocal.filter(
+                (localC) => !remoteIds.has(localC.id) && !remoteCFs.has(localC.codiceFiscale)
+              );
               return pendingLocal.length > 0 ? [...cleanRemote, ...pendingLocal] : cleanRemote;
             });
           }
@@ -421,7 +462,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (remote.clients && remote.clients.length > 0) {
           setClients((prevLocal) => {
             const remoteIds = new Set(remote.clients.map((c) => c.id));
-            const pendingLocal = prevLocal.filter((localC) => !remoteIds.has(localC.id));
+            const remoteCFs = new Set(remote.clients.map((c) => c.codiceFiscale).filter(Boolean));
+            // Mantieni solo i locali che non sono già presenti nel remoto (né per ID né per CF)
+            const pendingLocal = prevLocal.filter(
+              (localC) => !remoteIds.has(localC.id) && !remoteCFs.has(localC.codiceFiscale)
+            );
             return pendingLocal.length > 0 ? [...remote.clients, ...pendingLocal] : remote.clients;
           });
         }
@@ -781,13 +826,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Client CRUD
-  const addClient = (clientData: Omit<Client, 'id'>) => {
-    const newClient: Client = {
-      ...clientData,
-      id: `cli-${Date.now()}`,
-    };
-    setClients((prev) => [...prev, newClient]);
-    if (configured) {
+  // Accetta anche un Client completo (con id già assegnato) per evitare duplicati quando il form
+  // pubblico ha già salvato su Supabase e passa l'oggetto completo ad addClient.
+  const addClient = (clientData: Omit<Client, 'id'> | Client) => {
+    const hasId = 'id' in clientData && Boolean((clientData as Client).id);
+    const newClient: Client = hasId
+      ? (clientData as Client)
+      : {
+          ...clientData,
+          id: `cli-${Date.now()}`,
+        };
+
+    setClients((prev) => {
+      // Evita duplicati: controlla sia per ID che per Codice Fiscale
+      const alreadyExists = prev.some(
+        (c) =>
+          c.id === newClient.id ||
+          (newClient.codiceFiscale && c.codiceFiscale === newClient.codiceFiscale)
+      );
+      if (alreadyExists) {
+        console.log('[AppContext] addClient: client già presente, skip duplicato:', newClient.codiceFiscale);
+        return prev;
+      }
+      return [...prev, newClient];
+    });
+
+    // Salva su Supabase solo se non è già stato salvato dal form pubblico (che lo fa prima di chiamare addClient)
+    if (configured && !hasId) {
       supabaseService.upsertClient(newClient).catch(console.error);
     }
   };

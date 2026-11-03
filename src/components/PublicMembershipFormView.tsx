@@ -280,9 +280,9 @@ export const PublicMembershipFormView: React.FC = () => {
         console.warn('Errore salvataggio localStorage client:', err);
       }
 
-      // 3. Sincronizza stato in AppContext se presente
+      // 3. Sincronizza stato in AppContext se presente (passa l'oggetto completo con ID per evitare duplicati)
       try {
-        if (addClient) addClient(newClient);
+        if (addClient) (addClient as (c: Client) => void)(newClient);
       } catch {}
 
       setSubmittedClient(newClient);
