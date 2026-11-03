@@ -654,7 +654,15 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     }
   };
 
-  const zoomPercent = Math.round((cellHeight / 56) * 100);
+  // Altezza riga oraria adattiva: nella vista 1G e 3G usa blocchi molto più alti per leggere nitidamente i nomi anche su lezioni da 30/45 min
+  const effectiveCellHeight =
+    viewMode === 'day'
+      ? Math.max(cellHeight, 84)
+      : viewMode === '3days'
+        ? Math.max(cellHeight, 56)
+        : cellHeight;
+
+  const zoomPercent = Math.round((effectiveCellHeight / 56) * 100);
 
   const { monthlyBookings, unassignedCount, totalHoursMonth, operatorHours } = useMemo(() => {
     const mBookings = bookings.filter(b => b.data.startsWith(monthString));
@@ -684,7 +692,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     if (e) {
       const rect = e.currentTarget.getBoundingClientRect();
       const clickY = Math.max(0, e.clientY - rect.top);
-      const clickedMinutesFromStart = (clickY / cellHeight) * 60;
+      const clickedMinutesFromStart = (clickY / effectiveCellHeight) * 60;
       const totalMins = HOUR_START * 60 + Math.floor(clickedMinutesFromStart / 30) * 30;
       const clampedMins = Math.max(HOUR_START * 60, Math.min(23 * 60, totalMins));
       const h = Math.floor(clampedMins / 60);
@@ -859,7 +867,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
       const colRect = matchedCol?.getBoundingClientRect();
       const colTop = colRect ? colRect.top : 0;
       const relativeY = Math.max(0, clientY - colTop - grabOffsetY);
-      const rawMinutesFromHourStart = (relativeY / cellHeight) * 60;
+      const rawMinutesFromHourStart = (relativeY / effectiveCellHeight) * 60;
       const rawMidnightMins = HOUR_START * 60 + rawMinutesFromHourStart;
 
       // Snap a scatti precisi di 15 minuti
@@ -955,7 +963,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
         conflictNames: conflictDescriptions,
       };
     },
-    [cellHeight, currentTotalHours, bookings, staff]
+    [effectiveCellHeight, currentTotalHours, bookings, staff]
   );
 
   const startDrag = useCallback(
@@ -2228,7 +2236,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   return (
                     <div
                       key={i}
-                      style={{ height: `${cellHeight}px` }}
+                      style={{ height: `${effectiveCellHeight}px` }}
                       className="flex items-start justify-end pr-1 sm:pr-1.5 pt-0.5 border-b border-slate-200 dark:border-neutral-900 last:border-b-0"
                     >
                       <span className="text-[8px] sm:text-[10px] font-mono text-slate-400 dark:text-yellow-500/70 -translate-y-2.5">
@@ -2263,14 +2271,14 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   const s1Start = timeToMinutes(s1Col.oraInizio) - HOUR_START * 60;
                   let s1End = timeToMinutes(s1Col.oraFine) - HOUR_START * 60;
                   if (s1End <= s1Start) s1End += 24 * 60;
-                  s1TopPx = (s1Start / 60) * cellHeight;
-                  s1HeightPx = ((s1End - s1Start) / 60) * cellHeight;
+                  s1TopPx = (s1Start / 60) * effectiveCellHeight;
+                  s1HeightPx = ((s1End - s1Start) / 60) * effectiveCellHeight;
 
                   const s2Start = timeToMinutes(s2Col.oraInizio) - HOUR_START * 60;
                   let s2End = timeToMinutes(s2Col.oraFine) - HOUR_START * 60;
                   if (s2End <= s2Start) s2End += 24 * 60;
-                  s2TopPx = (s2Start / 60) * cellHeight;
-                  s2HeightPx = ((s2End - s2Start) / 60) * cellHeight;
+                  s2TopPx = (s2Start / 60) * effectiveCellHeight;
+                  s2HeightPx = ((s2End - s2Start) / 60) * effectiveCellHeight;
                 }
 
                 // Layout overlapping events using interval packing to optimize column widths for bookings
@@ -2409,7 +2417,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                           ? 'bg-blue-50/40 dark:bg-yellow-400/[0.03]'
                           : 'bg-white dark:bg-[#0a0a0a]'
                     }`}
-                    style={{ height: `${(currentTotalHours + 1) * cellHeight}px` }}
+                    style={{ height: `${(currentTotalHours + 1) * effectiveCellHeight}px` }}
                     onClick={(e) => handleDayClick(ds, e)}
                   >
                     {/* Hour lines */}
@@ -2417,7 +2425,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       <div
                         key={i}
                         className="absolute left-0 right-0 border-t border-slate-200 dark:border-neutral-800/80"
-                        style={{ top: `${i * cellHeight}px` }}
+                        style={{ top: `${i * effectiveCellHeight}px` }}
                       />
                     ))}
                     {/* Half-hour lines */}
@@ -2425,7 +2433,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       <div
                         key={`h${i}`}
                         className="absolute left-0 right-0 border-t border-slate-200/60 dark:border-neutral-900/60 border-dashed"
-                        style={{ top: `${i * cellHeight + cellHeight / 2}px` }}
+                        style={{ top: `${i * effectiveCellHeight + effectiveCellHeight / 2}px` }}
                       />
                     ))}
 
@@ -2454,8 +2462,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                             : 'border-blue-500 dark:border-yellow-400 bg-blue-500/25 dark:bg-yellow-400/25 text-slate-900 dark:text-yellow-100 ring-4 ring-blue-500/40 dark:ring-yellow-400/40'
                         } border-dashed animate-pulse`}
                         style={{
-                          top: `${((dragState.targetStartMins - HOUR_START * 60) / 60) * cellHeight + 1}px`,
-                          height: `${Math.max(30, ((dragState.targetEndMins - dragState.targetStartMins) / 60) * cellHeight - 2)}px`,
+                          top: `${((dragState.targetStartMins - HOUR_START * 60) / 60) * effectiveCellHeight + 1}px`,
+                          height: `${Math.max(30, ((dragState.targetEndMins - dragState.targetStartMins) / 60) * effectiveCellHeight - 2)}px`,
                           left: '2px',
                           right: '2px',
                         }}
@@ -2832,8 +2840,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       const startMins = timeToMinutes(b.oraInizio) - HOUR_START * 60;
                       let endMins = timeToMinutes(b.oraFine) - HOUR_START * 60;
                       if (endMins <= startMins) endMins += 24 * 60;
-                      const topPx = (startMins / 60) * cellHeight;
-                      const heightPx = Math.max(22, ((endMins - startMins) / 60) * cellHeight);
+                      const topPx = (startMins / 60) * effectiveCellHeight;
+                      const heightPx = Math.max(26, ((endMins - startMins) / 60) * effectiveCellHeight);
                       const widthPct = 100 / cols;
                       const leftPct = col * widthPct;
                       const displayName = b.clienteNome || 'Prenotazione';
@@ -2917,49 +2925,57 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                               )}
                             </div>
                           ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center text-center px-1 py-0.5 overflow-hidden select-none relative">
-                              {/* Client / Band Name - bold and multi-line wrapped */}
+                            <div className="w-full h-full flex flex-col items-center justify-center text-center px-1.5 py-0.5 overflow-hidden select-none relative">
+                              {/* Client / Band Name - prioritized so it NEVER gets clipped */}
                               <span
-                                className={`font-black text-white leading-[1.12] break-words hyphens-auto drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] ${
+                                className={`font-black text-white leading-[1.1] break-words hyphens-auto drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] shrink-0 max-w-full ${
                                   viewMode === 'week'
                                     ? 'text-[12px] sm:text-[13.5px] lg:text-[14.5px]'
-                                    : cellHeight < 42
-                                    ? 'text-[13px] sm:text-[14px]'
-                                    : 'text-sm sm:text-base'
+                                    : heightPx < 48
+                                      ? 'text-[13px] sm:text-sm truncate'
+                                      : 'text-sm sm:text-base'
                                 }`}
-                                style={{
-                                  wordBreak: 'break-word',
-                                  overflowWrap: 'break-word',
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: heightPx < 32 ? 1 : heightPx < 55 ? 2 : 3,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                }}
+                                style={
+                                  heightPx < 48
+                                    ? undefined
+                                    : {
+                                        wordBreak: 'break-word',
+                                        overflowWrap: 'break-word',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: heightPx < 62 ? 1 : 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                      }
+                                }
                               >
                                 {displayName}
                               </span>
 
-                              {/* Time range */}
+                              {/* Time range (+ inline Room Name when block height is compact so name is never pushed off) */}
                               {(viewMode !== 'week' || heightPx >= 50) && (
-                                <span className="text-[8px] sm:text-[9px] font-bold text-white/90 font-mono tracking-tight mt-0.5 leading-none shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">
-                                  {viewMode === 'week' ? `${startShort}-${endShort}` : `${b.oraInizio} - ${b.oraFine}`}
+                                <span className="text-[9px] sm:text-[10px] font-bold text-white/95 font-mono tracking-tight mt-0.5 leading-none shrink-0 truncate max-w-full drop-shadow-[0_1px_1px_rgba(0,0,0,0.65)]">
+                                  {viewMode === 'week'
+                                    ? `${startShort}-${endShort}`
+                                    : heightPx < 62 && room
+                                      ? `${b.oraInizio}-${b.oraFine} • ${room.nome}`
+                                      : `${b.oraInizio} - ${b.oraFine}`}
                                 </span>
                               )}
 
-                              {/* Room name */}
-                              {room && (viewMode === 'day' || (viewMode === '3days' && heightPx >= 65) || heightPx >= 85) && (
-                                <span className="text-[8px] sm:text-[9px] font-semibold text-white/80 truncate mt-0.5 leading-none shrink-0">
+                              {/* Room name on a 3rd line only when there is plenty of vertical height (>= 62px) */}
+                              {room && heightPx >= 62 && (viewMode === 'day' || viewMode === '3days' || heightPx >= 85) && (
+                                <span className="text-[9px] sm:text-[10px] font-semibold text-white/90 truncate mt-0.5 leading-none shrink-0 max-w-full drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">
                                   {room.nome}
                                 </span>
                               )}
 
                               {/* Lesson badge */}
                               {b.tipo === 'lezione' && (
-                                <span className="absolute top-0.5 right-0.5 text-[7px] font-black px-1 py-0.2 rounded bg-black/50 text-yellow-300 tracking-wider uppercase leading-none">
-                                  {viewMode === 'week' ? 'L' : 'Lezione'}
+                                <span className="absolute top-0.5 right-0.5 text-[7px] font-black px-1 py-0.2 rounded bg-black/55 text-yellow-300 tracking-wider uppercase leading-none pointer-events-none">
+                                  {viewMode === 'week' || cols >= 3 ? 'L' : 'Lezione'}
                                 </span>
                               )}
-                              </div>
+                            </div>
                           )}
                         </div>
                       );
@@ -2970,7 +2986,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       const now = new Date(currentTimeTick);
                       const currentMins = (now.getHours() - HOUR_START) * 60 + now.getMinutes();
                       if (currentMins >= 0 && currentMins <= currentTotalHours * 60) {
-                        const lineTopPx = (currentMins / 60) * cellHeight;
+                        const lineTopPx = (currentMins / 60) * effectiveCellHeight;
                         const hoursStr = String(now.getHours()).padStart(2, '0');
                         const minsStr = String(now.getMinutes()).padStart(2, '0');
                         return (
