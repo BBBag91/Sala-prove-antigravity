@@ -6,9 +6,28 @@ import {
   RotateCcw,
   Sparkles,
   TrendingUp,
+  Banknote,
 } from 'lucide-react';
 import { calcolaCompensiFineMese, VariabiliG } from '../utils/compensiFineMese';
 import { formatCurrency } from '../utils/dateUtils';
+
+interface CashDenominations {
+  b5: number;
+  b10: number;
+  b20: number;
+  b50: number;
+  b100: number;
+  spicci: number;
+}
+
+const DEFAULT_CASH: CashDenominations = {
+  b5: 0,
+  b10: 0,
+  b20: 0,
+  b50: 0,
+  b100: 0,
+  spicci: 0,
+};
 
 interface CompensiFineMeseSectionProps {
   currentMonthName: string;
@@ -71,6 +90,17 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
     return defaultG;
   });
 
+  const [cash, setCash] = useState<CashDenominations>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.cash) return { ...DEFAULT_CASH, ...parsed.cash };
+      }
+    } catch {}
+    return DEFAULT_CASH;
+  });
+
   // Re-load / sync when month changes
   useEffect(() => {
     try {
@@ -87,12 +117,16 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
 
         if (parsed.G) setG({ ...defaultG, ...parsed.G, G1: 3 });
         else setG(defaultG);
+
+        if (parsed.cash) setCash({ ...DEFAULT_CASH, ...parsed.cash });
+        else setCash(DEFAULT_CASH);
         return;
       }
     } catch {}
     setTotaleEntrateMese(totalIncomes);
     setIsManualEntrate(false);
     setG(defaultG);
+    setCash(DEFAULT_CASH);
   }, [storageKey]);
 
   // Keep totaleEntrateMese in sync with totalIncomes unless user has manually customized it
@@ -105,9 +139,36 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
   // Persist values on change
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify({ totaleEntrateMese, G, isManualEntrate }));
+      localStorage.setItem(storageKey, JSON.stringify({ totaleEntrateMese, G, isManualEntrate, cash }));
     } catch {}
-  }, [totaleEntrateMese, G, isManualEntrate, storageKey]);
+  }, [totaleEntrateMese, G, isManualEntrate, cash, storageKey]);
+
+  const updateCashField = (field: keyof CashDenominations, rawVal: number) => {
+    const cleanVal =
+      field === 'spicci'
+        ? Math.max(0, Number.isNaN(rawVal) ? 0 : rawVal)
+        : Math.max(0, Math.floor(Number.isNaN(rawVal) ? 0 : rawVal));
+
+    const nextCash = { ...cash, [field]: cleanVal };
+    setCash(nextCash);
+
+    const computedCashTotal =
+      nextCash.b5 * 5 +
+      nextCash.b10 * 10 +
+      nextCash.b20 * 20 +
+      nextCash.b50 * 50 +
+      nextCash.b100 * 100 +
+      (nextCash.spicci || 0);
+
+    setIsManualEntrate(true);
+    setTotaleEntrateMese(Number(computedCashTotal.toFixed(2)));
+  };
+
+  const handleClearCash = () => {
+    setCash(DEFAULT_CASH);
+    setIsManualEntrate(false);
+    setTotaleEntrateMese(totalIncomes);
+  };
 
   // Calcolo matematico: le spese vengono prese direttamente dal totale spese mese (totalExpenses)
   const output = calcolaCompensiFineMese({
@@ -128,6 +189,7 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
       setIsManualEntrate(false);
       setTotaleEntrateMese(totalIncomes);
       setG(defaultG);
+      setCash(DEFAULT_CASH);
     }
   };
 
@@ -144,9 +206,6 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
               <h3 className="text-lg font-bold text-slate-900 tracking-tight">
                 Compensi Fine Mese
               </h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-blue-100 text-blue-700 tracking-wide">
-                Calcolo Excel
-              </span>
             </div>
             <p className="text-xs text-slate-500">
               Ripartizione quote studio per {currentMonthName} {currentYear} • Netto Sala, Gab, Ale, Paolo
@@ -188,14 +247,11 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                 Totale Rilevato
               </span>
-              <span className="text-[11px] font-mono font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded">
-                Cella B2
-              </span>
             </div>
 
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-semibold text-slate-700">
-                Importo Totale Rilevato (B2):
+                Importo Totale Rilevato:
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">€</span>
@@ -216,15 +272,103 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                 Precompilato automaticamente con le entrate registrate ({formatCurrency(totalIncomes)}).
               </p>
             </div>
+
+            {/* ── Mini Tabella Compatta Conteggio Banconote & Spicci -> alimenta B2 ── */}
+            <div className="mt-3 pt-2.5 border-t border-slate-200/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1">
+                  <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                  Conta Banconote & Spicci
+                </span>
+                {(cash.b5 > 0 || cash.b10 > 0 || cash.b20 > 0 || cash.b50 > 0 || cash.b100 > 0 || cash.spicci > 0) && (
+                  <button
+                    type="button"
+                    onClick={handleClearCash}
+                    className="text-[10px] font-semibold text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+                  >
+                    Azzera pezzi
+                  </button>
+                )}
+              </div>
+
+              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                <table className="w-full text-[11px] border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100/80 text-slate-500 font-bold border-b border-slate-200">
+                      <th className="py-1 px-2 text-left">Taglio</th>
+                      <th className="py-1 px-2 text-center">N. Pezzi</th>
+                      <th className="py-1 px-2 text-right">Totale</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {(
+                      [
+                        { key: 'b5', label: '5 €', val: 5 },
+                        { key: 'b10', label: '10 €', val: 10 },
+                        { key: 'b20', label: '20 €', val: 20 },
+                        { key: 'b50', label: '50 €', val: 50 },
+                        { key: 'b100', label: '100 €', val: 100 },
+                      ] as const
+                    ).map((row) => {
+                      const count = cash[row.key] || 0;
+                      const sub = count * row.val;
+                      return (
+                        <tr key={row.key} className="hover:bg-slate-50/70">
+                          <td className="py-1 px-2 font-mono font-bold text-slate-700">{row.label}</td>
+                          <td className="py-1 px-2 text-center">
+                            <input
+                              type="number"
+                              min={0}
+                              step={1}
+                              value={count === 0 ? '' : count}
+                              placeholder="0"
+                              onChange={(e) => {
+                                const v = parseInt(e.target.value, 10);
+                                updateCashField(row.key, Number.isNaN(v) ? 0 : v);
+                              }}
+                              className="w-16 px-1.5 py-0.5 text-center font-mono font-bold text-xs rounded border border-slate-300 bg-slate-50 focus:bg-white text-slate-900 focus:border-emerald-500 outline-none"
+                            />
+                          </td>
+                          <td className="py-1 px-2 text-right font-mono font-semibold text-slate-800">
+                            {formatCurrency(sub)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {/* Riga Spicci */}
+                    <tr className="bg-amber-50/40">
+                      <td className="py-1 px-2 font-bold text-amber-900">Spicci (€)</td>
+                      <td className="py-1 px-2 text-center">
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={cash.spicci === 0 ? '' : cash.spicci}
+                          placeholder="0,00"
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value);
+                            updateCashField('spicci', Number.isNaN(v) ? 0 : v);
+                          }}
+                          className="w-16 px-1.5 py-0.5 text-center font-mono font-bold text-xs rounded border border-amber-300 bg-white text-slate-900 focus:border-amber-500 outline-none"
+                        />
+                      </td>
+                      <td className="py-1 px-2 text-right font-mono font-semibold text-amber-900">
+                        {formatCurrency(cash.spicci || 0)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div className="pt-3 border-t border-slate-200 space-y-2 text-xs">
             <div className="flex justify-between text-slate-500">
-              <span>Totale Spese Mese (registrate sopra):</span>
+              <span>Totale Spese Mese:</span>
               <strong className="font-mono text-rose-700">-{formatCurrency(totalExpenses)}</strong>
             </div>
             <div className="flex justify-between text-slate-700 font-semibold border-t border-slate-200/80 pt-1.5">
-              <span>Avanzo Netto Studio (E2 = B2 - Spese):</span>
+              <span>Avanzo Netto Studio:</span>
               <strong className={`font-mono text-sm ${output.E2 >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                 {formatCurrency(output.E2)}
               </strong>
@@ -315,34 +459,28 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
             <Calculator className="w-4 h-4 text-blue-600" />
             Risultati & Compensi Spettanti
           </h4>
-          <span className="text-[11px] text-slate-500 font-mono">
-            Netto Sala base (E2 / 3) = {output.dettagli.quotaBaseNonArrotondata.toFixed(2)} €
-          </span>
         </div>
 
-        {/* 1. Quadri di Sintesi Studio (B2, E2, B13, Residuo, Bilancio Tot Sala) */}
+        {/* 1. Quadri di Sintesi Studio */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
-          {/* Card B2: Totale Rilevato */}
+          {/* Card Totale Rilevato */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">B2 • Totale Rilevato</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Totale Rilevato</span>
             <p className="text-2xl font-bold font-mono text-slate-900">{formatCurrency(output.B2)}</p>
-            <p className="text-[10px] text-slate-500 font-mono">Entrate operative mese</p>
           </div>
 
-          {/* Card E2 */}
+          {/* Card Avanzo Netto */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">E2 • Avanzo Netto</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Avanzo Netto</span>
             <p className={`text-2xl font-bold font-mono ${output.E2 >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
               {formatCurrency(output.E2)}
             </p>
-            <p className="text-[10px] text-slate-500 font-mono">B2 - Spese Mese</p>
           </div>
 
-          {/* Card B13: Netto Sala (Foto 2) */}
+          {/* Card Netto Sala */}
           <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 space-y-1 shadow-2xs">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">B13 • Netto Sala</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Netto Sala</span>
             <p className="text-2xl font-bold font-mono text-blue-900">{formatCurrency(output.B13)}</p>
-            <p className="text-[10px] text-blue-600 font-mono">Arrotonda per eccesso (E2 / 3)</p>
           </div>
 
           {/* Card Residuo: Quote Tessere */}
@@ -354,27 +492,20 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
               </span>
             </div>
             <p className="text-2xl font-bold font-mono text-indigo-900">{formatCurrency(output.residuoQuoteTessere)}</p>
-            <p className="text-[10px] text-indigo-600 font-mono">Quote tessere saldate</p>
           </div>
 
           {/* Card Bilancio Tot Sala */}
           <div className="p-4 rounded-xl bg-gradient-to-br from-blue-100/90 to-indigo-100/70 border border-blue-300 space-y-1 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">Bilancio Tot Sala</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-200/90 text-blue-900 font-mono">
-                B13 + Residuo
-              </span>
             </div>
             <p className="text-2xl font-bold font-mono text-blue-950">{formatCurrency(output.bilancioTotSalaMese)}</p>
-            <p className="text-[10px] text-blue-800 font-mono leading-tight">
-              Somma ogni Netto Sala: {formatCurrency(output.bilancioTotSala)}
-            </p>
           </div>
         </div>
 
         {/* 2. Compensi Netti Soci (Gab, Ale, Paolo) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
-          {/* Card Gab (B15) */}
+          {/* Card Gab */}
           <div className="p-4.5 rounded-xl bg-gradient-to-br from-emerald-50/90 to-emerald-100/50 border border-emerald-200 space-y-2 shadow-2xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -385,19 +516,18 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                   Compenso Gab
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-200/60 px-2 py-0.5 rounded-full">
-                Anticipo: -{G.G2}€
-              </span>
+              {G.G2 > 0 && (
+                <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-200/60 px-2 py-0.5 rounded-full">
+                  Anticipo: -{G.G2}€
+                </span>
+              )}
             </div>
             <p className="text-3xl font-extrabold font-mono text-emerald-950">
               {formatCurrency(output.B15)}
             </p>
-            <p className="text-[10px] text-emerald-800 font-mono">
-              Formula: Arrotonda per difetto (Netto Sala - Gab)
-            </p>
           </div>
 
-          {/* Card Ale (B14) */}
+          {/* Card Ale */}
           <div className="p-4.5 rounded-xl bg-gradient-to-br from-emerald-50/90 to-emerald-100/50 border border-emerald-200 space-y-2 shadow-2xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -408,19 +538,18 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                   Compenso Ale
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-200/60 px-2 py-0.5 rounded-full">
-                Anticipo: -{G.G3}€
-              </span>
+              {G.G3 > 0 && (
+                <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-200/60 px-2 py-0.5 rounded-full">
+                  Anticipo: -{G.G3}€
+                </span>
+              )}
             </div>
             <p className="text-3xl font-extrabold font-mono text-emerald-950">
               {formatCurrency(output.B14)}
             </p>
-            <p className="text-[10px] text-emerald-800 font-mono">
-              Formula: Arrotonda per difetto (Netto Sala - Ale)
-            </p>
           </div>
 
-          {/* Card Paolo (B16) */}
+          {/* Card Paolo */}
           <div className="p-4.5 rounded-xl bg-gradient-to-br from-emerald-50/90 to-emerald-100/50 border border-emerald-200 space-y-2 shadow-2xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -431,15 +560,14 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                   Compenso Paolo
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-200/60 px-2 py-0.5 rounded-full">
-                Anticipo: -{G.G4}€
-              </span>
+              {G.G4 > 0 && (
+                <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-200/60 px-2 py-0.5 rounded-full">
+                  Anticipo: -{G.G4}€
+                </span>
+              )}
             </div>
             <p className="text-3xl font-extrabold font-mono text-emerald-950">
               {formatCurrency(output.B16)}
-            </p>
-            <p className="text-[10px] text-emerald-800 font-mono">
-              Formula: Arrotonda per difetto (Netto Sala - Paolo)
             </p>
           </div>
         </div>
