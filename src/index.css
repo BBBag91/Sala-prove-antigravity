@@ -171,9 +171,21 @@ html {
     background-color: #171717 !important;
   }
 
-  html:not(.light) .bg-slate-100,
-  html.dark .bg-slate-100 {
-    background-color: #1a1a1a !important;
+  html:not(.light) .bg-slate-100:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-slate-100\/80:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-slate-100\/70:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-slate-100\/60:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-slate-100\/50:not(#printable-monthly-finance-report *),
+  html:not(.light) thead:not(#printable-monthly-finance-report *),
+  html:not(.light) thead tr:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-100:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-100\/80:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-100\/70:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-100\/60:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-100\/50:not(#printable-monthly-finance-report *),
+  html.dark thead:not(#printable-monthly-finance-report *),
+  html.dark thead tr:not(#printable-monthly-finance-report *) {
+    background-color: #141414 !important;
   }
 
   html:not(.light) .bg-slate-200,

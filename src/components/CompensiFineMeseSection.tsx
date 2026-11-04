@@ -356,12 +356,12 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
           </div>
         </div>
 
-        {/* Colonna Destra: Conta Banconote & Spicci */}
+        {/* Colonna Destra: Conta Banconote & Monete */}
         <div className="p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-200">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
               <Banknote className="w-3.5 h-3.5 text-emerald-600" />
-              Conta Banconote &amp; Spicci
+              Conta Banconote &amp; Monete
             </span>
             {(cash.b5 > 0 || cash.b10 > 0 || cash.b20 > 0 || cash.b50 > 0 || cash.b100 > 0 || cash.spicci > 0) && (
               <button
@@ -377,7 +377,7 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1 flex flex-col justify-center">
             <table className="w-full text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-100/80 text-slate-600 font-bold border-b border-slate-200">
+                <tr className="bg-slate-100/80 dark:bg-[#141414] text-slate-600 dark:text-yellow-400 font-bold border-b border-slate-200 dark:border-yellow-500/25">
                   <th className="py-1.5 px-3 text-left">Taglio</th>
                   <th className="py-1.5 px-3 text-center">N. Pezzi</th>
                   <th className="py-1.5 px-3 text-right">Totale</th>
@@ -418,9 +418,9 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                     </tr>
                   );
                 })}
-                {/* Riga Spicci */}
-                <tr className="bg-amber-50/40 dark:bg-amber-500/10">
-                  <td className="py-1.5 px-3 font-bold text-amber-900 dark:text-amber-300">Spicci (€)</td>
+                {/* Riga Monete */}
+                <tr className="bg-amber-50/40 dark:bg-[#0d0d0d]">
+                  <td className="py-1.5 px-3 font-bold text-amber-900 dark:text-amber-300">Monete (€)</td>
                   <td className="py-1.5 px-3 text-center">
                     <input
                       type="number"
