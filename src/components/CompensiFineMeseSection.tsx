@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { calcolaCompensiFineMese, VariabiliG } from '../utils/compensiFineMese';
 import { formatCurrency } from '../utils/dateUtils';
+import { MiniStudioCalculator } from './MiniStudioCalculator';
 
 interface CashDenominations {
   b5: number;
@@ -454,8 +455,8 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
           </h4>
         </div>
 
-        {/* 1. Quadri di Sintesi Studio */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+        {/* 1. Quadri di Sintesi Studio + Calcolatrice Rapida Incastrata */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 items-stretch">
           {/* Card Totale Rilevato */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Totale Rilevato</span>
@@ -494,6 +495,9 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
             </div>
             <p className="text-2xl font-bold font-mono text-blue-950 dark:text-yellow-300">{formatCurrency(output.bilancioTotSalaMese)}</p>
           </div>
+
+          {/* Card 6: Mini Calcolatrice Rapida Incastrata nello spazio vuoto accanto */}
+          <MiniStudioCalculator />
         </div>
 
         {/* 2. Compensi Netti Soci (Gab, Ale, Paolo) */}
