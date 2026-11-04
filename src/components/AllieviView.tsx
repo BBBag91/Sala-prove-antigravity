@@ -291,6 +291,8 @@ export const AllieviView: React.FC = () => {
       'riunione',
       'prova batteria',
       'prova',
+      'federico',
+      'francesco manuela',
     ]);
     const MOCK_BOOKING_IDS = new Set(['book-1', 'book-2', 'book-3', 'book-4', 'book-5', 'book-6', 'book-7', 'book-8']);
 
