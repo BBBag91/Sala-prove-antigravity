@@ -19,6 +19,7 @@ import { EXPENSE_CATEGORIES, ExpenseModal } from './ExpenseModal';
 import { CompensiFineMeseSection } from './CompensiFineMeseSection';
 import { TeacherLessonsFinanceSection } from './TeacherLessonsFinanceSection';
 import { MonthlyFinanceReportModal } from './MonthlyFinanceReportModal';
+import { StudioCalculator } from './StudioCalculator';
 
 export const FinanceView: React.FC = () => {
   const { expenses, bookings, clients, deleteExpense, updateExpense } = useApp();
@@ -559,6 +560,12 @@ export const FinanceView: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* ── Calcolatrice Contabile Incastrata a Fine Pagina ── */}
+      <StudioCalculator
+        title="Calcolatrice Contabile & Ripartizione Quote"
+        subtitle="Calcola rapidamente resti, quote soci (÷3), ore lezioni docenti (×5€/h) e tesseramenti (+10€)"
+      />
 
       <ExpenseModal
         isOpen={isModalOpen}
