@@ -284,48 +284,93 @@ html {
     border-color: rgba(250, 204, 21, 0.45) !important;
   }
 
-  /* Colored status badges adapted for dark mode */
-  html:not(.light) .bg-emerald-50,
-  html.dark .bg-emerald-50 {
-    background-color: rgba(16, 185, 129, 0.15) !important;
-    border-color: rgba(16, 185, 129, 0.35) !important;
+  /* Colored status badges & cards adapted for dark mode (high contrast & readability) */
+  html:not(.light) .bg-blue-50:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-blue-50\/70:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-blue-50\/80:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-indigo-50\/70:not(#printable-monthly-finance-report *),
+  html.dark .bg-blue-50:not(#printable-monthly-finance-report *),
+  html.dark .bg-blue-50\/70:not(#printable-monthly-finance-report *),
+  html.dark .bg-blue-50\/80:not(#printable-monthly-finance-report *),
+  html.dark .bg-indigo-50\/70:not(#printable-monthly-finance-report *) {
+    background-color: #141414 !important;
+    border-color: rgba(250, 204, 21, 0.35) !important;
   }
-  html:not(.light) .text-emerald-700,
-  html:not(.light) .text-emerald-800,
-  html:not(.light) .text-emerald-600,
-  html.dark .text-emerald-700,
-  html.dark .text-emerald-800,
-  html.dark .text-emerald-600 {
+
+  html:not(.light) .text-blue-700:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-blue-800:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-blue-900:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-blue-950:not(#printable-monthly-finance-report *),
+  html.dark .text-blue-700:not(#printable-monthly-finance-report *),
+  html.dark .text-blue-800:not(#printable-monthly-finance-report *),
+  html.dark .text-blue-900:not(#printable-monthly-finance-report *),
+  html.dark .text-blue-950:not(#printable-monthly-finance-report *) {
+    color: #fef08a !important;
+  }
+
+  html:not(.light) .bg-emerald-50:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-emerald-50\/70:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-emerald-50\/90:not(#printable-monthly-finance-report *),
+  html.dark .bg-emerald-50:not(#printable-monthly-finance-report *),
+  html.dark .bg-emerald-50\/70:not(#printable-monthly-finance-report *),
+  html.dark .bg-emerald-50\/90:not(#printable-monthly-finance-report *) {
+    background-color: #0e1b15 !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+  }
+  html:not(.light) .text-emerald-700:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-emerald-800:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-emerald-900:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-emerald-950:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-emerald-600:not(#printable-monthly-finance-report *),
+  html.dark .text-emerald-700:not(#printable-monthly-finance-report *),
+  html.dark .text-emerald-800:not(#printable-monthly-finance-report *),
+  html.dark .text-emerald-900:not(#printable-monthly-finance-report *),
+  html.dark .text-emerald-950:not(#printable-monthly-finance-report *),
+  html.dark .text-emerald-600:not(#printable-monthly-finance-report *) {
     color: #34d399 !important;
   }
 
-  html:not(.light) .bg-rose-50,
-  html:not(.light) .bg-red-50,
-  html.dark .bg-rose-50,
-  html.dark .bg-red-50 {
-    background-color: rgba(244, 63, 94, 0.15) !important;
-    border-color: rgba(244, 63, 94, 0.35) !important;
+  html:not(.light) .bg-rose-50:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-rose-50\/70:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-red-50:not(#printable-monthly-finance-report *),
+  html.dark .bg-rose-50:not(#printable-monthly-finance-report *),
+  html.dark .bg-rose-50\/70:not(#printable-monthly-finance-report *),
+  html.dark .bg-red-50:not(#printable-monthly-finance-report *) {
+    background-color: #1f0f14 !important;
+    border-color: rgba(244, 63, 94, 0.4) !important;
   }
-  html:not(.light) .text-rose-700,
-  html:not(.light) .text-rose-600,
-  html:not(.light) .text-rose-500,
-  html.dark .text-rose-700,
-  html.dark .text-rose-600,
-  html.dark .text-rose-500 {
+  html:not(.light) .text-rose-700:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-rose-800:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-rose-900:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-rose-950:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-rose-600:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-rose-500:not(#printable-monthly-finance-report *),
+  html.dark .text-rose-700:not(#printable-monthly-finance-report *),
+  html.dark .text-rose-800:not(#printable-monthly-finance-report *),
+  html.dark .text-rose-900:not(#printable-monthly-finance-report *),
+  html.dark .text-rose-950:not(#printable-monthly-finance-report *),
+  html.dark .text-rose-600:not(#printable-monthly-finance-report *),
+  html.dark .text-rose-500:not(#printable-monthly-finance-report *) {
     color: #fb7185 !important;
   }
 
-  html:not(.light) .bg-amber-50,
-  html:not(.light) .bg-amber-100,
-  html.dark .bg-amber-50,
-  html.dark .bg-amber-100 {
-    background-color: rgba(245, 158, 11, 0.15) !important;
+  html:not(.light) .bg-amber-50:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-amber-50\/40:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-amber-100:not(#printable-monthly-finance-report *),
+  html.dark .bg-amber-50:not(#printable-monthly-finance-report *),
+  html.dark .bg-amber-50\/40:not(#printable-monthly-finance-report *),
+  html.dark .bg-amber-100:not(#printable-monthly-finance-report *) {
+    background-color: rgba(245, 158, 11, 0.14) !important;
     border-color: rgba(245, 158, 11, 0.35) !important;
   }
-  html:not(.light) .text-amber-700,
-  html:not(.light) .text-amber-800,
-  html.dark .text-amber-700,
-  html.dark .text-amber-800 {
+  html:not(.light) .text-amber-700:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-amber-800:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-amber-900:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-amber-950:not(#printable-monthly-finance-report *),
+  html.dark .text-amber-700:not(#printable-monthly-finance-report *),
+  html.dark .text-amber-800:not(#printable-monthly-finance-report *),
+  html.dark .text-amber-900:not(#printable-monthly-finance-report *),
+  html.dark .text-amber-950:not(#printable-monthly-finance-report *) {
     color: #fbbf24 !important;
   }
 

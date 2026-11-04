@@ -38,9 +38,9 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     >
       <div className="relative flex items-center justify-center w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0">
         {isDark ? (
-          <Sun className="w-4 h-4 text-yellow-400 animate-in spin-in-90 zoom-in duration-200" />
+          <Moon className="w-4 h-4 text-yellow-400 animate-in spin-in-90 zoom-in duration-200" />
         ) : (
-          <Moon
+          <Sun
             className="w-4 h-4 text-blue-600 animate-in spin-in-90 zoom-in duration-200"
             style={{ color: '#1d4ed8', stroke: '#1d4ed8' }}
           />
@@ -54,7 +54,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
           }`}
           style={!isDark ? { color: '#1d4ed8' } : undefined}
         >
-          {isDark ? 'Tema Chiaro' : 'Tema Scuro'}
+          {isDark ? 'Tema Scuro' : 'Tema Chiaro'}
         </span>
       )}
     </button>
