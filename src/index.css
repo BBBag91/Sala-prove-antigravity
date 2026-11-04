@@ -209,10 +209,16 @@ html {
     border-color: rgba(250, 204, 21, 0.22) !important;
   }
 
-  html:not(.light) .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
-  html:not(.light) .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
-  html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
-  html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+  html:not(.light) .divide-y > *:not(#printable-monthly-finance-report *),
+  html:not(.light) .divide-slate-100 > *:not(#printable-monthly-finance-report *),
+  html:not(.light) .divide-slate-200 > *:not(#printable-monthly-finance-report *),
+  html:not(.light) .divide-neutral-800 > *:not(#printable-monthly-finance-report *),
+  html:not(.light) tbody tr:not(#printable-monthly-finance-report *),
+  html.dark .divide-y > *:not(#printable-monthly-finance-report *),
+  html.dark .divide-slate-100 > *:not(#printable-monthly-finance-report *),
+  html.dark .divide-slate-200 > *:not(#printable-monthly-finance-report *),
+  html.dark .divide-neutral-800 > *:not(#printable-monthly-finance-report *),
+  html.dark tbody tr:not(#printable-monthly-finance-report *) {
     border-color: rgba(250, 204, 21, 0.18) !important;
   }
 
