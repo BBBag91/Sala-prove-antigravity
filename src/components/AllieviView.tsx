@@ -1158,7 +1158,7 @@ export const AllieviView: React.FC = () => {
                   return (
                     <tr
                       key={student.id}
-                      className="even:bg-slate-50/70 dark:even:bg-neutral-850/40 hover:bg-amber-50/60 dark:hover:bg-neutral-800/60 transition-colors"
+                      className="even:bg-slate-50/70 dark:bg-[#0d0d0d] dark:even:bg-[#0d0d0d] hover:bg-amber-50/60 dark:hover:bg-[#171717] transition-colors"
                     >
                       {/* 1. Indice Progressivo */}
                       <td className="p-2.5 px-3 border-r border-slate-200 dark:border-neutral-800 text-center font-mono font-bold text-slate-500 dark:text-neutral-400">

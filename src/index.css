@@ -133,15 +133,42 @@ html {
     border-color: rgba(250, 204, 21, 0.22) !important;
   }
 
-  html:not(.light) .bg-slate-50,
-  html:not(.light) .bg-slate-50\/60,
-  html:not(.light) .bg-slate-50\/40,
-  html:not(.light) .bg-slate-50\/80,
-  html.dark .bg-slate-50,
-  html.dark .bg-slate-50\/60,
-  html.dark .bg-slate-50\/40,
-  html.dark .bg-slate-50\/80 {
+  html:not(.light) .bg-slate-50:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-slate-50\/60:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-slate-50\/70:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-slate-50\/50:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-slate-50\/40:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-slate-50\/30:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-slate-50\/80:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-white\/60:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-white\/70:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-white\/80:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-50:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-50\/60:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-50\/70:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-50\/50:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-50\/40:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-50\/30:not(#printable-monthly-finance-report *),
+  html.dark .bg-slate-50\/80:not(#printable-monthly-finance-report *),
+  html.dark .bg-white\/60:not(#printable-monthly-finance-report *),
+  html.dark .bg-white\/70:not(#printable-monthly-finance-report *),
+  html.dark .bg-white\/80:not(#printable-monthly-finance-report *) {
     background-color: #121212 !important;
+  }
+
+  /* Uniformazione Righe Tabelle in Tema Scuro (nessuna riga chiara o zebra grigia in nessuna sezione) */
+  html:not(.light) tbody tr:not(#printable-monthly-finance-report *),
+  html:not(.light) tbody tr:nth-child(even):not(#printable-monthly-finance-report *),
+  html:not(.light) tbody tr:nth-child(odd):not(#printable-monthly-finance-report *),
+  html.dark tbody tr:not(#printable-monthly-finance-report *),
+  html.dark tbody tr:nth-child(even):not(#printable-monthly-finance-report *),
+  html.dark tbody tr:nth-child(odd):not(#printable-monthly-finance-report *) {
+    background-color: #0d0d0d !important;
+  }
+
+  html:not(.light) tbody tr:hover:not(#printable-monthly-finance-report *),
+  html.dark tbody tr:hover:not(#printable-monthly-finance-report *) {
+    background-color: #171717 !important;
   }
 
   html:not(.light) .bg-slate-100,
@@ -311,9 +338,11 @@ html {
   html:not(.light) .bg-emerald-50:not(#printable-monthly-finance-report *),
   html:not(.light) .bg-emerald-50\/70:not(#printable-monthly-finance-report *),
   html:not(.light) .bg-emerald-50\/90:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-emerald-100:not(#printable-monthly-finance-report *),
   html.dark .bg-emerald-50:not(#printable-monthly-finance-report *),
   html.dark .bg-emerald-50\/70:not(#printable-monthly-finance-report *),
-  html.dark .bg-emerald-50\/90:not(#printable-monthly-finance-report *) {
+  html.dark .bg-emerald-50\/90:not(#printable-monthly-finance-report *),
+  html.dark .bg-emerald-100:not(#printable-monthly-finance-report *) {
     background-color: #0e1b15 !important;
     border-color: rgba(16, 185, 129, 0.4) !important;
   }
@@ -355,36 +384,60 @@ html {
   }
 
   html:not(.light) .bg-amber-50:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-amber-50\/30:not(#printable-monthly-finance-report *),
   html:not(.light) .bg-amber-50\/40:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-amber-50\/50:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-amber-50\/70:not(#printable-monthly-finance-report *),
   html:not(.light) .bg-amber-100:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-amber-200:not(#printable-monthly-finance-report *),
   html.dark .bg-amber-50:not(#printable-monthly-finance-report *),
+  html.dark .bg-amber-50\/30:not(#printable-monthly-finance-report *),
   html.dark .bg-amber-50\/40:not(#printable-monthly-finance-report *),
-  html.dark .bg-amber-100:not(#printable-monthly-finance-report *) {
-    background-color: rgba(245, 158, 11, 0.14) !important;
-    border-color: rgba(245, 158, 11, 0.35) !important;
+  html.dark .bg-amber-50\/50:not(#printable-monthly-finance-report *),
+  html.dark .bg-amber-50\/70:not(#printable-monthly-finance-report *),
+  html.dark .bg-amber-100:not(#printable-monthly-finance-report *),
+  html.dark .bg-amber-200:not(#printable-monthly-finance-report *) {
+    background-color: #19140a !important;
+    border-color: rgba(245, 158, 11, 0.38) !important;
   }
   html:not(.light) .text-amber-700:not(#printable-monthly-finance-report *),
   html:not(.light) .text-amber-800:not(#printable-monthly-finance-report *),
   html:not(.light) .text-amber-900:not(#printable-monthly-finance-report *),
   html:not(.light) .text-amber-950:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-amber-600:not(#printable-monthly-finance-report *),
   html.dark .text-amber-700:not(#printable-monthly-finance-report *),
   html.dark .text-amber-800:not(#printable-monthly-finance-report *),
   html.dark .text-amber-900:not(#printable-monthly-finance-report *),
-  html.dark .text-amber-950:not(#printable-monthly-finance-report *) {
+  html.dark .text-amber-950:not(#printable-monthly-finance-report *),
+  html.dark .text-amber-600:not(#printable-monthly-finance-report *) {
     color: #fbbf24 !important;
   }
 
-  html:not(.light) .bg-purple-50,
-  html:not(.light) .bg-purple-100,
-  html.dark .bg-purple-50,
-  html.dark .bg-purple-100 {
-    background-color: rgba(168, 85, 247, 0.15) !important;
-    border-color: rgba(168, 85, 247, 0.35) !important;
+  html:not(.light) .bg-purple-50:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-purple-50\/20:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-purple-50\/30:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-purple-50\/50:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-purple-50\/70:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-purple-100:not(#printable-monthly-finance-report *),
+  html:not(.light) .bg-purple-200:not(#printable-monthly-finance-report *),
+  html.dark .bg-purple-50:not(#printable-monthly-finance-report *),
+  html.dark .bg-purple-50\/20:not(#printable-monthly-finance-report *),
+  html.dark .bg-purple-50\/30:not(#printable-monthly-finance-report *),
+  html.dark .bg-purple-50\/50:not(#printable-monthly-finance-report *),
+  html.dark .bg-purple-50\/70:not(#printable-monthly-finance-report *),
+  html.dark .bg-purple-100:not(#printable-monthly-finance-report *),
+  html.dark .bg-purple-200:not(#printable-monthly-finance-report *) {
+    background-color: #161024 !important;
+    border-color: rgba(168, 85, 247, 0.38) !important;
   }
-  html:not(.light) .text-purple-700,
-  html:not(.light) .text-purple-900,
-  html.dark .text-purple-700,
-  html.dark .text-purple-900 {
+  html:not(.light) .text-purple-600:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-purple-700:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-purple-800:not(#printable-monthly-finance-report *),
+  html:not(.light) .text-purple-900:not(#printable-monthly-finance-report *),
+  html.dark .text-purple-600:not(#printable-monthly-finance-report *),
+  html.dark .text-purple-700:not(#printable-monthly-finance-report *),
+  html.dark .text-purple-800:not(#printable-monthly-finance-report *),
+  html.dark .text-purple-900:not(#printable-monthly-finance-report *) {
     color: #c084fc !important;
   }
 

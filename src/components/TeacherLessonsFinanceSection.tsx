@@ -283,21 +283,21 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
       </div>
 
       {/* Avviso Regole Contabili Docenti (Michael Posticipato / Luca Corrente) */}
-      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-300 text-xs flex flex-col md:flex-row md:items-center justify-between gap-2.5 shadow-2xs">
+      <div className="p-3.5 rounded-xl bg-amber-500/10 dark:bg-[#14120a] border border-amber-300 dark:border-amber-500/40 text-xs flex flex-col md:flex-row md:items-center justify-between gap-2.5 shadow-2xs">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 text-sm shadow-xs">
             ⏳
           </div>
           <div className="space-y-0.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <strong className="text-amber-950 font-bold">
+              <strong className="text-amber-950 dark:text-amber-200 font-bold">
                 Cicli di Liquidazione Quote Insegnanti (5€/h):
               </strong>
-              <span className="px-2 py-0.5 rounded bg-amber-200 text-amber-900 font-extrabold text-[10px] uppercase tracking-wider">
+              <span className="px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 dark:border dark:border-amber-500/40 font-extrabold text-[10px] uppercase tracking-wider">
                 Michael Bertin: Posticipato a inizio {currentMonthName}
               </span>
             </div>
-            <p className="text-amber-900 text-[11.5px] leading-relaxed">
+            <p className="text-amber-900 dark:text-amber-300/90 text-[11.5px] leading-relaxed">
               • <strong>Luca Di Chiara:</strong> lezioni di <strong>{currentMonthName}</strong> saldate e contabilizzate nel mese stesso.
               <br />
               • <strong>Michael Bertin:</strong> lezioni svolte a <strong>{prevMonthLabel}</strong> saldate e contabilizzate a inizio <strong>{currentMonthName} {currentYear}</strong>.
@@ -307,83 +307,83 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
       </div>
 
       {/* Info Riferimento Giornaliero Odierno */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-purple-50/50 border border-purple-100 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-purple-50/50 dark:bg-[#121212] border border-purple-100 dark:border-yellow-500/30 text-xs">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[11px] shadow-2xs">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 font-bold text-[11px] shadow-2xs">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             Riferimento a oggi: {formatDateItalian(todayISO, true)}
           </span>
-          <span className="text-slate-600">
+          <span className="text-slate-600 dark:text-yellow-300">
             {onlyCompleted ? (
               <span>
                 Visualizzazione attiva: <strong>Solo ore lezioni svolte</strong> (escluse le prenotazioni future al giorno odierno).
               </span>
             ) : (
-              <span className="text-amber-800 font-medium">
+              <span className="text-amber-800 dark:text-amber-300 font-medium">
                 Visualizzazione attiva: <strong>Tutte le ore prenotate</strong> (inclusa stima fino a fine mese).
               </span>
             )}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
-          <Clock className="w-3.5 h-3.5 text-purple-600" />
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-yellow-300 bg-white dark:bg-[#181818] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-yellow-500/30">
+          <Clock className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
           <span>Filtro: <strong>Solo Insegnanti</strong></span>
         </div>
       </div>
 
       {/* KPI Cards Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-yellow-500/25 space-y-1">
+          <span className="text-[11px] font-semibold text-slate-500 dark:text-amber-400 uppercase tracking-wider">
             Docenti Insegnanti
           </span>
-          <p className="text-2xl font-bold font-mono text-slate-900">
+          <p className="text-2xl font-bold font-mono text-slate-900 dark:text-yellow-100">
             {teachersExclusively.length}
           </p>
-          <span className="text-[10px] text-slate-500 block">
+          <span className="text-[10px] text-slate-500 dark:text-amber-500/80 block">
             Ruolo esclusivo insegnante
           </span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-1">
-          <span className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-[#14101f] border border-purple-200 dark:border-purple-500/40 space-y-1">
+          <span className="text-[11px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider flex items-center justify-between">
             <span>{onlyCompleted ? 'Ore Lezioni Svolte' : 'Ore Lezioni Prenotate'}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-800 font-bold">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-200 dark:bg-purple-950 text-purple-800 dark:text-purple-200 dark:border dark:border-purple-500/40 font-bold">
               {onlyCompleted ? 'fino a oggi' : 'periodo'}
             </span>
           </span>
-          <p className="text-2xl font-bold font-mono text-purple-900">
+          <p className="text-2xl font-bold font-mono text-purple-900 dark:text-purple-300">
             {overallOre.toFixed(1)} h
           </p>
-          <span className="text-[10px] text-purple-600 block">
+          <span className="text-[10px] text-purple-600 dark:text-purple-400 block">
             {onlyCompleted
               ? `${overallLessonsCount} lezioni svolte (su ${overallTotalBookedCount} prenotate)`
               : `${overallTotalBookedCount} lezioni conteggiate`}
           </span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-1">
-          <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-[#0d1f17] border border-emerald-200 dark:border-emerald-500/40 space-y-1">
+          <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider flex items-center justify-between">
             <span>Quote Saldate</span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           </span>
-          <p className="text-2xl font-bold font-mono text-emerald-700">
+          <p className="text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400">
             {formatCurrency(overallSaldato)}
           </p>
-          <span className="text-[10px] text-emerald-600 block">
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400/80 block">
             Versato alla sala
           </span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1">
-          <span className="text-[11px] font-semibold text-amber-700 uppercase tracking-wider flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-[#19140a] border border-amber-200 dark:border-amber-500/40 space-y-1">
+          <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wider flex items-center justify-between">
             <span>Da Saldare</span>
-            <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+            <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
           </span>
-          <p className="text-2xl font-bold font-mono text-amber-700">
+          <p className="text-2xl font-bold font-mono text-amber-700 dark:text-amber-300">
             {formatCurrency(overallDaSaldare)}
           </p>
-          <span className="text-[10px] text-amber-600 block">
+          <span className="text-[10px] text-amber-600 dark:text-amber-400/80 block">
             {onlyCompleted ? 'Calcolato sulle ore effettivamente svolte' : 'In attesa di versamento alla sala'}
           </span>
         </div>
@@ -426,7 +426,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
 
                     return (
                       <React.Fragment key={teacher.id}>
-                        <tr className={`hover:bg-slate-50/80 transition-colors ${isExpanded ? 'bg-purple-50/30' : ''} ${isPosticipato ? 'bg-amber-50/30 border-l-4 border-l-amber-500' : ''}`}>
+                        <tr className={`hover:bg-slate-50/80 dark:bg-[#0d0d0d] dark:hover:bg-[#171717] transition-colors ${isExpanded ? 'bg-purple-50/30 dark:bg-[#121212]' : ''} ${isPosticipato ? 'bg-amber-50/30 dark:bg-[#0d0d0d] border-l-4 border-l-amber-500' : ''}`}>
                           <td className="py-3.5 px-4">
                             <div className="flex items-start gap-3">
                               <div
@@ -441,7 +441,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
                                     {teacher.nome} {teacher.cognome}
                                   </span>
                                   {isPosticipato && (
-                                    <span className="text-[9.5px] px-1.5 py-0.2 rounded font-black bg-amber-200 text-amber-900 border border-amber-400 uppercase tracking-wider">
+                                    <span className="text-[9.5px] px-1.5 py-0.2 rounded font-black bg-amber-200 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-400 dark:border-amber-500/40 uppercase tracking-wider">
                                       Posticipato
                                     </span>
                                   )}
@@ -473,7 +473,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
                                   <button
                                     type="button"
                                     onClick={() => toggleCycleOverride(teacher.id, activeCycle)}
-                                    className="text-[10px] font-medium text-purple-700 hover:text-purple-900 hover:underline px-1.5 py-0.5 rounded bg-purple-50/70 hover:bg-purple-100 transition-colors cursor-pointer"
+                                    className="text-[10px] font-medium text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-200 hover:underline px-1.5 py-0.5 rounded bg-purple-50/70 dark:bg-purple-950/70 dark:border dark:border-purple-500/35 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-colors cursor-pointer"
                                     title="Clicca per commutare temporaneamente la vista tra Mese Corrente e Mese Precedente"
                                   >
                                     {isPosticipato ? '⇄ Vedi mese corrente' : '⇄ Vedi mese prec.'}
