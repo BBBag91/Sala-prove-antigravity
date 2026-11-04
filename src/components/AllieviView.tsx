@@ -53,8 +53,8 @@ export const AllieviView: React.FC = () => {
   const todayISO = formatDateToISO(today);
   const nowMinutes = today.getHours() * 60 + today.getMinutes();
 
-  // Inizializza direttamente su Ottobre 2026 come richiesto
-  const [currentDate, setCurrentDate] = useState<Date>(() => new Date(2026, 9, 1));
+  // Inizializza direttamente sul mese corrente (Oggi)
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
 
   const monthStr = useMemo(() => {
     const y = currentDate.getFullYear();
@@ -829,20 +829,6 @@ export const AllieviView: React.FC = () => {
 
         {/* Controlli Mese e Pulsanti Azione */}
         <div className="flex items-center gap-2 flex-wrap self-start md:self-auto shrink-0">
-          {/* Pulsante rapido Ottobre 2026 */}
-          <button
-            type="button"
-            onClick={handleGoOctober}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${
-              monthStr === '2026-10'
-                ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-xs'
-                : 'bg-slate-50 dark:bg-neutral-950 text-slate-700 dark:text-amber-300 border-slate-200 dark:border-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-800'
-            }`}
-            title="Apri mese completo Ottobre 2026"
-          >
-            Ottobre 2026 ★
-          </button>
-
           {/* Navigatore Mese */}
           <div className="flex items-center bg-slate-100 dark:bg-neutral-950 rounded-xl p-1 border border-slate-200 dark:border-neutral-800 shadow-xs">
             <button
@@ -869,7 +855,12 @@ export const AllieviView: React.FC = () => {
           <button
             type="button"
             onClick={handleGoCurrentMonth}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-neutral-950 hover:bg-slate-200 dark:hover:bg-neutral-800 text-slate-700 dark:text-neutral-300 border border-slate-200 dark:border-neutral-800 transition-colors cursor-pointer"
+            className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+              monthStr === todayISO.slice(0, 7)
+                ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-xs'
+                : 'bg-slate-100 dark:bg-neutral-950 hover:bg-slate-200 dark:hover:bg-neutral-800 text-slate-700 dark:text-neutral-300 border-slate-200 dark:border-neutral-800'
+            }`}
+            title="Torna al mese corrente (Oggi)"
           >
             Oggi
           </button>

@@ -494,57 +494,57 @@ html {
     border-color: rgba(37, 99, 235, 0.25) !important;
   }
 
-  /* ── Pulsanti di Stampa / PDF / Resoconto: Sfondo Solido ad Alto Contrasto (Mai troppo chiaro) ── */
+  /* ── Pulsanti di Stampa / PDF / Resoconto e Pulsanti Scip/Neri: Sfondo Nero Solido con Scritte Gialle ── */
   html.light button.bg-slate-900,
   html.light button.bg-slate-800,
-  html.light button[title*="Stampa"],
-  html.light button[title*="stampa"],
-  html.light button[title*="PDF"],
-  html.light button[title*="Resoconto"],
+  html.light button[title*="Stampa"]:not(.bg-blue-600):not(.bg-amber-500),
+  html.light button[title*="stampa"]:not(.bg-blue-600):not(.bg-amber-500),
+  html.light button[title*="PDF"]:not(.bg-blue-600):not(.bg-rose-600):not(.bg-amber-500),
+  html.light button[title*="Resoconto"]:not(.bg-amber-400),
   html.light .btn-print-action,
-  html.dark button[title*="Stampa"],
-  html.dark button[title*="stampa"],
-  html.dark button[title*="PDF"],
-  html.dark button[title*="Resoconto"],
+  html.dark button[title*="Stampa"]:not(.bg-blue-600):not(.bg-amber-500):not(.dark\:bg-yellow-400),
+  html.dark button[title*="stampa"]:not(.bg-blue-600):not(.bg-amber-500):not(.dark\:bg-yellow-400),
+  html.dark button[title*="PDF"]:not(.bg-blue-600):not(.bg-rose-600):not(.bg-amber-500):not(.dark\:bg-yellow-400),
+  html.dark button[title*="Resoconto"]:not(.bg-amber-400),
   html.dark .btn-print-action {
-    background-color: #1e40af !important; /* Deep Navy Blue ad alto contrasto */
-    color: #ffffff !important;
-    border: 1px solid #1e3a8a !important;
+    background-color: #141414 !important;
+    color: #facc15 !important;
+    border: 1px solid rgba(250, 204, 21, 0.45) !important;
     font-weight: 700 !important;
-    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.28) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
   }
 
   html.light button.bg-slate-900 *,
   html.light button.bg-slate-800 *,
-  html.light button[title*="Stampa"] *,
-  html.light button[title*="stampa"] *,
-  html.light button[title*="PDF"] *,
-  html.light button[title*="Resoconto"] *,
+  html.light button[title*="Stampa"]:not(.bg-blue-600):not(.bg-amber-500) *,
+  html.light button[title*="stampa"]:not(.bg-blue-600):not(.bg-amber-500) *,
+  html.light button[title*="PDF"]:not(.bg-blue-600):not(.bg-rose-600):not(.bg-amber-500) *,
+  html.light button[title*="Resoconto"]:not(.bg-amber-400) *,
   html.light .btn-print-action *,
-  html.dark button[title*="Stampa"] *,
-  html.dark button[title*="stampa"] *,
-  html.dark button[title*="PDF"] *,
-  html.dark button[title*="Resoconto"] *,
+  html.dark button[title*="Stampa"]:not(.bg-blue-600):not(.bg-amber-500):not(.dark\:bg-yellow-400) *,
+  html.dark button[title*="stampa"]:not(.bg-blue-600):not(.bg-amber-500):not(.dark\:bg-yellow-400) *,
+  html.dark button[title*="PDF"]:not(.bg-blue-600):not(.bg-rose-600):not(.bg-amber-500):not(.dark\:bg-yellow-400) *,
+  html.dark button[title*="Resoconto"]:not(.bg-amber-400) *,
   html.dark .btn-print-action * {
-    color: #ffffff !important;
-    stroke: #ffffff !important;
+    color: #facc15 !important;
+    stroke: #facc15 !important;
   }
 
   html.light button.bg-slate-900:hover,
   html.light button.bg-slate-800:hover,
-  html.light button[title*="Stampa"]:hover,
-  html.light button[title*="stampa"]:hover,
-  html.light button[title*="PDF"]:hover,
-  html.light button[title*="Resoconto"]:hover,
+  html.light button[title*="Stampa"]:not(.bg-blue-600):not(.bg-amber-500):hover,
+  html.light button[title*="stampa"]:not(.bg-blue-600):not(.bg-amber-500):hover,
+  html.light button[title*="PDF"]:not(.bg-blue-600):not(.bg-rose-600):not(.bg-amber-500):hover,
+  html.light button[title*="Resoconto"]:not(.bg-amber-400):hover,
   html.light .btn-print-action:hover,
-  html.dark button[title*="Stampa"]:hover,
-  html.dark button[title*="stampa"]:hover,
-  html.dark button[title*="PDF"]:hover,
-  html.dark button[title*="Resoconto"]:hover,
+  html.dark button[title*="Stampa"]:not(.bg-blue-600):not(.bg-amber-500):not(.dark\:bg-yellow-400):hover,
+  html.dark button[title*="stampa"]:not(.bg-blue-600):not(.bg-amber-500):not(.dark\:bg-yellow-400):hover,
+  html.dark button[title*="PDF"]:not(.bg-blue-600):not(.bg-rose-600):not(.bg-amber-500):not(.dark\:bg-yellow-400):hover,
+  html.dark button[title*="Resoconto"]:not(.bg-amber-400):hover,
   html.dark .btn-print-action:hover {
-    background-color: #1d4ed8 !important;
-    border-color: #1e40af !important;
-    color: #ffffff !important;
+    background-color: #262626 !important;
+    border-color: #facc15 !important;
+    color: #fde047 !important;
   }
 
   /* Modali, Dropdown e Cassetti Laterali in Bianco Pulito */
@@ -722,6 +722,88 @@ html {
     stroke: #ffffff !important;
   }
 
+  /* ── 4.2. Elementi e Pulsanti con Sfondo Nero: Testo e Icone SEMPRE Gialli (#facc15) ── */
+  html.light button.bg-neutral-950:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100),
+  html.light button.bg-neutral-900:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100),
+  html.light button.bg-neutral-850:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100),
+  html.light button.bg-neutral-800:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100):not(.bg-slate-200),
+  html.light button.bg-black:not(.bg-white),
+  html.light button.bg-slate-900:not(.bg-white),
+  html.light button.bg-slate-800:not(.bg-white),
+  html.light .btn-print-action,
+  html.light a.bg-neutral-950:not(.bg-white),
+  html.light a.bg-neutral-900:not(.bg-white),
+  html.light a.bg-neutral-800:not(.bg-white),
+  html.light a.bg-black:not(.bg-white),
+  html.light span.bg-black,
+  html.light span[class*="bg-black/"],
+  html.dark button.bg-neutral-950,
+  html.dark button.bg-neutral-900,
+  html.dark button.bg-neutral-850,
+  html.dark button.bg-neutral-800,
+  html.dark button.bg-black,
+  html.dark button.dark\:bg-neutral-950,
+  html.dark button.dark\:bg-neutral-900,
+  html.dark button.dark\:bg-neutral-800,
+  html.dark .btn-print-action,
+  html.dark span.bg-black,
+  html.dark span[class*="bg-black/"] {
+    background-color: #141414 !important;
+    color: #facc15 !important; /* Giallo brillante su sfondo nero */
+    border-color: rgba(250, 204, 21, 0.45) !important;
+  }
+
+  html.light button.bg-neutral-950:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100) *,
+  html.light button.bg-neutral-900:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100) *,
+  html.light button.bg-neutral-850:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100) *,
+  html.light button.bg-neutral-800:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100):not(.bg-slate-200) *,
+  html.light button.bg-black:not(.bg-white) *,
+  html.light button.bg-slate-900:not(.bg-white) *,
+  html.light button.bg-slate-800:not(.bg-white) *,
+  html.light .btn-print-action *,
+  html.light a.bg-neutral-950:not(.bg-white) *,
+  html.light a.bg-neutral-900:not(.bg-white) *,
+  html.light a.bg-neutral-800:not(.bg-white) *,
+  html.light a.bg-black:not(.bg-white) *,
+  html.light span.bg-black *,
+  html.light span[class*="bg-black/"] *,
+  html.dark button.bg-neutral-950 *,
+  html.dark button.bg-neutral-900 *,
+  html.dark button.bg-neutral-850 *,
+  html.dark button.bg-neutral-800 *,
+  html.dark button.bg-black *,
+  html.dark button.dark\:bg-neutral-950 *,
+  html.dark button.dark\:bg-neutral-900 *,
+  html.dark button.dark\:bg-neutral-800 *,
+  html.dark .btn-print-action *,
+  html.dark span.bg-black *,
+  html.dark span[class*="bg-black/"] * {
+    color: #facc15 !important;
+    stroke: #facc15 !important;
+  }
+
+  html.light button.bg-neutral-950:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100):hover,
+  html.light button.bg-neutral-900:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100):hover,
+  html.light button.bg-neutral-850:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100):hover,
+  html.light button.bg-neutral-800:not(.bg-white):not(.bg-slate-50):not(.bg-slate-100):not(.bg-slate-200):hover,
+  html.light button.bg-black:not(.bg-white):hover,
+  html.light button.bg-slate-900:not(.bg-white):hover,
+  html.light button.bg-slate-800:not(.bg-white):hover,
+  html.light .btn-print-action:hover,
+  html.dark button.bg-neutral-950:hover,
+  html.dark button.bg-neutral-900:hover,
+  html.dark button.bg-neutral-850:hover,
+  html.dark button.bg-neutral-800:hover,
+  html.dark button.bg-black:hover,
+  html.dark button.dark\:bg-neutral-950:hover,
+  html.dark button.dark\:bg-neutral-900:hover,
+  html.dark button.dark\:bg-neutral-800:hover,
+  html.dark .btn-print-action:hover {
+    background-color: #262626 !important;
+    color: #fde047 !important;
+    border-color: #facc15 !important;
+  }
+
   /* ── 5. Form Elements: Input Bianchi con Bordi e Focus Blu ── */
   html.light input:not([type="checkbox"]):not([type="radio"]),
   html.light select,
@@ -854,7 +936,16 @@ html {
     display: none !important;
   }
 
-  /* Evita che i backdrop scuri dei modali colorino il foglio di nero */
+  /* Evita che i backdrop scuri dei modali colorino il foglio di nero o si ripetano su ogni pagina */
+  .fixed,
+  .fixed.inset-0 {
+    position: static !important;
+    inset: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
   .fixed.inset-0.bg-black\/85,
   .fixed.inset-0.bg-black\/80,
   .fixed.inset-0.bg-black\/60,
@@ -914,8 +1005,9 @@ html {
     display: table-header-group !important;
   }
 
+  /* tfoot come table-row-group evita che il totale si ripeta o si sovrapponga alle righe nella seconda pagina */
   tfoot {
-    display: table-footer-group !important;
+    display: table-row-group !important;
   }
 
   tr {
@@ -966,30 +1058,34 @@ html {
   }
 
   /* =========================================================================
-     ISOLAMENTO STAMPA REPORT FINANZIARIO (Elimina sfondi e pagine extra)
+     ISOLAMENTO STAMPA REPORT FINANZIARIO (Flusso statico multipagina senza sovrapposizioni)
      ========================================================================= */
-  body.printing-finance-report {
+  body.printing-finance-report,
+  body:has(#finance-report-print-root) {
     background-color: #ffffff !important;
     background: #ffffff !important;
     margin: 0 !important;
     padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
-  body.printing-finance-report * {
-    visibility: hidden !important;
+  body.printing-finance-report > *:not(#finance-report-print-root),
+  body:has(#finance-report-print-root) > *:not(#finance-report-print-root) {
+    display: none !important;
   }
 
-  body.printing-finance-report #printable-monthly-finance-report,
-  body.printing-finance-report #printable-monthly-finance-report * {
-    visibility: visible !important;
-  }
-
-  body.printing-finance-report #printable-monthly-finance-report {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+  #finance-report-print-root,
+  #finance-report-print-dialog,
+  #finance-report-print-scroll,
+  #printable-monthly-finance-report {
+    position: static !important;
+    display: block !important;
     width: 100% !important;
     max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
@@ -997,24 +1093,34 @@ html {
     background: #ffffff !important;
   }
 
-  body.printing-finance-report #printable-monthly-finance-report table {
+  #printable-monthly-finance-report table {
     page-break-inside: auto !important;
     break-inside: auto !important;
   }
 
-  body.printing-finance-report #printable-monthly-finance-report tr {
+  #printable-monthly-finance-report thead {
+    display: table-header-group !important;
+  }
+
+  #printable-monthly-finance-report tbody {
+    display: table-row-group !important;
+  }
+
+  #printable-monthly-finance-report tfoot {
+    display: table-row-group !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  body.printing-finance-report #printable-monthly-finance-report tfoot {
+  #printable-monthly-finance-report tr {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  body.printing-finance-report #printable-monthly-finance-report .note-box-container {
+  #printable-monthly-finance-report .note-box-container {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    margin-top: 10px !important;
   }
 }
 

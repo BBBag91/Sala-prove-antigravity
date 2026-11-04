@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Printer,
@@ -119,9 +120,10 @@ export const MonthlyFinanceReportModal: React.FC<MonthlyFinanceReportModalProps>
   const incomeEmptyRowsCount = Math.max(0, 5 - data.incomeMovements.length);
   const expenseEmptyRowsCount = Math.max(0, 5 - data.expenseMovements.length);
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+      id="finance-report-print-root"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200 print:static print:inset-auto print:block print:p-0 print:m-0 print:bg-white print:overflow-visible"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -129,7 +131,10 @@ export const MonthlyFinanceReportModal: React.FC<MonthlyFinanceReportModalProps>
       aria-modal="true"
       aria-labelledby="report-modal-title"
     >
-      <div className="bg-white dark:bg-[#121212] w-full max-w-5xl rounded-2xl border border-slate-200 dark:border-yellow-500/30 shadow-2xl flex flex-col max-h-[94vh] overflow-hidden my-auto">
+      <div
+        id="finance-report-print-dialog"
+        className="bg-white dark:bg-[#121212] w-full max-w-5xl rounded-2xl border border-slate-200 dark:border-yellow-500/30 shadow-2xl flex flex-col max-h-[94vh] overflow-hidden my-auto print:static print:block print:w-full print:max-w-none print:max-h-none print:h-auto print:overflow-visible print:border-none print:shadow-none print:rounded-none print:m-0 print:p-0"
+      >
         
         {/* =========================================================================
             RIGA 1 HEADER: TITOLO, BADGE E TASTO CHIUDI (SFONDO BLU)
@@ -272,10 +277,13 @@ export const MonthlyFinanceReportModal: React.FC<MonthlyFinanceReportModalProps>
         {/* =========================================================================
             AREA FOGLIO A4 STAMPABILE
             ========================================================================= */}
-        <div className="overflow-y-auto p-3 sm:p-6 bg-slate-200/80 dark:bg-neutral-950 flex justify-center print:p-0 print:bg-white print:overflow-visible">
+        <div
+          id="finance-report-print-scroll"
+          className="overflow-y-auto p-3 sm:p-6 bg-slate-200/80 dark:bg-neutral-950 flex justify-center print:static print:block print:p-0 print:m-0 print:bg-white print:overflow-visible print:max-h-none print:h-auto"
+        >
           <div
             id="printable-monthly-finance-report"
-            className="bg-white text-slate-900 w-full max-w-[800px] p-5 sm:p-7 rounded-xl shadow-md border border-slate-300 print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none space-y-3 print:space-y-2"
+            className="bg-white text-slate-900 w-full max-w-[800px] p-5 sm:p-7 rounded-xl shadow-md border border-slate-300 print:static print:block print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none print:w-full space-y-3 print:space-y-2"
           >
             {/* Header: Titolo Centrale Grande "Entrate/Uscite" */}
             <div className="text-center space-y-0.5 pb-1">
@@ -589,9 +597,9 @@ export const MonthlyFinanceReportModal: React.FC<MonthlyFinanceReportModalProps>
             <button
               type="button"
               onClick={handlePrint}
-              className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-800 dark:text-neutral-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+              className="btn-print-action px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-yellow-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border border-neutral-700"
             >
-              <Printer className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
+              <Printer className="w-4 h-4 text-yellow-400" />
               <span>Stampa Scheda</span>
             </button>
 
@@ -607,13 +615,15 @@ export const MonthlyFinanceReportModal: React.FC<MonthlyFinanceReportModalProps>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs border border-blue-500"
+              className="px-4 py-1.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs border border-red-700"
+              style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
             >
               Chiudi
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
