@@ -1076,6 +1076,7 @@ const AppContent: React.FC = () => {
           {activeTab === 'calendar' && (
             <CalendarDashboardView onNavigateToTurni={() => setActiveTab('turni')} />
           )}
+          {activeTab === 'turni' && <ShiftsView />}
           {activeTab === 'allievi' && <AllieviView />}
           {canSeeTeachersReport && activeTab === 'teachers' && (
             <TeachersReportView
