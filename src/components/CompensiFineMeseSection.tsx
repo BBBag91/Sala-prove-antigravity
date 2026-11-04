@@ -447,16 +447,16 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
       </div>
 
       {/* ── Risultati & Compensi Calcolati in Automatico ── */}
-      <div className="space-y-4 pt-2">
+      <div className="space-y-3.5 pt-2">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
             <Calculator className="w-4 h-4 text-blue-600 dark:text-yellow-400" />
-            Risultati & Compensi Spettanti
+            Risultati &amp; Compensi Spettanti
           </h4>
         </div>
 
-        {/* 1. Quadri di Sintesi Studio + Calcolatrice Rapida Incastrata */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 items-stretch">
+        {/* 1. Riga Superiore: 3 Quadri Principali (Totale Rilevato, Avanzo Netto, Netto Sala) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {/* Card Totale Rilevato */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Totale Rilevato</span>
@@ -476,96 +476,107 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
             <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-amber-400">Netto Sala</span>
             <p className="text-2xl font-bold font-mono text-blue-900 dark:text-sky-300">{formatCurrency(output.B13)}</p>
           </div>
-
-          {/* Card Residuo: Quote Tessere */}
-          <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-[#141414] border border-indigo-200 dark:border-yellow-500/30 space-y-1 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-amber-400">Residuo (Tessere)</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border dark:border-yellow-500/35">
-                Fondo Sala
-              </span>
-            </div>
-            <p className="text-2xl font-bold font-mono text-indigo-900 dark:text-yellow-200">{formatCurrency(output.residuoQuoteTessere)}</p>
-          </div>
-
-          {/* Card Bilancio Tot Sala */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-blue-100/90 to-indigo-100/70 dark:from-[#1c190d] dark:to-[#121212] dark:bg-[#16140c] border border-blue-300 dark:border-yellow-500/45 space-y-1 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900 dark:text-yellow-400">Bilancio Tot Sala</span>
-            </div>
-            <p className="text-2xl font-bold font-mono text-blue-950 dark:text-yellow-300">{formatCurrency(output.bilancioTotSalaMese)}</p>
-          </div>
-
-          {/* Card 6: Mini Calcolatrice Rapida Incastrata nello spazio vuoto accanto */}
-          <MiniStudioCalculator />
         </div>
 
-        {/* 2. Compensi Netti Soci (Gab, Ale, Paolo) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
-          {/* Card Gab */}
-          <div className="p-4.5 rounded-xl bg-gradient-to-br from-emerald-50/90 to-emerald-100/50 dark:from-[#0c2118] dark:to-[#111614] dark:bg-[#0e1b15] border border-emerald-200 dark:border-emerald-500/40 space-y-2 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
-                  G
+        {/* 2. Sezione Inferiore Ottimizzata: Sinistra (Residuo, Bilancio + Compensi Ristretti) & Destra (Mini Calcolatrice) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
+          {/* Lato Sinistro (8/12 = 2/3): Residuo & Bilancio sopra, Compensi Gab/Ale/Paolo subito sotto nello spazio recuperato */}
+          <div className="lg:col-span-8 flex flex-col justify-between gap-3">
+            {/* Residuo Tessere & Bilancio Tot Sala compatti */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Card Residuo: Quote Tessere */}
+              <div className="p-3 sm:p-3.5 rounded-xl bg-indigo-50/70 dark:bg-[#141414] border border-indigo-200 dark:border-yellow-500/30 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-amber-400">Residuo (Tessere)</span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border dark:border-yellow-500/35">
+                    Fondo Sala
+                  </span>
                 </div>
-                <span className="text-xs font-extrabold uppercase text-emerald-950 dark:text-emerald-300">
-                  Compenso Gab
-                </span>
+                <p className="text-xl sm:text-2xl font-bold font-mono text-indigo-900 dark:text-yellow-200">{formatCurrency(output.residuoQuoteTessere)}</p>
               </div>
-              {G.G2 > 0 && (
-                <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-200/60 dark:bg-emerald-950 dark:border dark:border-emerald-500/40 px-2 py-0.5 rounded-full">
-                  Anticipo: -{G.G2}€
-                </span>
-              )}
+
+              {/* Card Bilancio Tot Sala */}
+              <div className="p-3 sm:p-3.5 rounded-xl bg-gradient-to-br from-blue-100/90 to-indigo-100/70 dark:from-[#1c190d] dark:to-[#121212] dark:bg-[#16140c] border border-blue-300 dark:border-yellow-500/45 space-y-1 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900 dark:text-yellow-400">Bilancio Tot Sala</span>
+                </div>
+                <p className="text-xl sm:text-2xl font-bold font-mono text-blue-950 dark:text-yellow-300">{formatCurrency(output.bilancioTotSalaMese)}</p>
+              </div>
             </div>
-            <p className="text-3xl font-extrabold font-mono text-emerald-950 dark:text-emerald-400">
-              {formatCurrency(output.B15)}
-            </p>
+
+            {/* Compensi Soci Ristretti (Gab, Ale, Paolo) incastrati perfettamente sotto lo spazio vuoto */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* Card Gab */}
+              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-50/90 to-emerald-100/50 dark:from-[#0c2118] dark:to-[#111614] dark:bg-[#0e1b15] border border-emerald-200 dark:border-emerald-500/40 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">
+                      G
+                    </div>
+                    <span className="text-xs font-bold uppercase text-emerald-950 dark:text-emerald-300">
+                      Gab
+                    </span>
+                  </div>
+                  {G.G2 > 0 && (
+                    <span className="text-[9px] font-mono text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-200/60 dark:bg-emerald-950 px-1.5 py-0.2 rounded-full">
+                      -{G.G2}€
+                    </span>
+                  )}
+                </div>
+                <p className="text-xl sm:text-2xl font-black font-mono text-emerald-950 dark:text-emerald-400">
+                  {formatCurrency(output.B15)}
+                </p>
+              </div>
+
+              {/* Card Ale */}
+              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-50/90 to-emerald-100/50 dark:from-[#0c2118] dark:to-[#111614] dark:bg-[#0e1b15] border border-emerald-200 dark:border-emerald-500/40 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">
+                      A
+                    </div>
+                    <span className="text-xs font-bold uppercase text-emerald-950 dark:text-emerald-300">
+                      Ale
+                    </span>
+                  </div>
+                  {G.G3 > 0 && (
+                    <span className="text-[9px] font-mono text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-200/60 dark:bg-emerald-950 px-1.5 py-0.2 rounded-full">
+                      -{G.G3}€
+                    </span>
+                  )}
+                </div>
+                <p className="text-xl sm:text-2xl font-black font-mono text-emerald-950 dark:text-emerald-400">
+                  {formatCurrency(output.B14)}
+                </p>
+              </div>
+
+              {/* Card Paolo */}
+              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-50/90 to-emerald-100/50 dark:from-[#0c2118] dark:to-[#111614] dark:bg-[#0e1b15] border border-emerald-200 dark:border-emerald-500/40 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">
+                      P
+                    </div>
+                    <span className="text-xs font-bold uppercase text-emerald-950 dark:text-emerald-300">
+                      Paolo
+                    </span>
+                  </div>
+                  {G.G4 > 0 && (
+                    <span className="text-[9px] font-mono text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-200/60 dark:bg-emerald-950 px-1.5 py-0.2 rounded-full">
+                      -{G.G4}€
+                    </span>
+                  )}
+                </div>
+                <p className="text-xl sm:text-2xl font-black font-mono text-emerald-950 dark:text-emerald-400">
+                  {formatCurrency(output.B16)}
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Card Ale */}
-          <div className="p-4.5 rounded-xl bg-gradient-to-br from-emerald-50/90 to-emerald-100/50 dark:from-[#0c2118] dark:to-[#111614] dark:bg-[#0e1b15] border border-emerald-200 dark:border-emerald-500/40 space-y-2 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
-                  A
-                </div>
-                <span className="text-xs font-extrabold uppercase text-emerald-950 dark:text-emerald-300">
-                  Compenso Ale
-                </span>
-              </div>
-              {G.G3 > 0 && (
-                <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-200/60 dark:bg-emerald-950 dark:border dark:border-emerald-500/40 px-2 py-0.5 rounded-full">
-                  Anticipo: -{G.G3}€
-                </span>
-              )}
-            </div>
-            <p className="text-3xl font-extrabold font-mono text-emerald-950 dark:text-emerald-400">
-              {formatCurrency(output.B14)}
-            </p>
-          </div>
-
-          {/* Card Paolo */}
-          <div className="p-4.5 rounded-xl bg-gradient-to-br from-emerald-50/90 to-emerald-100/50 dark:from-[#0c2118] dark:to-[#111614] dark:bg-[#0e1b15] border border-emerald-200 dark:border-emerald-500/40 space-y-2 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
-                  P
-                </div>
-                <span className="text-xs font-extrabold uppercase text-emerald-950 dark:text-emerald-300">
-                  Compenso Paolo
-                </span>
-              </div>
-              {G.G4 > 0 && (
-                <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-200/60 dark:bg-emerald-950 dark:border dark:border-emerald-500/40 px-2 py-0.5 rounded-full">
-                  Anticipo: -{G.G4}€
-                </span>
-              )}
-            </div>
-            <p className="text-3xl font-extrabold font-mono text-emerald-950 dark:text-emerald-400">
-              {formatCurrency(output.B16)}
-            </p>
+          {/* Lato Destro (4/12 = 1/3, esattamente sotto Netto Sala): Mini Calcolatrice */}
+          <div className="lg:col-span-4 flex flex-col">
+            <MiniStudioCalculator />
           </div>
         </div>
       </div>
