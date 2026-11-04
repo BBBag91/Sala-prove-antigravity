@@ -1022,8 +1022,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
-            style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+            className="modal-close-btn modal-close-btn-red shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white transition-all cursor-pointer border border-red-700 shadow-md shadow-red-600/25"
+            style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
             title="Chiudi"
             aria-label="Chiudi finestra"
           >
@@ -1131,10 +1131,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     type="submit"
                     disabled={isActionBlocked || isSubmitting}
                     className={`w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 shrink-0 whitespace-nowrap ${isOtherTeacherLesson
-                        ? 'bg-slate-400 dark:bg-neutral-700 text-white cursor-not-allowed opacity-80'
-                        : isActionBlocked
-                          ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
+                      ? 'bg-slate-400 dark:bg-neutral-700 text-white cursor-not-allowed opacity-80'
+                      : isActionBlocked
+                        ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
                       }`}
                     title={
                       isOtherTeacherLesson
@@ -1286,8 +1286,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="button"
                   onClick={() => handleSelectTipo('prove')}
                   className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-semibold transition-all cursor-pointer ${tipo === 'prove'
-                      ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                 >
                   <Music2 className="w-4 h-4 text-indigo-600 shrink-0" />
@@ -1297,8 +1297,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="button"
                   onClick={() => handleSelectTipo('lezione')}
                   className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-semibold transition-all cursor-pointer ${tipo === 'lezione'
-                      ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                 >
                   <GraduationCap className="w-4 h-4 text-indigo-600 shrink-0" />
@@ -1439,8 +1439,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   {data && oraInizio && oraFine && (
                     <span
                       className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${availableRooms.length > 0
-                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                          : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                        : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                         }`}
                     >
                       {availableRooms.length} su {rooms.length} {availableRooms.length === 1 ? 'libera' : 'libere'}
@@ -1553,8 +1553,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       {data && oraInizio && oraFine && (
                         <span
                           className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${availableTeachers.length > 0
-                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                              : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                            : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                             }`}
                         >
                           {availableTeachers.length} su {teacherCandidates.length} {availableTeachers.length === 1 ? 'disponibile' : 'disponibili'}
@@ -1565,8 +1565,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       value={insegnanteId}
                       onChange={(e) => setInsegnanteId(e.target.value)}
                       className={`w-full px-3.5 py-2.5 rounded-lg border text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all ${insegnanteId && overlappingBookingsByTeacher.has(insegnanteId)
-                          ? 'border-red-500 bg-red-50 text-red-900 ring-2 ring-red-400'
-                          : 'border-indigo-300 bg-white text-slate-800'
+                        ? 'border-red-500 bg-red-50 text-red-900 ring-2 ring-red-400'
+                        : 'border-indigo-300 bg-white text-slate-800'
                         }`}
                     >
                       <option value="">-- Seleziona insegnante ({availableTeachers.length} disponibili) --</option>
@@ -1639,8 +1639,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 value={data}
                 onChange={(e) => handleDateChange(e.target.value)}
                 className={`w-full px-3.5 py-2.5 rounded-lg border text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden ${isEventInPast
-                    ? 'border-amber-400 bg-amber-50/40 text-slate-800'
-                    : 'border-slate-300 bg-white text-slate-800'
+                  ? 'border-amber-400 bg-amber-50/40 text-slate-800'
+                  : 'border-slate-300 bg-white text-slate-800'
                   }`}
               />
             </div>
@@ -1761,8 +1761,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                               setRecurrenceConfig((prev) => ({ ...prev, giorniSettimana: newDays }));
                             }}
                             className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${sel
-                                ? 'bg-yellow-400 text-black font-extrabold ring-2 ring-yellow-300 scale-105'
-                                : 'bg-neutral-800 text-neutral-400 hover:text-yellow-300 hover:bg-neutral-700'
+                              ? 'bg-yellow-400 text-black font-extrabold ring-2 ring-yellow-300 scale-105'
+                              : 'bg-neutral-800 text-neutral-400 hover:text-yellow-300 hover:bg-neutral-700'
                               }`}
                           >
                             {d.label}
@@ -1796,11 +1796,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <button
                     type="button"
                     onClick={handleToggleAffittoPiatti}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 cursor-pointer border ${
-                      affittoPiatti
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 cursor-pointer border ${affittoPiatti
                         ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm scale-[1.02]'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-                    }`}
+                      }`}
                   >
                     {affittoPiatti ? (
                       <>
@@ -1993,10 +1992,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     type="submit"
                     disabled={isActionBlocked || isSubmitting}
                     className={`px-5 py-2 rounded-lg font-black text-sm shadow-md transition-all flex items-center gap-2 ${isOtherTeacherLesson
-                        ? 'bg-slate-400 dark:bg-neutral-700 text-white cursor-not-allowed opacity-80'
-                        : isActionBlocked
-                          ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
+                      ? 'bg-slate-400 dark:bg-neutral-700 text-white cursor-not-allowed opacity-80'
+                      : isActionBlocked
+                        ? 'bg-rose-500/80 text-white cursor-not-allowed opacity-90'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25 cursor-pointer active:scale-95'
                       }`}
                     title={
                       isOtherTeacherLesson

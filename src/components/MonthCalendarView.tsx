@@ -372,10 +372,10 @@ export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
         {/* Colonna Destra (5 col / 12 col): Dettaglio Giorno Selezionato & Gestione Eventi */}
         <div className="lg:col-span-5 xl:col-span-6 bg-white dark:bg-[#0c0c0c] rounded-2xl border border-slate-200 dark:border-yellow-500/25 p-4 sm:p-5 shadow-sm flex flex-col justify-between">
           <div className="space-y-4">
-            {/* Intestazione Giorno Selezionato con Bottone Aggiungi */}
-            <div className="flex items-start justify-between pb-3 border-b border-slate-200 dark:border-yellow-500/20 gap-2">
-              <div>
-                <div className="flex items-center gap-2">
+            {/* Intestazione Giorno Selezionato */}
+            <div className="flex flex-wrap items-start justify-between pb-3 border-b border-slate-200 dark:border-yellow-500/20 gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs uppercase font-extrabold tracking-wider text-blue-600 dark:text-yellow-400">
                     Giorno Selezionato
                   </span>
@@ -404,7 +404,7 @@ export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
               </div>
 
               {/* Azioni rapide per il giorno */}
-              <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
                 {onOpenReminderModal && (
                   <button
                     type="button"
@@ -425,19 +425,9 @@ export const MonthCalendarView: React.FC<MonthCalendarViewProps> = ({
                     title="Apri vista oraria dettagliata per questo giorno"
                   >
                     <Clock className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Vista 1G</span>
+                    <span>Vista 1G</span>
                   </button>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => onOpenNewBooking(selectedDateStr)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-300 text-white dark:text-black text-xs font-black shadow-md shadow-blue-500/25 dark:shadow-yellow-500/25 transition-all active:scale-95 cursor-pointer"
-                  title="Aggiungi prenotazione per questo giorno"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Aggiungi Evento</span>
-                </button>
               </div>
             </div>
 

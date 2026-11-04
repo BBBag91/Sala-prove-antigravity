@@ -900,10 +900,10 @@ export const AllieviView: React.FC = () => {
           <button
             type="button"
             onClick={() => window.print()}
-            className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 dark:bg-neutral-800 hover:bg-slate-800 dark:hover:bg-neutral-700 text-white border border-slate-800 dark:border-neutral-700 flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+            className="btn-print-action px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-800 dark:bg-neutral-800 hover:bg-blue-700 dark:hover:bg-neutral-700 text-white border border-blue-900 dark:border-neutral-700 flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
             title="Stampa foglio presenze e quote o Salva come PDF"
           >
-            <Printer className="w-4 h-4 text-slate-300" />
+            <Printer className="w-4 h-4 text-white" />
             <span>Stampa A4</span>
           </button>
 
@@ -1549,8 +1549,8 @@ export const AllieviView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsNewStudentModalOpen(false)}
-                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
-                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                className="modal-close-btn modal-close-btn-red shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white transition-all cursor-pointer border border-red-700 shadow-md shadow-red-600/25"
+                style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
                 title="Chiudi"
                 aria-label="Chiudi finestra"
               >

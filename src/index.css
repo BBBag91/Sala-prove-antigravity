@@ -471,14 +471,11 @@ html {
   }
 
   /* Superfici secondarie / card container / toolbar / navigazione calendario */
-  html.light .bg-neutral-900,
-  html.light [class*="bg-neutral-900"],
-  html.light .bg-neutral-850,
-  html.light [class*="bg-neutral-850"],
-  html.light .bg-neutral-800,
-  html.light [class*="bg-neutral-800"],
-  html.light [class*="bg-[#141414]"],
-  html.light [class*="bg-[#18181b]"],
+  html.light .bg-neutral-900:not(button),
+  html.light .bg-neutral-850:not(button),
+  html.light .bg-neutral-800:not(button),
+  html.light [class*="bg-[#141414]"]:not(button),
+  html.light [class*="bg-[#18181b]"]:not(button),
   html.light .bg-slate-50,
   html.light [class*="bg-slate-50"],
   html.light .bg-slate-100 {
@@ -490,9 +487,64 @@ html {
     background-color: #e2e8f0 !important;
   }
 
-  html.light .bg-slate-900 {
+  html.light div.bg-slate-900,
+  html.light section.bg-slate-900,
+  html.light header.bg-slate-900 {
     background-color: #eff6ff !important;
     border-color: rgba(37, 99, 235, 0.25) !important;
+  }
+
+  /* ── Pulsanti di Stampa / PDF / Resoconto: Sfondo Solido ad Alto Contrasto (Mai troppo chiaro) ── */
+  html.light button.bg-slate-900,
+  html.light button.bg-slate-800,
+  html.light button[title*="Stampa"],
+  html.light button[title*="stampa"],
+  html.light button[title*="PDF"],
+  html.light button[title*="Resoconto"],
+  html.light .btn-print-action,
+  html.dark button[title*="Stampa"],
+  html.dark button[title*="stampa"],
+  html.dark button[title*="PDF"],
+  html.dark button[title*="Resoconto"],
+  html.dark .btn-print-action {
+    background-color: #1e40af !important; /* Deep Navy Blue ad alto contrasto */
+    color: #ffffff !important;
+    border: 1px solid #1e3a8a !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.28) !important;
+  }
+
+  html.light button.bg-slate-900 *,
+  html.light button.bg-slate-800 *,
+  html.light button[title*="Stampa"] *,
+  html.light button[title*="stampa"] *,
+  html.light button[title*="PDF"] *,
+  html.light button[title*="Resoconto"] *,
+  html.light .btn-print-action *,
+  html.dark button[title*="Stampa"] *,
+  html.dark button[title*="stampa"] *,
+  html.dark button[title*="PDF"] *,
+  html.dark button[title*="Resoconto"] *,
+  html.dark .btn-print-action * {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+
+  html.light button.bg-slate-900:hover,
+  html.light button.bg-slate-800:hover,
+  html.light button[title*="Stampa"]:hover,
+  html.light button[title*="stampa"]:hover,
+  html.light button[title*="PDF"]:hover,
+  html.light button[title*="Resoconto"]:hover,
+  html.light .btn-print-action:hover,
+  html.dark button[title*="Stampa"]:hover,
+  html.dark button[title*="stampa"]:hover,
+  html.dark button[title*="PDF"]:hover,
+  html.dark button[title*="Resoconto"]:hover,
+  html.dark .btn-print-action:hover {
+    background-color: #1d4ed8 !important;
+    border-color: #1e40af !important;
+    color: #ffffff !important;
   }
 
   /* Modali, Dropdown e Cassetti Laterali in Bianco Pulito */
@@ -967,29 +1019,16 @@ html {
 }
 
 /* =========================================================================
-   RIQUADRI PULSANTI IN ALTO A DESTRA (SETTINGS & CHIUSURA X): SFONDO BLU REALE
+   RIQUADRI PULSANTI IN ALTO A DESTRA (SETTINGS BLU & CHIUSURA X SEMPRE ROSSA)
    ========================================================================= */
 .modal-header-btn-blue,
 button.modal-header-btn-blue,
-.modal-close-btn-blue,
-button.modal-close-btn-blue,
 html.light .modal-header-btn-blue,
 html.light button.modal-header-btn-blue,
-html.light .modal-close-btn-blue,
-html.light button.modal-close-btn-blue,
 html.dark .modal-header-btn-blue,
-html.dark button.modal-header-btn-blue,
-html.dark .modal-close-btn-blue,
-html.dark button.modal-close-btn-blue,
-button[title*="Chiudi"],
-button[title*="chiudi"],
-button[aria-label*="Chiudi"],
-button[aria-label*="chiudi"],
-button[aria-label*="Close"],
-button[aria-label*="close"],
-.modal-close-btn {
+html.dark button.modal-header-btn-blue {
   background: #2563eb !important;
-  background-color: #2563eb !important; /* Royal Blue brillante visibile su qualsiasi sfondo */
+  background-color: #2563eb !important;
   color: #ffffff !important;
   border: 1px solid #1d4ed8 !important;
   border-radius: 0.75rem !important;
@@ -1003,23 +1042,10 @@ button[aria-label*="close"],
 
 .modal-header-btn-blue svg,
 button.modal-header-btn-blue svg,
-.modal-close-btn-blue svg,
-button.modal-close-btn-blue svg,
 html.light .modal-header-btn-blue svg,
 html.light button.modal-header-btn-blue svg,
-html.light .modal-close-btn-blue svg,
-html.light button.modal-close-btn-blue svg,
 html.dark .modal-header-btn-blue svg,
-html.dark button.modal-header-btn-blue svg,
-html.dark .modal-close-btn-blue svg,
-html.dark button.modal-close-btn-blue svg,
-button[title*="Chiudi"] svg,
-button[title*="chiudi"] svg,
-button[aria-label*="Chiudi"] svg,
-button[aria-label*="chiudi"] svg,
-button[aria-label*="Close"] svg,
-button[aria-label*="close"] svg,
-.modal-close-btn svg {
+html.dark button.modal-header-btn-blue svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
   opacity: 1 !important;
@@ -1034,20 +1060,111 @@ html.light button.modal-header-btn-blue:hover {
   color: #ffffff !important;
 }
 
+/* TUTTI I PULSANTI DI CHIUSURA FINESTRA (X): SFONDO ROSSO UNIFORME CON ICONA BIANCA */
+.modal-close-btn,
+button.modal-close-btn,
+.modal-close-btn-blue,
+button.modal-close-btn-blue,
+.modal-close-btn-red,
+button.modal-close-btn-red,
+html.light .modal-close-btn,
+html.light button.modal-close-btn,
+html.light .modal-close-btn-blue,
+html.light button.modal-close-btn-blue,
+html.light .modal-close-btn-red,
+html.light button.modal-close-btn-red,
+html.dark .modal-close-btn,
+html.dark button.modal-close-btn,
+html.dark .modal-close-btn-blue,
+html.dark button.modal-close-btn-blue,
+html.dark .modal-close-btn-red,
+html.dark button.modal-close-btn-red,
+button[title*="Chiudi"],
+button[title*="chiudi"],
+button[aria-label*="Chiudi"],
+button[aria-label*="chiudi"],
+button[aria-label*="Close"],
+button[aria-label*="close"],
+html.light button[title*="Chiudi"],
+html.light button[title*="chiudi"],
+html.light button[aria-label*="Chiudi"],
+html.light button[aria-label*="chiudi"],
+html.light button[aria-label*="Close"],
+html.light button[aria-label*="close"],
+html.dark button[title*="Chiudi"],
+html.dark button[title*="chiudi"],
+html.dark button[aria-label*="Chiudi"],
+html.dark button[aria-label*="chiudi"],
+html.dark button[aria-label*="Close"],
+html.dark button[aria-label*="close"] {
+  background: #dc2626 !important;
+  background-color: #dc2626 !important; /* Rosso solido ad alto contrasto su tutte le finestre */
+  color: #ffffff !important;
+  border: 1px solid #b91c1c !important;
+  border-radius: 0.75rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 1 !important;
+  transition: all 0.15s ease-in-out !important;
+  box-shadow: 0 3px 10px rgba(220, 38, 38, 0.35) !important;
+}
+
+.modal-close-btn svg,
+button.modal-close-btn svg,
+.modal-close-btn-blue svg,
+button.modal-close-btn-blue svg,
+.modal-close-btn-red svg,
+button.modal-close-btn-red svg,
+html.light .modal-close-btn svg,
+html.light button.modal-close-btn svg,
+html.light .modal-close-btn-blue svg,
+html.light button.modal-close-btn-blue svg,
+html.dark .modal-close-btn svg,
+html.dark button.modal-close-btn svg,
+html.dark .modal-close-btn-blue svg,
+html.dark button.modal-close-btn-blue svg,
+button[title*="Chiudi"] svg,
+button[title*="chiudi"] svg,
+button[aria-label*="Chiudi"] svg,
+button[aria-label*="chiudi"] svg,
+button[aria-label*="Close"] svg,
+button[aria-label*="close"] svg,
+html.light button[title*="Chiudi"] svg,
+html.light button[title*="chiudi"] svg,
+html.light button[aria-label*="Chiudi"] svg,
+html.light button[aria-label*="chiudi"] svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.modal-close-btn:hover,
+button.modal-close-btn:hover,
 .modal-close-btn-blue:hover,
 button.modal-close-btn-blue:hover,
+.modal-close-btn-red:hover,
+button.modal-close-btn-red:hover,
+html.light .modal-close-btn:hover,
+html.light button.modal-close-btn:hover,
+html.light .modal-close-btn-blue:hover,
+html.light button.modal-close-btn-blue:hover,
+html.dark .modal-close-btn:hover,
+html.dark button.modal-close-btn:hover,
 button[title*="Chiudi"]:hover,
 button[title*="chiudi"]:hover,
 button[aria-label*="Chiudi"]:hover,
 button[aria-label*="chiudi"]:hover,
 button[aria-label*="Close"]:hover,
-button[aria-label*="close"]:hover,
-.modal-close-btn:hover {
-  background-color: #ef4444 !important; /* Rosso vivace su hover chiusura */
-  border-color: #dc2626 !important;
+button[aria-label*="close"]:hover {
+  background: #b91c1c !important;
+  background-color: #b91c1c !important; /* Rosso intenso su hover */
+  border-color: #991b1b !important;
   color: #ffffff !important;
 }
 
+.modal-close-btn:hover svg,
+button.modal-close-btn:hover svg,
 .modal-close-btn-blue:hover svg,
 button.modal-close-btn-blue:hover svg,
 button[title*="Chiudi"]:hover svg,
@@ -1055,8 +1172,7 @@ button[title*="chiudi"]:hover svg,
 button[aria-label*="Chiudi"]:hover svg,
 button[aria-label*="chiudi"]:hover svg,
 button[aria-label*="Close"]:hover svg,
-button[aria-label*="close"]:hover svg,
-.modal-close-btn:hover svg {
+button[aria-label*="close"]:hover svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
 }
@@ -1184,17 +1300,17 @@ html:not(.light) .theme-toggle-btn svg {
   stroke: #fde047 !important;
 }
 
-/* Pulsante di chiusura X nel drawer mobile sempre blu con icona bianca */
+/* Pulsante di chiusura X nel drawer mobile sempre rosso con icona bianca */
 .modal-close-btn-blue,
 button.modal-close-btn-blue,
 html.light .modal-close-btn-blue,
 html.light button.modal-close-btn-blue,
 html.dark .modal-close-btn-blue,
 html.dark button.modal-close-btn-blue {
-  background-color: #2563eb !important;
+  background-color: #dc2626 !important;
   color: #ffffff !important;
-  border: 1px solid #1d4ed8 !important;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+  border: 1px solid #b91c1c !important;
+  box-shadow: 0 3px 10px rgba(220, 38, 38, 0.35) !important;
 }
 
 .modal-close-btn-blue svg,

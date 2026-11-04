@@ -154,15 +154,16 @@ export const MonthlyFinanceReportModal: React.FC<MonthlyFinanceReportModalProps>
             </div>
           </div>
 
-          {/* TASTO CHIUDI CON SFONDO BLU */}
+          {/* TASTO CHIUDI CON SFONDO ROSSO */}
           <button
             type="button"
             onClick={onClose}
-            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 shadow-md shadow-blue-500/25"
+            className="modal-close-btn modal-close-btn-red shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white transition-all cursor-pointer border border-red-700 shadow-md shadow-red-600/25"
+            style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
             title="Chiudi"
             aria-label="Chiudi finestra"
           >
-            <X className="w-4 h-4 text-white" />
+            <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
           </button>
         </div>
 

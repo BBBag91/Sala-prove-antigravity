@@ -237,10 +237,12 @@ export const CalendarReminderModal: React.FC<CalendarReminderModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors cursor-pointer"
+            className="modal-close-btn modal-close-btn-red shrink-0 w-9 h-9 rounded-xl bg-red-600 hover:bg-red-700 border border-red-700 flex items-center justify-center text-white shadow-md transition-all cursor-pointer"
+            style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
             title="Chiudi"
+            aria-label="Chiudi finestra"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5 text-white stroke-[2.5]" style={{ color: '#ffffff', stroke: '#ffffff' }} />
           </button>
         </div>
 

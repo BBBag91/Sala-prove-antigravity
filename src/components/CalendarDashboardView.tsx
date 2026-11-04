@@ -1509,8 +1509,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <>
                 <button
                   onClick={() => setIsOperatorScheduleModalOpen(true)}
-                  className="flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-slate-800 hover:bg-slate-900 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-300 font-bold text-[11px] sm:text-xs rounded-lg border border-slate-700 dark:border-yellow-500/30 transition-all whitespace-nowrap shadow-2xs"
-                  title="PDF Operatori"
+                  className="btn-print-action flex items-center gap-1 h-6.5 sm:h-7 px-2 sm:px-2.5 bg-blue-800 hover:bg-blue-700 text-white dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-300 font-bold text-[11px] sm:text-xs rounded-lg border border-blue-900 dark:border-yellow-500/30 transition-all whitespace-nowrap shadow-2xs cursor-pointer"
+                  title="Stampa PDF Operatori"
                 >
                   <Printer className="w-3 h-3 text-white dark:text-yellow-400" />
                   <span className="hidden sm:inline">PDF</span>
@@ -2982,8 +2982,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveBookingDetail(null)}
-                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
-                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                className="modal-close-btn modal-close-btn-red shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white transition-all cursor-pointer border border-red-700 shadow-md shadow-red-600/25"
+                style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
                 title="Chiudi"
                 aria-label="Chiudi finestra"
               >
@@ -3290,8 +3290,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsShiftsPanelOpen(false)}
-                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
-                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                className="modal-close-btn modal-close-btn-red shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white transition-all cursor-pointer border border-red-700 shadow-md shadow-red-600/25"
+                style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
                 title="Chiudi"
                 aria-label="Chiudi finestra"
               >
@@ -3323,8 +3323,8 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsQuickDatePickerOpen(false)}
-                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
-                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                className="modal-close-btn modal-close-btn-red shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white transition-all cursor-pointer border border-red-700 shadow-md shadow-red-600/25"
+                style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
                 title="Chiudi"
                 aria-label="Chiudi finestra"
               >

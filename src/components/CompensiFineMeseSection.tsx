@@ -236,20 +236,24 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
         </div>
       </div>
 
-      {/* ── Input Grid (2 Colonne: Totale Entrate Mese a sinistra, Quote e Anticipi G a destra) ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* ── Input Grid Bilanciata (2 Colonne omogenee senza spazi vuoti: Sinistra = Totale Rilevato + Quote Soci, Destra = Conta Banconote & Spicci) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
         
-        {/* Blocco 1: Totale Entrate Mese (B2) & Riepilogo Costi */}
-        <div className="p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5 flex flex-col justify-between">
-          <div>
+        {/* Colonna Sinistra: Totale Rilevato (B2), Riepilogo Costi & Quote e Anticipi Soci */}
+        <div className="p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-4">
+          {/* Parte 1: Totale Rilevato */}
+          <div className="space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                 Totale Rilevato
               </span>
+              <span className="text-[11px] font-semibold text-slate-500">
+                Registrate: <strong className="font-mono text-slate-700">{formatCurrency(totalIncomes)}</strong>
+              </span>
             </div>
 
-            <div className="space-y-2 pt-2">
+            <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-slate-700">
                 Importo Totale Rilevato:
               </label>
@@ -265,134 +269,27 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                     setIsManualEntrate(true);
                     setTotaleEntrateMese(val);
                   }}
-                  className="w-full pl-7 pr-3 py-2.5 text-base font-mono font-bold rounded-xl border border-slate-300 bg-white text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-right shadow-2xs"
+                  className="w-full pl-7 pr-3 py-2 text-base font-mono font-bold rounded-xl border border-slate-300 bg-white text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-right shadow-2xs"
                 />
               </div>
-              <p className="text-[11px] text-slate-500">
-                Precompilato automaticamente con le entrate registrate ({formatCurrency(totalIncomes)}).
-              </p>
-            </div>
-
-            {/* ── Mini Tabella Compatta Conteggio Banconote & Spicci -> alimenta B2 ── */}
-            <div className="mt-3 pt-2.5 border-t border-slate-200/80 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1">
-                  <Banknote className="w-3.5 h-3.5 text-emerald-600" />
-                  Conta Banconote & Spicci
-                </span>
-                {(cash.b5 > 0 || cash.b10 > 0 || cash.b20 > 0 || cash.b50 > 0 || cash.b100 > 0 || cash.spicci > 0) && (
-                  <button
-                    type="button"
-                    onClick={handleClearCash}
-                    className="text-[10px] font-semibold text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
-                  >
-                    Azzera pezzi
-                  </button>
-                )}
-              </div>
-
-              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                <table className="w-full text-[11px] border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100/80 text-slate-500 font-bold border-b border-slate-200">
-                      <th className="py-1 px-2 text-left">Taglio</th>
-                      <th className="py-1 px-2 text-center">N. Pezzi</th>
-                      <th className="py-1 px-2 text-right">Totale</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {(
-                      [
-                        { key: 'b5', label: '5 €', val: 5 },
-                        { key: 'b10', label: '10 €', val: 10 },
-                        { key: 'b20', label: '20 €', val: 20 },
-                        { key: 'b50', label: '50 €', val: 50 },
-                        { key: 'b100', label: '100 €', val: 100 },
-                      ] as const
-                    ).map((row) => {
-                      const count = cash[row.key] || 0;
-                      const sub = count * row.val;
-                      return (
-                        <tr key={row.key} className="hover:bg-slate-50/70">
-                          <td className="py-1 px-2 font-mono font-bold text-slate-700">{row.label}</td>
-                          <td className="py-1 px-2 text-center">
-                            <input
-                              type="number"
-                              min={0}
-                              step={1}
-                              value={count === 0 ? '' : count}
-                              placeholder="0"
-                              onChange={(e) => {
-                                const v = parseInt(e.target.value, 10);
-                                updateCashField(row.key, Number.isNaN(v) ? 0 : v);
-                              }}
-                              className="w-16 px-1.5 py-0.5 text-center font-mono font-bold text-xs rounded border border-slate-300 bg-slate-50 focus:bg-white text-slate-900 focus:border-emerald-500 outline-none"
-                            />
-                          </td>
-                          <td className="py-1 px-2 text-right font-mono font-semibold text-slate-800">
-                            {formatCurrency(sub)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {/* Riga Spicci */}
-                    <tr className="bg-amber-50/40">
-                      <td className="py-1 px-2 font-bold text-amber-900">Spicci (€)</td>
-                      <td className="py-1 px-2 text-center">
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={cash.spicci === 0 ? '' : cash.spicci}
-                          placeholder="0,00"
-                          onChange={(e) => {
-                            const v = parseFloat(e.target.value);
-                            updateCashField('spicci', Number.isNaN(v) ? 0 : v);
-                          }}
-                          className="w-16 px-1.5 py-0.5 text-center font-mono font-bold text-xs rounded border border-amber-300 bg-white text-slate-900 focus:border-amber-500 outline-none"
-                        />
-                      </td>
-                      <td className="py-1 px-2 text-right font-mono font-semibold text-amber-900">
-                        {formatCurrency(cash.spicci || 0)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-200 space-y-2 text-xs">
-            <div className="flex justify-between text-slate-500">
-              <span>Totale Spese Mese:</span>
-              <strong className="font-mono text-rose-700">-{formatCurrency(totalExpenses)}</strong>
+          {/* Parte 2: Quote e Anticipi Soci (Gab, Ale, Paolo) integrata nella colonna sinistra per eliminare spazi vuoti */}
+          <div className="pt-3 border-t border-slate-200 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-blue-600" />
+                Quote e Anticipi Soci
+              </span>
             </div>
-            <div className="flex justify-between text-slate-700 font-semibold border-t border-slate-200/80 pt-1.5">
-              <span>Avanzo Netto Studio:</span>
-              <strong className={`font-mono text-sm ${output.E2 >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                {formatCurrency(output.E2)}
-              </strong>
-            </div>
-          </div>
-        </div>
 
-        {/* Blocco 2: Quote e Anticipi Soci (Gab, Ale, Paolo) */}
-        <div className="p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-blue-600" />
-              Quote e Anticipi Soci
-            </span>
-          </div>
-
-          <div className="space-y-2.5">
-            {/* Gab */}
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <label className="font-semibold text-slate-700 w-24">
-                Gab:
-              </label>
-              <div className="relative flex-1">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">€</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* Gab */}
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
+                <label className="block text-[11px] font-bold text-slate-700">
+                  Gab (€):
+                </label>
                 <input
                   type="number"
                   step="any"
@@ -402,18 +299,15 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                     const val = parseFloat(e.target.value) || 0;
                     setG((prev) => ({ ...prev, G2: val }));
                   }}
-                  className="w-full pl-6 pr-2.5 py-1.5 text-xs font-mono font-bold rounded-lg border border-slate-300 bg-white text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-right"
+                  className="w-full px-2 py-1 text-xs font-mono font-bold rounded border border-slate-300 bg-slate-50 focus:bg-white text-slate-900 focus:border-blue-500 outline-none transition-all text-right"
                 />
               </div>
-            </div>
 
-            {/* Ale */}
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <label className="font-semibold text-slate-700 w-24">
-                Ale:
-              </label>
-              <div className="relative flex-1">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">€</span>
+              {/* Ale */}
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
+                <label className="block text-[11px] font-bold text-slate-700">
+                  Ale (€):
+                </label>
                 <input
                   type="number"
                   step="any"
@@ -423,18 +317,15 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                     const val = parseFloat(e.target.value) || 0;
                     setG((prev) => ({ ...prev, G3: val }));
                   }}
-                  className="w-full pl-6 pr-2.5 py-1.5 text-xs font-mono font-bold rounded-lg border border-slate-300 bg-white text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-right"
+                  className="w-full px-2 py-1 text-xs font-mono font-bold rounded border border-slate-300 bg-slate-50 focus:bg-white text-slate-900 focus:border-blue-500 outline-none transition-all text-right"
                 />
               </div>
-            </div>
 
-            {/* Paolo */}
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <label className="font-semibold text-slate-700 w-24">
-                Paolo:
-              </label>
-              <div className="relative flex-1">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">€</span>
+              {/* Paolo */}
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
+                <label className="block text-[11px] font-bold text-slate-700">
+                  Paolo (€):
+                </label>
                 <input
                   type="number"
                   step="any"
@@ -444,10 +335,112 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
                     const val = parseFloat(e.target.value) || 0;
                     setG((prev) => ({ ...prev, G4: val }));
                   }}
-                  className="w-full pl-6 pr-2.5 py-1.5 text-xs font-mono font-bold rounded-lg border border-slate-300 bg-white text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-right"
+                  className="w-full px-2 py-1 text-xs font-mono font-bold rounded border border-slate-300 bg-slate-50 focus:bg-white text-slate-900 focus:border-blue-500 outline-none transition-all text-right"
                 />
               </div>
             </div>
+          </div>
+
+          {/* Parte 3: Riepilogo Spese & Avanzo Netto */}
+          <div className="pt-3 border-t border-slate-200 grid grid-cols-2 gap-3 text-xs">
+            <div className="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between">
+              <span className="text-slate-500 font-medium">Spese Mese:</span>
+              <strong className="font-mono text-rose-700">-{formatCurrency(totalExpenses)}</strong>
+            </div>
+            <div className="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between">
+              <span className="text-slate-700 font-semibold">Avanzo Netto:</span>
+              <strong className={`font-mono text-sm ${output.E2 >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                {formatCurrency(output.E2)}
+              </strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Colonna Destra: Conta Banconote & Spicci */}
+        <div className="p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+              Conta Banconote &amp; Spicci
+            </span>
+            {(cash.b5 > 0 || cash.b10 > 0 || cash.b20 > 0 || cash.b50 > 0 || cash.b100 > 0 || cash.spicci > 0) && (
+              <button
+                type="button"
+                onClick={handleClearCash}
+                className="text-[11px] font-bold text-rose-600 hover:text-rose-700 transition-colors cursor-pointer"
+              >
+                Azzera pezzi
+              </button>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1 flex flex-col justify-center">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-100/80 text-slate-600 font-bold border-b border-slate-200">
+                  <th className="py-1.5 px-3 text-left">Taglio</th>
+                  <th className="py-1.5 px-3 text-center">N. Pezzi</th>
+                  <th className="py-1.5 px-3 text-right">Totale</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {(
+                  [
+                    { key: 'b5', label: '5 €', val: 5 },
+                    { key: 'b10', label: '10 €', val: 10 },
+                    { key: 'b20', label: '20 €', val: 20 },
+                    { key: 'b50', label: '50 €', val: 50 },
+                    { key: 'b100', label: '100 €', val: 100 },
+                  ] as const
+                ).map((row) => {
+                  const count = cash[row.key] || 0;
+                  const sub = count * row.val;
+                  return (
+                    <tr key={row.key} className="hover:bg-slate-50/70">
+                      <td className="py-1.5 px-3 font-mono font-bold text-slate-700">{row.label}</td>
+                      <td className="py-1.5 px-3 text-center">
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={count === 0 ? '' : count}
+                          placeholder="0"
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value, 10);
+                            updateCashField(row.key, Number.isNaN(v) ? 0 : v);
+                          }}
+                          className="w-20 px-2 py-1 text-center font-mono font-bold text-xs rounded-lg border border-slate-300 bg-slate-50 focus:bg-white text-slate-900 focus:border-emerald-500 outline-none"
+                        />
+                      </td>
+                      <td className="py-1.5 px-3 text-right font-mono font-semibold text-slate-800">
+                        {formatCurrency(sub)}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {/* Riga Spicci */}
+                <tr className="bg-amber-50/40">
+                  <td className="py-1.5 px-3 font-bold text-amber-900">Spicci (€)</td>
+                  <td className="py-1.5 px-3 text-center">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={cash.spicci === 0 ? '' : cash.spicci}
+                      placeholder="0,00"
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        updateCashField('spicci', Number.isNaN(v) ? 0 : v);
+                      }}
+                      className="w-20 px-2 py-1 text-center font-mono font-bold text-xs rounded-lg border border-amber-300 bg-white text-slate-900 focus:border-amber-500 outline-none"
+                    />
+                  </td>
+                  <td className="py-1.5 px-3 text-right font-mono font-semibold text-amber-900">
+                    {formatCurrency(cash.spicci || 0)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

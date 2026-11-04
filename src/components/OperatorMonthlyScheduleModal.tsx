@@ -511,8 +511,8 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
           <button
             type="button"
             onClick={onClose}
-            className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
-            style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+            className="modal-close-btn modal-close-btn-red shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white transition-all cursor-pointer border border-red-700 shadow-md shadow-red-600/25"
+            style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
             title="Chiudi"
             aria-label="Chiudi finestra"
           >
@@ -799,8 +799,8 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
                   <button
                     type="button"
                     onClick={() => setActiveDateStr(null)}
-                    className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25 ml-1"
-                    style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                    className="modal-close-btn modal-close-btn-red shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white transition-all cursor-pointer border border-red-700 shadow-md shadow-red-600/25 ml-1"
+                    style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
                     title="Chiudi editor giorno"
                     aria-label="Chiudi editor giorno"
                   >
@@ -1076,8 +1076,8 @@ export const OperatorMonthlyScheduleModal: React.FC<OperatorMonthlyScheduleModal
                 <button
                   type="button"
                   onClick={() => setShowVacationRangeModal(false)}
-                  className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
-                  style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                  className="modal-close-btn modal-close-btn-red shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white transition-all cursor-pointer border border-red-700 shadow-md shadow-red-600/25"
+                  style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
                   title="Chiudi"
                   aria-label="Chiudi finestra"
                 >

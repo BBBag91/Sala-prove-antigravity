@@ -783,10 +783,10 @@ const AppContent: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="modal-header-btn-blue modal-close-btn-blue shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 hover:bg-red-600 active:scale-95 text-white transition-all cursor-pointer border border-blue-500 hover:border-red-500 shadow-md shadow-blue-500/25"
+                className="modal-close-btn modal-close-btn-red shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white transition-all cursor-pointer border border-red-700 shadow-md shadow-red-600/25"
                 aria-label="Chiudi menu"
                 title="Chiudi menu"
-                style={{ backgroundColor: '#2563eb', color: '#ffffff', borderColor: '#1d4ed8' }}
+                style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
               >
                 <X className="w-5 h-5 text-white stroke-[2.5]" style={{ stroke: '#ffffff', color: '#ffffff' }} />
               </button>
@@ -1071,7 +1071,7 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Main Container (pb-24 on mobile ensures bottom navigation doesn't overlap content) */}
-      <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-6 pb-24 md:pb-6 flex-1 w-full print:p-0 print:m-0 print:max-w-none print:w-full">
+      <main className="max-w-[1600px] mx-auto px-2.5 sm:px-5 lg:px-6 py-3 sm:py-5 pb-24 md:pb-6 flex-1 w-full print:p-0 print:m-0 print:max-w-none print:w-full">
         <Suspense fallback={<ViewLoadingFallback />}>
           {activeTab === 'calendar' && (
             <CalendarDashboardView onNavigateToTurni={() => setActiveTab('turni')} />
