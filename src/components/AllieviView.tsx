@@ -79,13 +79,17 @@ export const AllieviView: React.FC = () => {
     setCurrentDate(new Date(2026, 9, 1));
   };
 
-  // Profilo docente loggato (se l'utente corrente è un singolo insegnante)
+  // Profilo Gabriele Piva / Admin può selezionare qualsiasi docente ma parte di default sui propri allievi ('staff-1')
+  const isGabrieleOrAdmin = isAdmin || user?.staffId === 'staff-1';
+  const isSingleTeacherLocked = isTeacher && !isGabrieleOrAdmin && Boolean(user?.staffId);
+
+  // Profilo docente loggato (se l'utente corrente è un singolo insegnante bloccato)
   const currentLoggedInTeacher = useMemo(() => {
-    if (isTeacher && !isAdmin && user?.staffId) {
+    if (isSingleTeacherLocked && user?.staffId) {
       return staff.find((s) => s.id === user.staffId) || null;
     }
     return null;
-  }, [isTeacher, isAdmin, user, staff]);
+  }, [isSingleTeacherLocked, user, staff]);
 
   // Filtri e visualizzazione (default 'table' per layout Excel-like richiesto)
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,18 +97,19 @@ export const AllieviView: React.FC = () => {
     if (isTeacher && !isAdmin && user?.staffId) {
       return user.staffId;
     }
-    return 'all';
+    // Nel profilo Gabriele Piva / Admin, mostra di default i suoi allievi ('staff-1') lasciando la scelta libera
+    return 'staff-1';
   });
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<'all' | 'pagato' | 'da_saldare'>('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   useEffect(() => {
-    if (isTeacher && !isAdmin && user?.staffId) {
+    if (isSingleTeacherLocked && user?.staffId) {
       setSelectedTeacherId(user.staffId);
     }
-  }, [isTeacher, isAdmin, user]);
+  }, [isSingleTeacherLocked, user]);
 
-  const activeTeacherFilter = (isTeacher && !isAdmin && user?.staffId) ? user.staffId : selectedTeacherId;
+  const activeTeacherFilter = (isSingleTeacherLocked && user?.staffId) ? user.staffId : selectedTeacherId;
 
   // Modal Dettaglio Allievo
   const [selectedStudent, setSelectedStudent] = useState<Client | null>(null);
@@ -619,39 +624,39 @@ export const AllieviView: React.FC = () => {
 
       return true;
     });
-  }, [activeStudentsForMonth, searchTerm, selectedTeacherId, paymentStatusFilter, teachersList]);
+  }, [activeStudentsForMonth, searchTerm, activeTeacherFilter, paymentStatusFilter, teachersList, staff]);
 
-  // KPI totali del mese
-  const totalStudentsInMonth = activeStudentsForMonth.length;
+  // KPI totali del mese (basati sul docente selezionato / filtri attivi)
+  const totalStudentsInMonth = filteredStudents.length;
   const filteredCount = filteredStudents.length;
 
   const totalMonthlyCompletedHours = useMemo(() => {
-    return activeStudentsForMonth.reduce((sum, item) => sum + item.completedOre, 0);
-  }, [activeStudentsForMonth]);
+    return filteredStudents.reduce((sum, item) => sum + item.completedOre, 0);
+  }, [filteredStudents]);
 
   const totalMonthlyCompletedLessonsCount = useMemo(() => {
-    return activeStudentsForMonth.reduce((sum, item) => sum + item.completedLessons.length, 0);
-  }, [activeStudentsForMonth]);
+    return filteredStudents.reduce((sum, item) => sum + item.completedLessons.length, 0);
+  }, [filteredStudents]);
 
   const paidStudentsCount = useMemo(() => {
-    return activeStudentsForMonth.filter((item) => item.isPaid).length;
-  }, [activeStudentsForMonth]);
+    return filteredStudents.filter((item) => item.isPaid).length;
+  }, [filteredStudents]);
 
   const unpaidStudentsCount = useMemo(() => {
-    return activeStudentsForMonth.filter((item) => !item.isPaid).length;
-  }, [activeStudentsForMonth]);
+    return filteredStudents.filter((item) => !item.isPaid).length;
+  }, [filteredStudents]);
 
   const totalCollectedEuros = useMemo(() => {
-    return activeStudentsForMonth
+    return filteredStudents
       .filter((item) => item.isPaid)
       .reduce((sum, item) => sum + (item.importo || 0), 0);
-  }, [activeStudentsForMonth]);
+  }, [filteredStudents]);
 
   const totalPendingEuros = useMemo(() => {
-    return activeStudentsForMonth
+    return filteredStudents
       .filter((item) => !item.isPaid)
       .reduce((sum, item) => sum + (item.importo || 0), 0);
-  }, [activeStudentsForMonth]);
+  }, [filteredStudents]);
 
   // Apertura modal dettaglio allievo
   const handleOpenDetail = (st: Client) => {
@@ -1029,8 +1034,8 @@ export const AllieviView: React.FC = () => {
 
         {/* Filtri */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Filtro Docente: se profilo insegnante singolo, bloccato sul proprio profilo; se admin, scelta libera */}
-          {isTeacher && !isAdmin && user?.staffId ? (
+          {/* Filtro Docente: se profilo insegnante singolo (non Gabriele Piva / Admin), bloccato sul proprio profilo; per Gabriele Piva / Admin parte dai propri allievi con scelta libera */}
+          {isSingleTeacherLocked && user ? (
             <div className="flex items-center gap-1.5 bg-amber-500/10 dark:bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-500/30">
               <GraduationCap className="w-3.5 h-3.5 text-amber-500" />
               <span className="text-slate-900 dark:text-neutral-200 text-xs font-bold">

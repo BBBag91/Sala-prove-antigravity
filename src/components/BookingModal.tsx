@@ -76,7 +76,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return '';
   });
   const [isRecurringDeleteOpen, setIsRecurringDeleteOpen] = useState(false);
-  const [salaId, setSalaId] = useState(() => bookingToEdit?.salaId || initialRoomId || (rooms.length > 0 ? rooms[0].id : ''));
+  const [salaId, setSalaId] = useState(() => bookingToEdit?.salaId || initialRoomId || '');
   const [tipo, setTipo] = useState<BookingType>(() => {
     if (bookingToEdit?.tipo) return bookingToEdit.tipo;
     if (initialType) return initialType;
@@ -228,7 +228,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       const dIndex = parseISODate(defaultDate).getDay();
       const hInfo = getHolidayOrSundayInfo(defaultDate);
       const defaultTipo = initialType || (isAutoTeacher || hInfo.isHolidayOrSunday ? 'lezione' : 'prove');
-      const defaultRoom = initialRoomId || (rooms.length > 0 ? rooms[0].id : '');
+      const defaultRoom = initialRoomId || '';
       setIsManualClient(true);
       setManualClientName('');
       setClienteId('');
@@ -1285,24 +1285,36 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSelectTipo('prove')}
-                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-semibold transition-all cursor-pointer ${tipo === 'prove'
-                    ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  aria-pressed={tipo === 'prove'}
+                  className={`relative flex items-center justify-center gap-2 py-3 px-3.5 rounded-xl text-sm transition-all cursor-pointer ${tipo === 'prove'
+                    ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-slate-950 border-2 border-blue-700 dark:border-yellow-300 ring-3 ring-blue-500/30 dark:ring-yellow-400/35 font-black shadow-md scale-[1.01]'
+                    : 'bg-slate-100/80 dark:bg-neutral-900/80 border border-slate-300 dark:border-neutral-700 text-slate-600 dark:text-neutral-400 font-semibold opacity-75 hover:opacity-100 hover:bg-slate-200/70 dark:hover:bg-neutral-800'
                     }`}
                 >
-                  <Music2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <Music2 className={`w-4 h-4 shrink-0 ${tipo === 'prove' ? 'text-white dark:text-slate-950 stroke-[2.5]' : 'text-slate-500 dark:text-neutral-400'}`} />
                   <span className="truncate">Prove Musicali</span>
+                  {tipo === 'prove' && (
+                    <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-white text-blue-700 dark:bg-slate-950 dark:text-yellow-400 shadow-2xs shrink-0">
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSelectTipo('lezione')}
-                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-semibold transition-all cursor-pointer ${tipo === 'lezione'
-                    ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  aria-pressed={tipo === 'lezione'}
+                  className={`relative flex items-center justify-center gap-2 py-3 px-3.5 rounded-xl text-sm transition-all cursor-pointer ${tipo === 'lezione'
+                    ? 'bg-blue-600 dark:bg-yellow-400 text-white dark:text-slate-950 border-2 border-blue-700 dark:border-yellow-300 ring-3 ring-blue-500/30 dark:ring-yellow-400/35 font-black shadow-md scale-[1.01]'
+                    : 'bg-slate-100/80 dark:bg-neutral-900/80 border border-slate-300 dark:border-neutral-700 text-slate-600 dark:text-neutral-400 font-semibold opacity-75 hover:opacity-100 hover:bg-slate-200/70 dark:hover:bg-neutral-800'
                     }`}
                 >
-                  <GraduationCap className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <GraduationCap className={`w-4 h-4 shrink-0 ${tipo === 'lezione' ? 'text-white dark:text-slate-950 stroke-[2.5]' : 'text-slate-500 dark:text-neutral-400'}`} />
                   <span className="truncate">Lezione (5€/h Sala)</span>
+                  {tipo === 'lezione' && (
+                    <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-white text-blue-700 dark:bg-slate-950 dark:text-yellow-400 shadow-2xs shrink-0">
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    </span>
+                  )}
                 </button>
                 {!bookingToEdit && onSwitchToReminder && (
                   <button
@@ -1311,7 +1323,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       onClose();
                       onSwitchToReminder(data, oraInizio);
                     }}
-                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border-2 border-dashed border-fuchsia-500 bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-900 dark:text-fuchsia-200 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/50 text-sm font-black transition-all cursor-pointer shadow-xs"
+                    className="flex items-center justify-center gap-2 py-3 px-3.5 rounded-xl border-2 border-dashed border-fuchsia-500 bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-900 dark:text-fuchsia-200 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/50 text-sm font-black transition-all cursor-pointer shadow-xs"
                     title="Crea un promemoria o riunione sulla griglia oraria senza addebitare l'ora alla sala"
                   >
                     <span className="text-base leading-none shrink-0">📌</span>

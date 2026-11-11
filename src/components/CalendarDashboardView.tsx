@@ -710,7 +710,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
     setSelectedDateForBooking(dateStr);
     setSelectedStartTimeForBooking(startHourStr);
-    setSelectedRoomForBooking(selectedRoomFilter !== 'all' ? selectedRoomFilter : (rooms[0]?.id || ''));
+    setSelectedRoomForBooking('');
     setSelectedTypeForBooking(preferLesson ? 'lezione' : undefined);
     setBookingToEdit(null);
     setIsBookingModalOpen(true);
@@ -1276,6 +1276,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                   onOpenNewBooking={(dateStr) => {
                     setSelectedDateForBooking(dateStr);
                     setSelectedStartTimeForBooking('18:00');
+                    setSelectedRoomForBooking('');
                     setSelectedTypeForBooking(undefined);
                     setBookingToEdit(null);
                     setIsBookingModalOpen(true);
@@ -1417,6 +1418,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
               onClick={() => {
                 setSelectedDateForBooking(formatDateToISO(today));
                 setSelectedStartTimeForBooking('18:00');
+                setSelectedRoomForBooking('');
                 setBookingToEdit(null);
                 setIsBookingModalOpen(true);
               }}
@@ -2955,7 +2957,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
 
       {/* Floating + button (mobile) */}
       <button
-        onClick={() => { setSelectedDateForBooking(formatDateToISO(today)); setBookingToEdit(null); setIsBookingModalOpen(true); }}
+        onClick={() => { setSelectedDateForBooking(formatDateToISO(today)); setSelectedRoomForBooking(''); setBookingToEdit(null); setIsBookingModalOpen(true); }}
         className="fixed bottom-4 right-4 w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black font-bold rounded-full shadow-2xl shadow-blue-500/30 dark:shadow-yellow-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 sm:hidden border border-black/20"
         title="Nuova Prenotazione"
       >
@@ -3203,7 +3205,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
             }}
             initialDate={selectedDateForBooking}
             initialStartTime={selectedStartTimeForBooking}
-            initialRoomId={bookingToEdit?.salaId || selectedRoomForBooking || (rooms.length > 0 ? rooms[0].id : '')}
+            initialRoomId={bookingToEdit?.salaId || selectedRoomForBooking || ''}
             initialType={selectedTypeForBooking}
             bookingToEdit={bookingToEdit}
             onSwitchToReminder={(date, startTime) => handleOpenReminderModal(date, null, startTime)}
