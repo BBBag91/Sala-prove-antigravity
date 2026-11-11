@@ -190,10 +190,10 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
     return true;
   });
 
-  // Aggiornamento automatico della posizione della linea ora corrente ogni 30s
+  // Aggiornamento automatico della posizione della linea ora corrente ogni 10s
   const [currentTimeTick, setCurrentTimeTick] = useState<number>(() => Date.now());
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTimeTick(Date.now()), 30000);
+    const timer = setInterval(() => setCurrentTimeTick(Date.now()), 10000);
     return () => clearInterval(timer);
   }, []);
 
@@ -2677,7 +2677,7 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                       let endMins = timeToMinutes(b.oraFine) - HOUR_START * 60;
                       if (endMins <= startMins) endMins += 24 * 60;
                       const topPx = (startMins / 60) * effectiveCellHeight;
-                      const heightPx = Math.max(26, ((endMins - startMins) / 60) * effectiveCellHeight);
+                      const heightPx = Math.max(16, ((endMins - startMins) / 60) * effectiveCellHeight);
                       const widthPct = 100 / cols;
                       const leftPct = col * widthPct;
                       const displayName = b.clienteNome || 'Prenotazione';
@@ -2889,26 +2889,29 @@ export const CalendarDashboardView: React.FC<CalendarDashboardViewProps> = ({
                     {/* Indicatore orario attuale IN PRIMO PIANO rispetto a tutti gli eventi */}
                     {isToday && (() => {
                       const now = new Date(currentTimeTick);
-                      const currentMins = (now.getHours() - HOUR_START) * 60 + now.getMinutes();
+                      const currentMins =
+                        (now.getHours() - HOUR_START) * 60 +
+                        now.getMinutes() +
+                        now.getSeconds() / 60;
                       if (currentMins >= 0 && currentMins <= currentTotalHours * 60) {
                         const lineTopPx = (currentMins / 60) * effectiveCellHeight;
                         const hoursStr = String(now.getHours()).padStart(2, '0');
                         const minsStr = String(now.getMinutes()).padStart(2, '0');
                         return (
                           <div
-                            className="absolute left-0 right-0 z-35 pointer-events-none flex items-center select-none"
+                            className="absolute left-0 right-0 h-0 z-35 pointer-events-none flex items-center select-none"
                             style={{ top: `${lineTopPx}px` }}
                           >
-                            {/* Pallino a contrasto ultra-evidente con anello e animazione */}
+                            {/* Pallino a contrasto ultra-evidente centrato esattamente sulla linea oraria */}
                             <div className="w-3.5 h-3.5 rounded-full bg-yellow-400 -ml-1.5 shadow-[0_0_8px_rgba(250,204,21,1)] ring-2 ring-black shrink-0 relative flex items-center justify-center z-10">
                               <div className="w-1.5 h-1.5 rounded-full bg-black animate-ping" />
                             </div>
 
-                            {/* Linea ora attuale neon/oro ad alta visibilità con bordi scuri netti anti-sovrapposizione */}
+                            {/* Linea ora attuale centrata al pixel esatto della griglia oraria */}
                             <div className="h-[2.5px] w-full bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.95),0_1px_2px_rgba(0,0,0,0.8)] border-y border-black/80" />
 
                             {/* Badge digitale dell'orario in tempo reale */}
-                            <span className="absolute right-1 -top-2.5 px-1.5 py-0.2 rounded-full text-[8.5px] font-mono font-black bg-yellow-400 text-black border border-black shadow-md tracking-tight shrink-0">
+                            <span className="absolute right-1 bottom-1 px-1.5 py-0.2 rounded-full text-[8.5px] font-mono font-black bg-yellow-400 text-black border border-black shadow-md tracking-tight shrink-0">
                               {hoursStr}:{minsStr}
                             </span>
                           </div>
