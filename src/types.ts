@@ -299,6 +299,10 @@ export interface StudentMonthlyPayment {
   clienteId: string;
   /** Nome del cliente/allievo per matching affidabile */
   clienteNome?: string;
+  /** Nome grezzo usato sul calendario (es. prima del tesseramento) per evitare perdita associazione */
+  rawCalendarName?: string;
+  /** ID del docente di riferimento */
+  insegnanteId?: string;
   /** Mese di competenza in formato YYYY-MM */
   mese: string;
   /** Stato del pagamento per il mese: 'pagato', 'da_saldare', 'parziale' */

@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Booking, Client, Expense, ManualIncome, PrimaryWorkShift, PrimaryWorkShiftDate, Room, StaffMember, StudioInfo, WorkShift, isLessonBooking, TeacherBillingCycle } from '../types';
+import { Booking, Client, Expense, ManualIncome, PrimaryWorkShift, PrimaryWorkShiftDate, Room, StaffMember, StudentMonthlyPayment, StudioInfo, WorkShift, isLessonBooking, TeacherBillingCycle } from '../types';
 import { DEFAULT_STUDIO_INFO } from '../data/initialData';
 
 // =========================================================================
@@ -451,7 +451,7 @@ export const extractShiftsFromNote = (note?: string): WorkShift[] => {
 };
 
 export const mapStudioInfoFromDb = (s: any): StudioInfo => {
-  if (!s || s.id === 'shifts_store' || s.nome === 'Shifts Store') {
+  if (!s || s.id === 'shifts_store' || s.id === 'student_payments_store' || s.nome === 'Shifts Store' || s.nome === 'Student Payments Store') {
     return DEFAULT_STUDIO_INFO;
   }
   let waConfig = s.whatsapp_config || undefined;
@@ -622,6 +622,7 @@ export const supabaseService = {
       incomesRes,
       studioRes,
       shiftsRes,
+      studentPaymentsList,
     ] = await Promise.all([
       supabase.from('rooms').select('*').order('nome'),
       supabase.from('staff').select('*').order('cognome'),
@@ -631,17 +632,19 @@ export const supabaseService = {
       supabase.from('incomes').select('*').order('data', { ascending: false }),
       supabase.from('studio_info').select('*').eq('id', 'main').maybeSingle(),
       supabase.from('shifts').select('*').order('data', { ascending: true }),
+      this.getStudentPaymentsFromStore(),
     ]);
 
     let studioData = studioRes.data;
-    if (!studioData || studioData.id === 'shifts_store') {
+    if (!studioData || studioData.id === 'shifts_store' || studioData.id === 'student_payments_store') {
       const { data: fallbackStudio } = await supabase
         .from('studio_info')
         .select('*')
         .neq('id', 'shifts_store')
+        .neq('id', 'student_payments_store')
         .limit(1)
         .maybeSingle();
-      if (fallbackStudio && fallbackStudio.id !== 'shifts_store') {
+      if (fallbackStudio && fallbackStudio.id !== 'shifts_store' && fallbackStudio.id !== 'student_payments_store') {
         studioData = fallbackStudio;
       }
     }
@@ -663,6 +666,7 @@ export const supabaseService = {
       incomes: (incomesRes.data || []).map(mapIncomeFromDb),
       studioInfo: studioData ? mapStudioInfoFromDb(studioData) : DEFAULT_STUDIO_INFO,
       shifts,
+      studentPayments: studentPaymentsList,
     };
   },
 
@@ -798,6 +802,55 @@ export const supabaseService = {
     if (!supabase) return;
     const { error } = await supabase.from('incomes').delete().eq('id', id);
     if (error) console.error('[Supabase] Errore deleteIncome:', error);
+  },
+
+  // Recupera l'elenco pagamenti allievi dalla riga dedicata 'student_payments_store' in studio_info
+  async getStudentPaymentsFromStore(): Promise<StudentMonthlyPayment[]> {
+    if (!supabase) return [];
+    try {
+      const { data } = await supabase
+        .from('studio_info')
+        .select('note')
+        .eq('id', 'student_payments_store')
+        .maybeSingle();
+      if (data?.note) {
+        const parsed = JSON.parse(data.note);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('[Supabase] Errore getStudentPaymentsFromStore:', e);
+    }
+    return [];
+  },
+
+  // Salva l'elenco completo pagamenti allievi nella riga dedicata 'student_payments_store' di studio_info
+  async saveStudentPaymentsToStore(payments: StudentMonthlyPayment[]): Promise<boolean> {
+    if (!supabase) return false;
+    try {
+      const { error } = await supabase
+        .from('studio_info')
+        .upsert({
+          id: 'student_payments_store',
+          nome: DEFAULT_STUDIO_INFO.nome,
+          indirizzo: DEFAULT_STUDIO_INFO.indirizzo,
+          citta: DEFAULT_STUDIO_INFO.citta,
+          cap: DEFAULT_STUDIO_INFO.cap,
+          telefono: DEFAULT_STUDIO_INFO.telefono,
+          email: DEFAULT_STUDIO_INFO.email,
+          note: JSON.stringify(payments),
+          updated_at: new Date().toISOString(),
+        });
+      if (error) {
+        console.error('[Supabase] Errore saveStudentPaymentsToStore:', error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('[Supabase] Errore saveStudentPaymentsToStore catch:', e);
+      return false;
+    }
   },
 
   // Recupera l'elenco turni dalla riga dedicata 'shifts_store' in studio_info (isolata da qualsiasi sovrascrittura)

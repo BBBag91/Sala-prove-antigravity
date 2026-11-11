@@ -271,6 +271,8 @@ export const AllieviView: React.FC = () => {
       string,
       {
         student: Client;
+        rawCalendarName: string;
+        matchedClientId?: string;
         allLessons: Booking[];
         monthlyLessons: Booking[];
         primaryTeacherName: string;
@@ -442,6 +444,8 @@ export const AllieviView: React.FC = () => {
 
         allieviMap.set(compositeKey, {
           student: studentObj,
+          rawCalendarName: cleanRawName,
+          matchedClientId: matchedClient?.id,
           allLessons: [],
           monthlyLessons: [],
           primaryTeacherName: teacher.nomeCompleto,
@@ -468,6 +472,8 @@ export const AllieviView: React.FC = () => {
 
     const result: Array<{
       student: Client;
+      rawCalendarName: string;
+      lookupAliases: { rawName?: string; teacherId?: string; clientIds?: string[] };
       monthlyLessons: Booking[];
       allLessons: Booking[];
       completedLessons: Booking[];
@@ -502,7 +508,35 @@ export const AllieviView: React.FC = () => {
       const completedOre = completedLessons.reduce((sum, b) => sum + (b.durataOre || 1), 0);
 
       const studentFullName = `${entry.student.nome} ${entry.student.cognome}`.trim();
-      const paymentRec = studentPaymentService.getPayment(entry.student.id, monthStr, studentFullName);
+      const rawSlug = entry.rawCalendarName.replace(/\s+/g, '-').toLowerCase();
+      const candidateClientIds = new Set<string>([
+        entry.student.id,
+        `student-${rawSlug}_${entry.primaryTeacherId}`,
+        `student-${rawSlug}`,
+      ]);
+      if (entry.matchedClientId) {
+        candidateClientIds.add(entry.matchedClientId);
+        candidateClientIds.add(`${entry.matchedClientId}_${entry.primaryTeacherId}`);
+      }
+      entry.allLessons.forEach((l) => {
+        if (l.clienteId) {
+          candidateClientIds.add(l.clienteId);
+          candidateClientIds.add(`${l.clienteId}_${entry.primaryTeacherId}`);
+        }
+      });
+
+      const lookupAliases = {
+        rawName: entry.rawCalendarName,
+        teacherId: entry.primaryTeacherId,
+        clientIds: Array.from(candidateClientIds),
+      };
+
+      const paymentRec = studentPaymentService.getPayment(
+        entry.student.id,
+        monthStr,
+        studentFullName,
+        lookupAliases
+      );
 
       // REGOLA UTENTE: Lo stato delle quote deve essere 'da_saldare' di default
       // È pagato SOLO se esiste una registrazione esplicita di pagamento
@@ -520,6 +554,8 @@ export const AllieviView: React.FC = () => {
 
       result.push({
         student: entry.student,
+        rawCalendarName: entry.rawCalendarName,
+        lookupAliases,
         monthlyLessons: entry.monthlyLessons,
         allLessons: entry.allLessons,
         completedLessons,
@@ -670,8 +706,8 @@ export const AllieviView: React.FC = () => {
 
   /**
    * REGISTRAZIONE PAGAMENTO:
-   * Quando premi il tasto "Saldato", registra la data e l'ora esatta di registrazione.
-   * Se viene riaperto ("Da Saldare"), rimuove data e ora.
+   * Quando premi il tasto "Saldato", registra la data e l'ora esatta di registrazione
+   * e la blocca in memoria e sul database. Se viene riaperto ("Da Saldare"), rimuove data e ora.
    */
   const handleQuickTogglePayment = (item: typeof filteredStudents[0]) => {
     const fullName = `${item.student.nome} ${item.student.cognome}`.trim();
@@ -683,9 +719,11 @@ export const AllieviView: React.FC = () => {
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     const newRecord: StudentMonthlyPayment = {
-      id: `${item.student.id}_${monthStr}`,
+      id: item.payment?.id || `${item.student.id}_${monthStr}`,
       clienteId: item.student.id,
       clienteNome: fullName,
+      rawCalendarName: item.rawCalendarName,
+      insegnanteId: item.teacherId,
       mese: monthStr,
       stato: newStatus,
       dataPagamento: newStatus === 'pagato' ? nowISO : undefined,
@@ -694,7 +732,7 @@ export const AllieviView: React.FC = () => {
       importo: item.importo || item.student.quotaMensileCorso || 90,
       note: newStatus === 'pagato' ? `Pagamento registrato il ${nowISO} alle ore ${nowTime}` : undefined,
     };
-    studentPaymentService.savePayment(newRecord);
+    studentPaymentService.savePayment(newRecord, item.lookupAliases);
   };
 
   // Esportazione Excel compatibile (.CSV con separatore punto e virgola e UTF-8 BOM, senza metodo)

@@ -6,6 +6,7 @@ import { autoAssignOperators, AutoAssignResult } from '../utils/scheduler';
 import { computeDailyShifts, autoAssignWeeklyShifts, autoAssignMonthlyShifts } from '../utils/shiftUtils';
 import { isSupabaseConfigured, setSupabaseCredentials, supabase } from '../lib/supabase';
 import { supabaseService } from '../services/supabaseService';
+import { studentPaymentService } from '../services/studentPaymentService';
 import { generateUUID } from '../utils/uuid';
 
 interface AppContextType {
@@ -355,6 +356,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
           }
           if (remote.shifts && remote.shifts.length > 0) setShifts(remote.shifts);
+          if (remote.studentPayments !== undefined) {
+            studentPaymentService.syncFromCloud(remote.studentPayments);
+          }
           setIsCloudConnected(true);
         }
       })
@@ -405,6 +409,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       studioInfo,
       shifts,
     });
+    studentPaymentService.pushToCloud();
     setIsCloudConnected(true);
     return true;
   };
@@ -466,6 +471,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (remote.shifts !== undefined) {
           setShifts(remote.shifts);
         }
+        if (remote.studentPayments !== undefined) {
+          studentPaymentService.syncFromCloud(remote.studentPayments);
+        }
         setIsCloudConnected(true);
         setLastCloudRefresh(new Date());
       }
@@ -523,6 +531,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (payload?.new?.id === 'shifts_store' || payload?.old?.id === 'shifts_store') {
               supabaseService.getShiftsFromStore().then((sh) => {
                 if (sh && sh.length > 0) setShifts(sh);
+              });
+              return;
+            }
+            if (payload?.new?.id === 'student_payments_store' || payload?.old?.id === 'student_payments_store') {
+              supabaseService.getStudentPaymentsFromStore().then((sp) => {
+                studentPaymentService.syncFromCloud(sp);
               });
               return;
             }

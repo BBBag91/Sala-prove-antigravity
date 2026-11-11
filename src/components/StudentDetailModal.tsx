@@ -94,18 +94,20 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const loadPayment = () => {
     if (!student) return;
     const fullName = `${student.nome} ${student.cognome}`.trim();
-    const p = studentPaymentService.getPayment(student.id, monthStr, fullName);
+    const p = studentPaymentService.getPayment(student.id, monthStr, fullName, {
+      teacherId: student.insegnanteRiferimentoId,
+    });
     setPaymentRecord(p);
     if (p) {
       setFormStato(p.stato);
-      setFormDataPagamento(p.dataPagamento || `${monthStr}-05`);
+      setFormDataPagamento(p.dataPagamento || todayISO);
       setFormImporto(p.importo !== undefined ? p.importo : (student.quotaMensileCorso || 90));
       setFormMetodo(p.metodoPagamento || 'bonifico');
       setFormRicevuta(p.ricevutaNumero || '');
       setFormNote(p.note || '');
     } else {
       setFormStato('da_saldare');
-      setFormDataPagamento(`${monthStr}-05`);
+      setFormDataPagamento(todayISO);
       setFormImporto(student.quotaMensileCorso || 90);
       setFormMetodo('bonifico');
       setFormRicevuta('');
@@ -214,26 +216,43 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   // Salvataggio del pagamento del mese
   const handleSavePayment = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!student) return;
     const fullName = `${student.nome} ${student.cognome}`.trim();
     const now = new Date();
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const wasAlreadyPaid = paymentRecord?.stato === 'pagato';
 
     const newRecord: StudentMonthlyPayment = {
-      id: `${student.id}_${monthStr}`,
+      id: paymentRecord?.id || `${student.id}_${monthStr}`,
       clienteId: student.id,
       clienteNome: fullName,
+      insegnanteId: student.insegnanteRiferimentoId,
       mese: monthStr,
       stato: formStato,
-      dataPagamento: formStato === 'pagato' ? formDataPagamento : undefined,
-      oraPagamento: formStato === 'pagato' ? (paymentRecord?.oraPagamento || nowTime) : undefined,
-      dataOraRegistrazione: formStato === 'pagato' ? (paymentRecord?.dataOraRegistrazione || now.toISOString()) : undefined,
+      dataPagamento:
+        formStato === 'pagato'
+          ? (wasAlreadyPaid && paymentRecord?.dataPagamento ? paymentRecord.dataPagamento : (formDataPagamento || todayISO))
+          : undefined,
+      oraPagamento:
+        formStato === 'pagato'
+          ? (wasAlreadyPaid && paymentRecord?.oraPagamento ? paymentRecord.oraPagamento : nowTime)
+          : undefined,
+      dataOraRegistrazione:
+        formStato === 'pagato'
+          ? (wasAlreadyPaid && paymentRecord?.dataOraRegistrazione ? paymentRecord.dataOraRegistrazione : now.toISOString())
+          : undefined,
       importo: Number(formImporto) || 0,
       ricevutaNumero: formRicevuta.trim() || undefined,
       note: formNote.trim() || undefined,
     };
 
-    studentPaymentService.savePayment(newRecord);
-    setPaymentRecord(newRecord);
+    studentPaymentService.savePayment(newRecord, {
+      teacherId: student.insegnanteRiferimentoId,
+    });
+    const saved = studentPaymentService.getPayment(student.id, monthStr, fullName, {
+      teacherId: student.insegnanteRiferimentoId,
+    });
+    setPaymentRecord(saved || newRecord);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
   };
@@ -244,24 +263,31 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     const fullName = `${student.nome} ${student.cognome}`.trim();
     const now = new Date();
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const wasAlreadyPaid = paymentRecord?.stato === 'pagato';
 
     const newRecord: StudentMonthlyPayment = {
-      id: `${student.id}_${monthStr}`,
+      id: paymentRecord?.id || `${student.id}_${monthStr}`,
       clienteId: student.id,
       clienteNome: fullName,
+      insegnanteId: student.insegnanteRiferimentoId,
       mese: monthStr,
       stato: 'pagato',
-      dataPagamento: todayISO,
-      oraPagamento: nowTime,
-      dataOraRegistrazione: now.toISOString(),
+      dataPagamento: wasAlreadyPaid && paymentRecord?.dataPagamento ? paymentRecord.dataPagamento : todayISO,
+      oraPagamento: wasAlreadyPaid && paymentRecord?.oraPagamento ? paymentRecord.oraPagamento : nowTime,
+      dataOraRegistrazione: wasAlreadyPaid && paymentRecord?.dataOraRegistrazione ? paymentRecord.dataOraRegistrazione : now.toISOString(),
       importo: formImporto || student.quotaMensileCorso || 90,
       ricevutaNumero: formRicevuta || `R-${currentYear}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`,
       note: formNote || `Saldato il ${todayISO} alle ore ${nowTime}`,
     };
-    studentPaymentService.savePayment(newRecord);
-    setPaymentRecord(newRecord);
+    studentPaymentService.savePayment(newRecord, {
+      teacherId: student.insegnanteRiferimentoId,
+    });
+    const saved = studentPaymentService.getPayment(student.id, monthStr, fullName, {
+      teacherId: student.insegnanteRiferimentoId,
+    });
+    setPaymentRecord(saved || newRecord);
     setFormStato('pagato');
-    setFormDataPagamento(todayISO);
+    setFormDataPagamento((saved || newRecord).dataPagamento || todayISO);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
   };
@@ -273,7 +299,9 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     return MESI_ITALIANI.map((nomeMese, idx) => {
       const mNum = String(idx + 1).padStart(2, '0');
       const mStr = `${currentYear}-${mNum}`;
-      const rec = studentPaymentService.getPayment(student.id, mStr, fullName);
+      const rec = studentPaymentService.getPayment(student.id, mStr, fullName, {
+        teacherId: student.insegnanteRiferimentoId,
+      });
       const mLessons = allStudentLessons.filter((b) => b.data.startsWith(mStr));
       const mHours = mLessons.reduce((sum, b) => sum + (b.durataOre || 1), 0);
       return {
