@@ -7,6 +7,7 @@ import { computeDailyShifts, autoAssignWeeklyShifts, autoAssignMonthlyShifts } f
 import { isSupabaseConfigured, setSupabaseCredentials, supabase } from '../lib/supabase';
 import { supabaseService } from '../services/supabaseService';
 import { studentPaymentService } from '../services/studentPaymentService';
+import { financeSettlementService } from '../services/financeSettlementService';
 import { generateUUID } from '../utils/uuid';
 
 interface AppContextType {
@@ -359,6 +360,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (remote.studentPayments !== undefined) {
             studentPaymentService.syncFromCloud(remote.studentPayments);
           }
+          if (remote.financeSettlement !== undefined) {
+            financeSettlementService.syncFromCloud(remote.financeSettlement);
+          }
           setIsCloudConnected(true);
         }
       })
@@ -410,6 +414,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       shifts,
     });
     studentPaymentService.pushToCloud();
+    financeSettlementService.pushToCloud();
     setIsCloudConnected(true);
     return true;
   };
@@ -474,6 +479,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (remote.studentPayments !== undefined) {
           studentPaymentService.syncFromCloud(remote.studentPayments);
         }
+        if (remote.financeSettlement !== undefined) {
+          financeSettlementService.syncFromCloud(remote.financeSettlement);
+        }
         setIsCloudConnected(true);
         setLastCloudRefresh(new Date());
       }
@@ -537,6 +545,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (payload?.new?.id === 'student_payments_store' || payload?.old?.id === 'student_payments_store') {
               supabaseService.getStudentPaymentsFromStore().then((sp) => {
                 studentPaymentService.syncFromCloud(sp);
+              });
+              return;
+            }
+            if (payload?.new?.id === 'finance_settlement_store' || payload?.old?.id === 'finance_settlement_store') {
+              supabaseService.getFinanceSettlementFromStore().then((fs) => {
+                financeSettlementService.syncFromCloud(fs);
               });
               return;
             }

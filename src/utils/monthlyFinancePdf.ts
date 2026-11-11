@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import { Booking, Client, Expense, ExpenseCategory, Room, StaffMember, StudioInfo } from '../types';
 import { calculateDurationHours, formatCurrency, formatDateItalian, MESI_ITALIANI } from './dateUtils';
 import { EXPENSE_CATEGORIES } from '../components/ExpenseModal';
+import { financeSettlementService } from '../services/financeSettlementService';
 
 export interface MonthlyTeacherSummary {
   teacherId: string;
@@ -105,14 +106,7 @@ export function compileMonthlyFinanceData(
   const paidBookingsTotal = monthlyPaidBookings.reduce((sum, b) => sum + (b.tariffaTotale || 0), 0);
   const paidBookingsCount = monthlyPaidBookings.length;
 
-  // 2. Quote Lezioni Docenti saldate
-  const settlementStorageKey = `salaprove_quote_insegnanti_v1_${monthStr}`;
-  let settlementMap: Record<string, 'saldato' | 'da_saldare'> = {};
-  try {
-    const saved = localStorage.getItem(settlementStorageKey);
-    if (saved) settlementMap = JSON.parse(saved);
-  } catch {}
-
+  // 2. Quote Lezioni Docenti saldate (sincronizzate sul database tramite financeSettlementService)
   const teachers = staff.filter((s) => s.ruolo === 'insegnante');
 
   const getPrevMonthStr = (mStr: string): string => {
@@ -157,7 +151,7 @@ export function compileMonthlyFinanceData(
     }, 0);
 
     const totalFee = Math.round(totalHours * 5 * 100) / 100;
-    const isSaldato = (settlementMap[t.id] || 'da_saldare') === 'saldato';
+    const isSaldato = financeSettlementService.getTeacherSettlement(monthStr, t.id, tFullName) === 'saldato';
 
     if (isSaldato && totalFee > 0) {
       teacherFeesSaldatoTotal += totalFee;

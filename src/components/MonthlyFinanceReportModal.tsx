@@ -17,6 +17,7 @@ import {
   compileMonthlyFinanceData,
   generateMonthlyFinancePDF,
 } from '../utils/monthlyFinancePdf';
+import { financeSettlementService } from '../services/financeSettlementService';
 
 interface MonthlyFinanceReportModalProps {
   isOpen: boolean;
@@ -73,10 +74,19 @@ export const MonthlyFinanceReportModal: React.FC<MonthlyFinanceReportModalProps>
     setCurrentMonthIndex(now.getMonth());
   };
 
+  const [settlementVersion, setSettlementVersion] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = financeSettlementService.subscribe(() => {
+      setSettlementVersion((v) => v + 1);
+    });
+    return unsubscribe;
+  }, []);
+
   // Compile monthly data
   const data = useMemo(() => {
     return compileMonthlyFinanceData(monthKey, bookings, expenses, clients, staff, rooms);
-  }, [monthKey, bookings, expenses, clients, staff, rooms]);
+  }, [monthKey, bookings, expenses, clients, staff, rooms, settlementVersion]);
 
   // Gestione pulizia classi di stampa
   useEffect(() => {

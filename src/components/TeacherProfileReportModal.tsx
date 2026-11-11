@@ -26,14 +26,13 @@ import {
   parseISODate,
   calculateDurationHours,
 } from '../utils/dateUtils';
+import { financeSettlementService } from '../services/financeSettlementService';
 
 interface TeacherProfileReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   preselectedTeacherId?: string;
 }
-
-type SettlementStatus = 'da_saldare' | 'saldato';
 
 const STORAGE_KEY_TEACHER = 'salaprove_user_selected_teacher_id';
 
@@ -55,7 +54,7 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
     try {
       const saved = localStorage.getItem(STORAGE_KEY_TEACHER);
       if (saved && teachersOnly.some((t) => t.id === saved)) return saved;
-    } catch {}
+    } catch { }
     return teachersOnly[0]?.id || '';
   });
 
@@ -77,7 +76,7 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
     if (selectedTeacherId) {
       try {
         localStorage.setItem(STORAGE_KEY_TEACHER, selectedTeacherId);
-      } catch {}
+      } catch { }
     } else if (teachersOnly.length > 0 && !selectedTeacherId) {
       setSelectedTeacherId(teachersOnly[0].id);
     }
@@ -87,36 +86,20 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
     return teachersOnly.find((t) => t.id === selectedTeacherId);
   }, [teachersOnly, selectedTeacherId]);
 
-  // Stato saldatura fine mese (sincronizzato con il database/localStorage condiviso con la sezione conti)
-  const settlementStorageKey = `salaprove_quote_insegnanti_v1_${monthStr}`;
-  const [settlementMap, setSettlementMap] = useState<Record<string, SettlementStatus>>(() => {
-    try {
-      const saved = localStorage.getItem(settlementStorageKey);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return {};
-  });
+  // Stato saldatura fine mese (sincronizzato sul database Supabase con la sezione conti)
+  const [settlementVersion, setSettlementVersion] = useState(0);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(settlementStorageKey);
-      if (saved) {
-        setSettlementMap(JSON.parse(saved));
-        return;
-      }
-    } catch {}
-    setSettlementMap({});
-  }, [settlementStorageKey]);
+    const unsubscribe = financeSettlementService.subscribe(() => {
+      setSettlementVersion((v) => v + 1);
+    });
+    return unsubscribe;
+  }, []);
 
   const toggleSettlementStatus = () => {
     if (!selectedTeacherId) return;
-    const currentStatus = settlementMap[selectedTeacherId] || 'da_saldare';
-    const nextStatus: SettlementStatus = currentStatus === 'saldato' ? 'da_saldare' : 'saldato';
-    const nextMap = { ...settlementMap, [selectedTeacherId]: nextStatus };
-    setSettlementMap(nextMap);
-    try {
-      localStorage.setItem(settlementStorageKey, JSON.stringify(nextMap));
-    } catch {}
+    const tFullName = selectedTeacher ? `${selectedTeacher.nome} ${selectedTeacher.cognome}`.trim().toLowerCase() : undefined;
+    financeSettlementService.toggleTeacherSettlement(monthStr, selectedTeacherId, tFullName);
   };
 
   // Navigazione mese
@@ -187,7 +170,11 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
 
   const TARIFFA_SALA_ORA = 5.0; // 5 euro all'ora da versare alla sala prove
   const totalAmountDue = totalHours * TARIFFA_SALA_ORA;
-  const isSettled = (settlementMap[selectedTeacherId] || 'da_saldare') === 'saldato';
+  const isSettled = useMemo(() => {
+    if (!selectedTeacherId) return false;
+    const tFullName = selectedTeacher ? `${selectedTeacher.nome} ${selectedTeacher.cognome}`.trim().toLowerCase() : undefined;
+    return financeSettlementService.getTeacherSettlement(monthStr, selectedTeacherId, tFullName) === 'saldato';
+  }, [monthStr, selectedTeacherId, selectedTeacher, settlementVersion]);
 
   if (!isOpen) return null;
 
@@ -405,11 +392,10 @@ export const TeacherProfileReportModal: React.FC<TeacherProfileReportModalProps>
                     <button
                       type="button"
                       onClick={toggleSettlementStatus}
-                      className={`w-full py-2 px-3 rounded-lg border text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                        isSettled
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                          : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
-                      }`}
+                      className={`w-full py-2 px-3 rounded-lg border text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${isSettled
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                        }`}
                       title="Clicca per commutare stato tra Da Saldare e Saldato"
                     >
                       {isSettled ? (

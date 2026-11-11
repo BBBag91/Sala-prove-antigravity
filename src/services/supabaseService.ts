@@ -623,6 +623,7 @@ export const supabaseService = {
       studioRes,
       shiftsRes,
       studentPaymentsList,
+      financeSettlementStore,
     ] = await Promise.all([
       supabase.from('rooms').select('*').order('nome'),
       supabase.from('staff').select('*').order('cognome'),
@@ -633,18 +634,30 @@ export const supabaseService = {
       supabase.from('studio_info').select('*').eq('id', 'main').maybeSingle(),
       supabase.from('shifts').select('*').order('data', { ascending: true }),
       this.getStudentPaymentsFromStore(),
+      this.getFinanceSettlementFromStore(),
     ]);
 
     let studioData = studioRes.data;
-    if (!studioData || studioData.id === 'shifts_store' || studioData.id === 'student_payments_store') {
+    if (
+      !studioData ||
+      studioData.id === 'shifts_store' ||
+      studioData.id === 'student_payments_store' ||
+      studioData.id === 'finance_settlement_store'
+    ) {
       const { data: fallbackStudio } = await supabase
         .from('studio_info')
         .select('*')
         .neq('id', 'shifts_store')
         .neq('id', 'student_payments_store')
+        .neq('id', 'finance_settlement_store')
         .limit(1)
         .maybeSingle();
-      if (fallbackStudio && fallbackStudio.id !== 'shifts_store' && fallbackStudio.id !== 'student_payments_store') {
+      if (
+        fallbackStudio &&
+        fallbackStudio.id !== 'shifts_store' &&
+        fallbackStudio.id !== 'student_payments_store' &&
+        fallbackStudio.id !== 'finance_settlement_store'
+      ) {
         studioData = fallbackStudio;
       }
     }
@@ -667,6 +680,7 @@ export const supabaseService = {
       studioInfo: studioData ? mapStudioInfoFromDb(studioData) : DEFAULT_STUDIO_INFO,
       shifts,
       studentPayments: studentPaymentsList,
+      financeSettlement: financeSettlementStore,
     };
   },
 
@@ -849,6 +863,55 @@ export const supabaseService = {
       return true;
     } catch (e) {
       console.error('[Supabase] Errore saveStudentPaymentsToStore catch:', e);
+      return false;
+    }
+  },
+
+  // Recupera lo stato saldi quote docenti e compensi fine mese dalla riga dedicata 'finance_settlement_store' in studio_info
+  async getFinanceSettlementFromStore(): Promise<any | null> {
+    if (!supabase) return null;
+    try {
+      const { data } = await supabase
+        .from('studio_info')
+        .select('note')
+        .eq('id', 'finance_settlement_store')
+        .maybeSingle();
+      if (data?.note) {
+        const parsed = JSON.parse(data.note);
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('[Supabase] Errore getFinanceSettlementFromStore:', e);
+    }
+    return null;
+  },
+
+  // Salva lo stato saldi quote docenti e compensi fine mese nella riga dedicata 'finance_settlement_store' di studio_info
+  async saveFinanceSettlementToStore(store: any): Promise<boolean> {
+    if (!supabase) return false;
+    try {
+      const { error } = await supabase
+        .from('studio_info')
+        .upsert({
+          id: 'finance_settlement_store',
+          nome: DEFAULT_STUDIO_INFO.nome,
+          indirizzo: DEFAULT_STUDIO_INFO.indirizzo,
+          citta: DEFAULT_STUDIO_INFO.citta,
+          cap: DEFAULT_STUDIO_INFO.cap,
+          telefono: DEFAULT_STUDIO_INFO.telefono,
+          email: DEFAULT_STUDIO_INFO.email,
+          note: JSON.stringify(store),
+          updated_at: new Date().toISOString(),
+        });
+      if (error) {
+        console.error('[Supabase] Errore saveFinanceSettlementToStore:', error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('[Supabase] Errore saveFinanceSettlementToStore catch:', e);
       return false;
     }
   },

@@ -11,15 +11,7 @@ import {
 import { calcolaCompensiFineMese, VariabiliG } from '../utils/compensiFineMese';
 import { formatCurrency } from '../utils/dateUtils';
 import { MiniStudioCalculator } from './MiniStudioCalculator';
-
-interface CashDenominations {
-  b5: number;
-  b10: number;
-  b20: number;
-  b50: number;
-  b100: number;
-  spicci: number;
-}
+import { financeSettlementService, CashDenominations } from '../services/financeSettlementService';
 
 const DEFAULT_CASH: CashDenominations = {
   b5: 0,
@@ -51,84 +43,64 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
   residuoQuoteTessereTotale = 0,
   historicalNettoSalaSum = 0,
 }) => {
-  const storageKey = `salaprove_compensi_v3_${monthStr}`;
-
   // Default initial values
   const defaultG: VariabiliG = { G1: 3, G2: 0, G3: 0, G4: 0 };
 
   const [isManualEntrate, setIsManualEntrate] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return Boolean(parsed.isManualEntrate);
-      }
-    } catch {}
-    return false;
+    const stored = financeSettlementService.getMonthlyCompensi(monthStr);
+    return Boolean(stored?.isManualEntrate);
   });
 
   const [totaleEntrateMese, setTotaleEntrateMese] = useState<number>(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.isManualEntrate && typeof parsed.totaleEntrateMese === 'number') {
-          return parsed.totaleEntrateMese;
-        }
-      }
-    } catch {}
+    const stored = financeSettlementService.getMonthlyCompensi(monthStr);
+    if (stored?.isManualEntrate && typeof stored.totaleEntrateMese === 'number') {
+      return stored.totaleEntrateMese;
+    }
     return totalIncomes;
   });
 
   const [G, setG] = useState<VariabiliG>(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.G) return { ...defaultG, ...parsed.G, G1: 3 };
-      }
-    } catch {}
+    const stored = financeSettlementService.getMonthlyCompensi(monthStr);
+    if (stored?.G) return { ...defaultG, ...stored.G, G1: 3 };
     return defaultG;
   });
 
   const [cash, setCash] = useState<CashDenominations>(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.cash) return { ...DEFAULT_CASH, ...parsed.cash };
-      }
-    } catch {}
+    const stored = financeSettlementService.getMonthlyCompensi(monthStr);
+    if (stored?.cash) return { ...DEFAULT_CASH, ...stored.cash };
     return DEFAULT_CASH;
   });
 
-  // Re-load / sync when month changes
+  // Re-load / sync when month changes or cloud store updates
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
+    const loadFromStore = () => {
+      const stored = financeSettlementService.getMonthlyCompensi(monthStr);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.isManualEntrate && typeof parsed.totaleEntrateMese === 'number') {
-          setTotaleEntrateMese(parsed.totaleEntrateMese);
+        if (stored.isManualEntrate && typeof stored.totaleEntrateMese === 'number') {
+          setTotaleEntrateMese(stored.totaleEntrateMese);
           setIsManualEntrate(true);
         } else {
           setTotaleEntrateMese(totalIncomes);
           setIsManualEntrate(false);
         }
 
-        if (parsed.G) setG({ ...defaultG, ...parsed.G, G1: 3 });
+        if (stored.G) setG({ ...defaultG, ...stored.G, G1: 3 });
         else setG(defaultG);
 
-        if (parsed.cash) setCash({ ...DEFAULT_CASH, ...parsed.cash });
+        if (stored.cash) setCash({ ...DEFAULT_CASH, ...stored.cash });
         else setCash(DEFAULT_CASH);
         return;
       }
-    } catch {}
-    setTotaleEntrateMese(totalIncomes);
-    setIsManualEntrate(false);
-    setG(defaultG);
-    setCash(DEFAULT_CASH);
-  }, [storageKey]);
+      setTotaleEntrateMese(totalIncomes);
+      setIsManualEntrate(false);
+      setG(defaultG);
+      setCash(DEFAULT_CASH);
+    };
+
+    loadFromStore();
+    const unsubscribe = financeSettlementService.subscribe(loadFromStore);
+    return unsubscribe;
+  }, [monthStr]);
 
   // Keep totaleEntrateMese in sync with totalIncomes unless user has manually customized it
   useEffect(() => {
@@ -137,12 +109,15 @@ export const CompensiFineMeseSection: React.FC<CompensiFineMeseSectionProps> = (
     }
   }, [totalIncomes, isManualEntrate]);
 
-  // Persist values on change
+  // Persist values on change (local + Supabase cloud store)
   useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({ totaleEntrateMese, G, isManualEntrate, cash }));
-    } catch {}
-  }, [totaleEntrateMese, G, isManualEntrate, cash, storageKey]);
+    financeSettlementService.saveMonthlyCompensi(monthStr, {
+      totaleEntrateMese,
+      G,
+      isManualEntrate,
+      cash,
+    });
+  }, [totaleEntrateMese, G, isManualEntrate, cash, monthStr]);
 
   const updateCashField = (field: keyof CashDenominations, rawVal: number) => {
     const cleanVal =

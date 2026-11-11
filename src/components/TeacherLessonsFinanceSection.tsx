@@ -19,6 +19,7 @@ import {
   timeToMinutes,
 } from '../utils/dateUtils';
 import { Booking, TeacherBillingCycle } from '../types';
+import { financeSettlementService, SettlementStatus } from '../services/financeSettlementService';
 
 interface TeacherLessonsFinanceSectionProps {
   currentMonthName: string;
@@ -26,8 +27,6 @@ interface TeacherLessonsFinanceSectionProps {
   monthStr: string; // YYYY-MM
   onTotalsChange?: (totals: { totalOre: number; totalDovuto: number; totalSaldato: number; totalDaSaldare: number }) => void;
 }
-
-type SettlementStatus = 'da_saldare' | 'saldato';
 
 const MONTH_NAMES_ITA = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -52,7 +51,6 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
   onTotalsChange,
 }) => {
   const { staff, bookings } = useApp();
-  const storageKey = `salaprove_quote_insegnanti_v1_${monthStr}`;
 
   // Riferimento al giorno odierno e all'orario attuale
   const today = useMemo(() => new Date(), []);
@@ -65,39 +63,24 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
   // Insegnanti esclusivi (ruolo 'insegnante', esclusi 'entrambi' e 'operatore')
   const teachersExclusively = staff.filter((s) => s.ruolo === 'insegnante');
 
-  // Mappa stato saldo: teacherId -> 'da_saldare' | 'saldato'
-  const [statusMap, setStatusMap] = useState<Record<string, SettlementStatus>>(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return {};
-  });
+  // Tick reattivo per aggiornamenti da Supabase / financeSettlementService
+  const [settlementVersion, setSettlementVersion] = useState(0);
 
-  // Override temporaneo del ciclo di visualizzazione per ciascun insegnante (on-the-fly)
-  const [cycleOverrides, setCycleOverrides] = useState<Record<string, TeacherBillingCycle>>({});
+  useEffect(() => {
+    const unsubscribe = financeSettlementService.subscribe(() => {
+      setSettlementVersion((v) => v + 1);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Override del ciclo di visualizzazione per ciascun insegnante (sincronizzato sul database)
+  const cycleOverrides = useMemo(
+    () => financeSettlementService.getTeacherCycleOverrides(monthStr),
+    [monthStr, settlementVersion]
+  );
 
   // Traccia quale insegnante ha il dettaglio lezioni aperto
   const [expandedTeacherId, setExpandedTeacherId] = useState<string | null>(null);
-
-  // Ricarica stato al cambio mese
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        setStatusMap(JSON.parse(saved));
-        return;
-      }
-    } catch {}
-    setStatusMap({});
-  }, [storageKey]);
-
-  // Salva stato modificato
-  useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(statusMap));
-    } catch {}
-  }, [statusMap, storageKey]);
 
   // Verifica se una singola lezione è già stata svolta rispetto al giorno odierno e all'ora
   const isLessonCompleted = (b: Booking): boolean => {
@@ -113,10 +96,9 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
   const prevMonthLabel = useMemo(() => getMonthNameFromStr(prevMonthStr), [prevMonthStr]);
 
   const toggleCycleOverride = (teacherId: string, currentActiveCycle: TeacherBillingCycle) => {
-    setCycleOverrides((prev) => ({
-      ...prev,
-      [teacherId]: currentActiveCycle === 'mese_corrente' ? 'mese_precedente_posticipato' : 'mese_corrente',
-    }));
+    const nextCycle: TeacherBillingCycle =
+      currentActiveCycle === 'mese_corrente' ? 'mese_precedente_posticipato' : 'mese_corrente';
+    financeSettlementService.setTeacherCycleOverride(monthStr, teacherId, nextCycle);
   };
 
   // Calcolo statistiche per ciascun insegnante in base al rispettivo ciclo di contabilizzazione
@@ -167,7 +149,7 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
     // Costo sala dovuto: totale ore conteggiate × 5€
     const costoDovuto = Math.round(totalOre * 5 * 100) / 100;
     const costoPrenotatoTotale = Math.round(totalOrePrenotate * 5 * 100) / 100;
-    const stato: SettlementStatus = statusMap[t.id] || 'da_saldare';
+    const stato: SettlementStatus = financeSettlementService.getTeacherSettlement(monthStr, t.id, tFullName);
 
     return {
       teacher: t,
@@ -215,11 +197,9 @@ export const TeacherLessonsFinanceSection: React.FC<TeacherLessonsFinanceSection
   }, [overallOre, overallDovuto, overallSaldato, overallDaSaldare, onTotalsChange]);
 
   const handleToggleStatus = (teacherId: string) => {
-    setStatusMap((prev) => {
-      const current = prev[teacherId] || 'da_saldare';
-      const next: SettlementStatus = current === 'saldato' ? 'da_saldare' : 'saldato';
-      return { ...prev, [teacherId]: next };
-    });
+    const teacherObj = teachersExclusively.find((t) => t.id === teacherId);
+    const tFullName = teacherObj ? `${teacherObj.nome} ${teacherObj.cognome}`.trim().toLowerCase() : undefined;
+    financeSettlementService.toggleTeacherSettlement(monthStr, teacherId, tFullName);
   };
 
   const handleToggleExpand = (teacherId: string) => {

@@ -25,13 +25,12 @@ import {
   formatDateToISO,
   timeToMinutes,
 } from '../utils/dateUtils';
+import { financeSettlementService } from '../services/financeSettlementService';
 
 interface TeachersReportViewProps {
   initialTeacherId?: string;
   lockedTeacherId?: string;
 }
-
-type SettlementStatus = 'da_saldare' | 'saldato';
 
 function getPreviousMonthDate(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth() - 1, 1);
@@ -78,37 +77,20 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
   const nextDate = useMemo(() => getNextMonthDate(currentDate), [currentDate]);
   const nextMonthName = MESI_ITALIANI[nextDate.getMonth()];
 
-  // Stato Saldo quote (sincronizzato con Finanze e PDF tramite localStorage)
-  const settlementStorageKey = `salaprove_quote_insegnanti_v1_${monthStr}`;
-  const [statusMap, setStatusMap] = useState<Record<string, SettlementStatus>>(() => {
-    try {
-      const saved = localStorage.getItem(settlementStorageKey);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return {};
-  });
+  // Stato Saldo quote sincronizzato in tempo reale con Supabase e Finanze
+  const [settlementVersion, setSettlementVersion] = useState(0);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(settlementStorageKey);
-      if (saved) {
-        setStatusMap(JSON.parse(saved));
-        return;
-      }
-    } catch {}
-    setStatusMap({});
-  }, [settlementStorageKey]);
+    const unsubscribe = financeSettlementService.subscribe(() => {
+      setSettlementVersion((v) => v + 1);
+    });
+    return unsubscribe;
+  }, []);
 
   const toggleSettlement = (teacherId: string) => {
-    setStatusMap((prev) => {
-      const current = prev[teacherId] || 'da_saldare';
-      const updated: SettlementStatus = current === 'saldato' ? 'da_saldare' : 'saldato';
-      const nextMap = { ...prev, [teacherId]: updated };
-      try {
-        localStorage.setItem(settlementStorageKey, JSON.stringify(nextMap));
-      } catch {}
-      return nextMap;
-    });
+    const tObj = staff.find((s) => s.id === teacherId);
+    const tFullName = tObj ? `${tObj.nome} ${tObj.cognome}`.trim().toLowerCase() : undefined;
+    financeSettlementService.toggleTeacherSettlement(monthStr, teacherId, tFullName);
   };
 
   // Switch vista periodo per singolo insegnante posticipato (se vedere mese prec. da saldare o mese in corso)
@@ -245,7 +227,7 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
 
       const costoDovuto = Math.round(totalOre * 5 * 100) / 100;
       const futureCount = teacherAllLessons.filter((b) => !isLessonCompleted(b)).length;
-      const isSettled = (statusMap[t.id] || 'da_saldare') === 'saldato';
+      const isSettled = financeSettlementService.getTeacherSettlement(monthStr, t.id, tFullName) === 'saldato';
 
       return {
         teacher: t,
@@ -270,7 +252,7 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
     monthName,
     year,
     onlyCompleted,
-    statusMap,
+    settlementVersion,
     todayISO,
     nowMinutes,
   ]);
