@@ -873,31 +873,12 @@ export async function generateTabSheetPDF(
 }
 
 function drawEditorialFooter(
-  doc: jsPDF,
-  pageWidth: number,
-  pageHeight: number,
-  marginX: number,
-  instrument: TabInstrumentType,
-  pageNumber: number
+  _doc: jsPDF,
+  _pageWidth: number,
+  _pageHeight: number,
+  _marginX: number,
+  _instrument: TabInstrumentType,
+  _pageNumber: number
 ) {
-  const footerY = pageHeight - 10;
-  doc.setDrawColor(148, 163, 184);
-  doc.setLineWidth(0.3);
-  doc.line(marginX, footerY - 4.5, pageWidth - marginX, footerY - 4.5);
-
-  doc.setFont('times', 'italic');
-  doc.setFontSize(8);
-  doc.setTextColor(71, 85, 105);
-
-  const legend =
-    instrument === 'drums'
-      ? 'Pentagramma Batteria:  1° Spazio (Basso) = Cassa (BD)  •  3° Spazio (Centro) = Rullante (SD)  •  Sopra il Rigo (×) = Charleston (HH) / Piatti  •  4° e 2° Spazio = Tom & Timpano'
-      : 'Notazione Tab:  h = Hammer-on   •   p = Pull-off   •   / = Slide Up   •   \\ = Slide Down   •   b = Bending   •   ~ = Vibrato   •   x = Dead Note';
-
-  doc.text(legend, marginX, footerY);
-
-  doc.setFont('times', 'bolditalic');
-  doc.text(`La musica fa...  •  Pag. ${pageNumber}`, pageWidth - marginX, footerY, {
-    align: 'right',
-  });
+  // Nessuna scritta a piè di pagina nella stampa PDF per mantenere il foglio spartito pulito
 }
