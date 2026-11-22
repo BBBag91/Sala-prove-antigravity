@@ -191,8 +191,10 @@ export const TabStudioCreator: React.FC = () => {
   const [artistOrStudent, setArtistOrStudent] = useState<string>('');
   const [teacherName, setTeacherName] = useState<string>(defaultTeacherName);
   const [bpm, setBpm] = useState<number>(120);
+  const [bpmInput, setBpmInput] = useState<string>('120');
   const [timeSignature, setTimeSignature] = useState<string>('4/4');
   const [capo, setCapo] = useState<number>(0);
+  const [capoInput, setCapoInput] = useState<string>('0');
   const [notes, setNotes] = useState<string>('');
   const [defaultStepsPerMeasure, setDefaultStepsPerMeasure] = useState<number>(16);
   const [measures, setMeasures] = useState<TabMeasure[]>(() => [
@@ -1141,8 +1143,10 @@ export const TabStudioCreator: React.FC = () => {
     setArtistOrStudent(doc.artistOrStudent);
     setTeacherName(doc.teacherName);
     setBpm(doc.bpm);
+    setBpmInput(String(doc.bpm));
     setTimeSignature(doc.timeSignature);
     setCapo(doc.capo || 0);
+    setCapoInput(String(doc.capo || 0));
     setNotes(doc.notes || '');
     setMeasures(doc.measures);
     setSelectedCell({ mIdx: 0, lIdx: 0, sIdx: 0 });
@@ -1614,11 +1618,25 @@ export const TabStudioCreator: React.FC = () => {
                 BPM
               </label>
               <input
-                type="number"
-                min={30}
-                max={260}
-                value={bpm}
-                onChange={(e) => setBpm(Math.max(30, Math.min(260, Number(e.target.value) || 120)))}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={bpmInput}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                  setBpmInput(raw);
+                  const num = parseInt(raw, 10);
+                  if (!Number.isNaN(num) && num >= 20 && num <= 300) {
+                    setBpm(num);
+                  }
+                }}
+                onBlur={() => {
+                  const num = parseInt(bpmInput, 10);
+                  const validBpm = Number.isNaN(num) ? 120 : Math.max(30, Math.min(260, num));
+                  setBpm(validBpm);
+                  setBpmInput(String(validBpm));
+                }}
+                placeholder="120"
                 className="w-full px-2 py-2 rounded-xl border border-slate-300 dark:border-yellow-500/30 bg-white dark:bg-neutral-950 text-xs font-mono font-bold text-center text-slate-900 dark:text-yellow-100"
               />
             </div>
@@ -1654,11 +1672,25 @@ export const TabStudioCreator: React.FC = () => {
                 </select>
               ) : (
                 <input
-                  type="number"
-                  min={0}
-                  max={12}
-                  value={capo}
-                  onChange={(e) => setCapo(Math.max(0, Math.min(12, Number(e.target.value) || 0)))}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={capoInput}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    setCapoInput(raw);
+                    const num = parseInt(raw, 10);
+                    if (!Number.isNaN(num) && num >= 0 && num <= 12) {
+                      setCapo(num);
+                    }
+                  }}
+                  onBlur={() => {
+                    const num = parseInt(capoInput, 10);
+                    const validCapo = Number.isNaN(num) ? 0 : Math.max(0, Math.min(12, num));
+                    setCapo(validCapo);
+                    setCapoInput(String(validCapo));
+                  }}
+                  placeholder="0"
                   className="w-full px-2 py-2 rounded-xl border border-slate-300 dark:border-yellow-500/30 bg-white dark:bg-neutral-950 text-xs font-mono font-bold text-center text-slate-900 dark:text-yellow-100"
                 />
               )}
