@@ -279,34 +279,34 @@ export async function generateTabSheetPDF(
       : 'Via Secchia 36 (ingresso da Via Quieto) • Latina';
 
   const drawEditorialHeader = (pageNumber: number): number => {
-    let y = 8;
+    let y = 6;
 
     // ── 1. LOGO "LA MUSICA FA..." INTERO E PERFETTAMENTE LEGGIBILE IN ALTO ──
     if (logoAssets?.headerBannerDataUrl) {
       try {
-        const logoH = pageNumber === 1 ? 34 : 24;
+        const logoH = pageNumber === 1 ? 28 : 22;
         const logoW = logoH * (logoAssets.aspectRatio || 1);
         const logoX = (pageWidth - logoW) / 2;
         doc.addImage(logoAssets.headerBannerDataUrl, 'PNG', logoX, y, logoW, logoH);
-        y += logoH + 1.5;
+        y += logoH + 1.0;
       } catch {
-        y += 6;
+        y += 5;
       }
     } else {
       doc.setFont('times', 'bolditalic');
       doc.setFontSize(18);
       doc.setTextColor(30, 41, 59);
-      doc.text(studioName, pageWidth / 2, y + 8, { align: 'center' });
-      y += 12;
+      doc.text(studioName, pageWidth / 2, y + 7, { align: 'center' });
+      y += 10;
     }
 
     // Indirizzo sala prove discreto sotto il logo
     doc.setFont('times', 'italic');
-    doc.setFontSize(8.2);
+    doc.setFontSize(8.0);
     doc.setTextColor(100, 116, 139);
     doc.text(studioAddress, pageWidth / 2, y, { align: 'center' });
 
-    y += 5.5;
+    y += 4.5;
 
     // ── 2. TITOLO BRANO / ESERCIZIO IN FONT SERIF EDITORIALE ──
     const displayTitle = isBlank
@@ -314,22 +314,22 @@ export async function generateTabSheetPDF(
       : sheet.title.trim() || 'Studio & Esercizio Musicale';
 
     doc.setFont('times', 'bold');
-    doc.setFontSize(isBlank && !sheet.title.trim() ? 13 : 18.5);
+    doc.setFontSize(isBlank && !sheet.title.trim() ? 13 : 17.5);
     doc.setTextColor(15, 23, 42);
-    doc.text(displayTitle, pageWidth / 2, y + 4, { align: 'center' });
+    doc.text(displayTitle, pageWidth / 2, y + 3.5, { align: 'center' });
 
-    y += 8.5;
+    y += 7.5;
 
     doc.setFont('times', 'bolditalic');
-    doc.setFontSize(10);
+    doc.setFontSize(9.8);
     doc.setTextColor(51, 65, 85);
     doc.text(INSTRUMENT_SUBTITLES[sheet.instrument], pageWidth / 2, y, { align: 'center' });
 
-    y += 4.5;
+    y += 4.0;
 
     // ── 3. DOPPIO FILETTO EDITORIALE CON ALLIEVO E DOCENTE ──
     doc.setFont('times', 'bold');
-    doc.setFontSize(9.2);
+    doc.setFontSize(9.0);
     doc.setTextColor(30, 41, 59);
 
     const leftCredit = isBlank
@@ -347,20 +347,20 @@ export async function generateTabSheetPDF(
     doc.text(leftCredit, marginX, y);
     doc.text(rightCredit, pageWidth - marginX, y, { align: 'right' });
 
-    y += 2.0;
+    y += 1.8;
 
     doc.setDrawColor(15, 23, 42);
     doc.setLineWidth(0.6);
     doc.line(marginX, y, pageWidth - marginX, y);
     doc.setDrawColor(100, 116, 139);
     doc.setLineWidth(0.22);
-    doc.line(marginX, y + 1.0, pageWidth - marginX, y + 1.0);
+    doc.line(marginX, y + 0.9, pageWidth - marginX, y + 0.9);
 
-    y += 5.2;
+    y += 4.6;
 
     // ── 4. TEMPO, METRONOMO E ACCORDATURA ──
     doc.setFont('times', 'bold');
-    doc.setFontSize(9.2);
+    doc.setFontSize(9.0);
     doc.setTextColor(15, 23, 42);
 
     const tempoMarking = `Tempo: ${sheet.timeSignature}   •   BPM: ${
@@ -369,7 +369,7 @@ export async function generateTabSheetPDF(
     doc.text(tempoMarking, marginX, y);
 
     doc.setFont('times', 'italic');
-    doc.setFontSize(9.2);
+    doc.setFontSize(9.0);
     doc.setTextColor(51, 65, 85);
     const tuningInfo =
       sheet.instrument === 'drums'
@@ -379,7 +379,7 @@ export async function generateTabSheetPDF(
           }`;
     doc.text(tuningInfo, pageWidth - marginX, y, { align: 'right' });
 
-    return y + 7.5;
+    return y + 5.5;
   };
 
   let currentPage = 1;
@@ -389,13 +389,14 @@ export async function generateTabSheetPDF(
   // MODALITÀ 1: PARTITURA DI BATTERIA SU PENTAGRAMMA A 5 LINEE (COME IN FOTO 2)
   // ============================================================================
   if (sheet.instrument === 'drums') {
-    const staffSpace = 2.75; // distanza tra le 5 linee del pentagramma (mm)
-    const staffHeight = 4 * staffSpace; // 5 linee = 4 spazi (11 mm)
-    const systemRowGap = 16.5; // spazio verticale tra un sistema e il successivo (per travi e box [Verse 1])
-    const measuresPerRow = 3; // 3 battute per riga su A4 per proporzioni identiche a Foto 2!
+    const staffSpace = 2.6; // distanza tra le 5 linee del pentagramma (mm)
+    const staffHeight = 4 * staffSpace; // 5 linee = 4 spazi (10.4 mm)
+    const systemRowGap = 12.5; // spazio verticale calibrato per far entrare 5 righi + note in 1 sola pagina A4
+    const measuresPerRow = 3; // 3 battute per riga su A4
 
+    // 5 righi completi (15 battute) su una singola pagina per il template vuoto
     const measuresToRender: TabMeasure[] = isBlank
-      ? Array.from({ length: 12 }, (_, idx) => ({
+      ? Array.from({ length: 15 }, (_, idx) => ({
           id: `blank-${idx}`,
           stepsCount: 16,
           chords: {},
@@ -411,15 +412,15 @@ export async function generateTabSheetPDF(
         rowIdx * measuresPerRow + measuresPerRow
       );
 
-      const neededHeight = staffHeight + systemRowGap + 12;
-      if (cursorY + neededHeight > pageHeight - 24) {
+      const neededHeight = staffHeight + systemRowGap + 6;
+      if (cursorY + neededHeight > pageHeight - 14) {
         drawEditorialFooter(doc, pageWidth, pageHeight, marginX, sheet.instrument, currentPage);
         doc.addPage();
         currentPage++;
         cursorY = drawEditorialHeader(currentPage);
       }
 
-      const staffTopY = cursorY + 11.5; // Spazio sopra il rigo per le travi (beams) e i box sezione [Verse 1]
+      const staffTopY = cursorY + 9.5; // Spazio sopra il rigo per le travi (beams) e i box sezione [Verse 1]
       const clefWidth = 7.5;
       const staffStartX = marginX;
       const staffTotalWidth = contentWidth;
@@ -641,15 +642,16 @@ export async function generateTabSheetPDF(
     }
   } else {
     // ============================================================================
-    // MODALITÀ 2: TABLATURA CHITARRA E BASSO (6, 4 O 5 CORDE)
+    // MODALITÀ 2: TABLATURA CHITARRA E BASSO (6, 4 O 5 CORDE) — 5 TAB IN 1 PAGINA
     // ============================================================================
     const lines = sheet.lines;
     const numLines = lines.length;
-    const lineSpacing = 4.0;
+    const lineSpacing = 3.5;
     const staffHeight = (numLines - 1) * lineSpacing;
-    const systemRowGap = 14.5;
+    const systemRowGap = 10.5;
     const measuresPerRow = 2;
 
+    // 10 battute = 5 righi completi di Tab su 1 singola pagina A4
     const measuresToRender: TabMeasure[] = isBlank
       ? Array.from({ length: 10 }, (_, idx) => ({
           id: `blank-${idx}`,
@@ -667,15 +669,15 @@ export async function generateTabSheetPDF(
         rowIdx * measuresPerRow + measuresPerRow
       );
 
-      const neededHeight = staffHeight + systemRowGap + 10;
-      if (cursorY + neededHeight > pageHeight - 24) {
+      const neededHeight = staffHeight + systemRowGap + 5;
+      if (cursorY + neededHeight > pageHeight - 14) {
         drawEditorialFooter(doc, pageWidth, pageHeight, marginX, sheet.instrument, currentPage);
         doc.addPage();
         currentPage++;
         cursorY = drawEditorialHeader(currentPage);
       }
 
-      const staffTopY = cursorY + 7.5;
+      const staffTopY = cursorY + 5.5;
       const clefWidth = 12;
       const staffStartX = marginX + clefWidth;
       const staffTotalWidth = contentWidth - clefWidth;
@@ -829,7 +831,7 @@ export async function generateTabSheetPDF(
 
   // ── BOX NOTE DIDATTICHE IN STILE CLASSICO CON DOPPIO FILETTO ──
   if ((sheet.notes && sheet.notes.trim()) || isBlank) {
-    if (cursorY + 26 > pageHeight - 22) {
+    if (cursorY + 21 > pageHeight - 10) {
       drawEditorialFooter(doc, pageWidth, pageHeight, marginX, sheet.instrument, currentPage);
       doc.addPage();
       currentPage++;
