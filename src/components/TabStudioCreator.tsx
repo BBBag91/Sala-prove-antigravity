@@ -26,6 +26,7 @@ import {
   getDrumStaffNotePosition,
   computeDrumBeamGroups,
 } from '../utils/tabPdfGenerator';
+import { tabLibraryService } from '../services/tabLibraryService';
 
 interface InstrumentConfig {
   id: TabInstrumentType;
@@ -216,19 +217,26 @@ export const TabStudioCreator: React.FC = () => {
   // Strumento simbolo attivo per Batteria
   const [activeDrumSymbol, setActiveDrumSymbol] = useState<string>('auto');
 
-  // Libreria Tab Salvate
-  const [savedTabs, setSavedTabs] = useState<TabSheetDocument[]>(() => {
-    try {
-      const raw = localStorage.getItem(SAVED_TABS_STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch {
-      // ignore
-    }
-    return [];
-  });
+  // ID documento corrente (per aggiornare la stessa partitura in libreria se già salvata)
+  const [currentDocId, setCurrentDocId] = useState<string>(() => `tab-${Date.now()}`);
+
+  // Libreria Tab Salvate (sincronizzata sul database Supabase tramite tabLibraryService)
+  const [savedTabs, setSavedTabs] = useState<TabSheetDocument[]>(() =>
+    tabLibraryService.getAllTabs()
+  );
+  const [librarySearch, setLibrarySearch] = useState<string>('');
+  const [libraryInstrumentFilter, setLibraryInstrumentFilter] = useState<'all' | TabInstrumentType>('all');
   const [isSavedBanner, setIsSavedBanner] = useState(false);
-  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(true);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportingLibraryId, setExportingLibraryId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = tabLibraryService.subscribe(() => {
+      setSavedTabs(tabLibraryService.getAllTabs());
+    });
+    return unsubscribe;
+  }, []);
 
   // Audio Playback della Tab
   const [isPlayingTab, setIsPlayingTab] = useState(false);
@@ -1085,8 +1093,8 @@ export const TabStudioCreator: React.FC = () => {
   };
 
   // Costruisce il documento completo per salvataggio o esportazione PDF
-  const buildCurrentDocument = (): TabSheetDocument => ({
-    id: `tab-${Date.now()}`,
+  const buildCurrentDocument = (forceNewId = false): TabSheetDocument => ({
+    id: forceNewId ? `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` : currentDocId,
     title: title.trim() || `Esercizio ${currentInstrumentConfig.shortLabel.replace(/^[^\s]+\s/, '')}`,
     artistOrStudent: artistOrStudent.trim(),
     teacherName: teacherName.trim(),
@@ -1101,22 +1109,30 @@ export const TabStudioCreator: React.FC = () => {
     updatedAt: new Date().toISOString(),
   });
 
-  // Salva nella libreria locale
+  // Salva nella libreria (locale + database Supabase)
   const handleSaveToLibrary = () => {
-    const doc = buildCurrentDocument();
-    const nextList = [doc, ...savedTabs.filter((t) => t.title !== doc.title)].slice(0, 25);
-    setSavedTabs(nextList);
-    try {
-      localStorage.setItem(SAVED_TABS_STORAGE_KEY, JSON.stringify(nextList));
-    } catch {
-      // ignore
-    }
+    const doc = buildCurrentDocument(false);
+    const saved = tabLibraryService.saveTab(doc);
+    setCurrentDocId(saved.id);
     setIsSavedBanner(true);
+    setIsLibraryOpen(true);
     setTimeout(() => setIsSavedBanner(false), 2500);
+  };
+
+  // Crea una nuova partitura pulita
+  const handleNewBlankScore = () => {
+    stopTabPlayback();
+    setCurrentDocId(`tab-${Date.now()}`);
+    setTitle('');
+    setArtistOrStudent('');
+    setNotes('');
+    setMeasures([createEmptyMeasure(defaultStepsPerMeasure, 0), createEmptyMeasure(defaultStepsPerMeasure, 1)]);
+    setSelectedCell({ mIdx: 0, lIdx: 0, sIdx: 0 });
   };
 
   const handleLoadFromLibrary = (doc: TabSheetDocument) => {
     stopTabPlayback();
+    setCurrentDocId(doc.id);
     setInstrument(doc.instrument);
     const instCfg = INSTRUMENT_CONFIGS.find((c) => c.id === doc.instrument);
     const tIdx = instCfg?.tunings.findIndex((t) => t.label === doc.tuningLabel) ?? 0;
@@ -1129,24 +1145,46 @@ export const TabStudioCreator: React.FC = () => {
     setCapo(doc.capo || 0);
     setNotes(doc.notes || '');
     setMeasures(doc.measures);
-    setIsLibraryOpen(false);
+    setSelectedCell({ mIdx: 0, lIdx: 0, sIdx: 0 });
   };
 
-  const handleDeleteSavedTab = (id: string) => {
-    const next = savedTabs.filter((t) => t.id !== id);
-    setSavedTabs(next);
-    try {
-      localStorage.setItem(SAVED_TABS_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // ignore
+  const handleDuplicateSavedTab = (doc: TabSheetDocument) => {
+    tabLibraryService.duplicateTab(doc);
+  };
+
+  const handleDeleteSavedTab = (doc: TabSheetDocument) => {
+    if (window.confirm(`Vuoi eliminare la partitura "${doc.title}" dalla libreria?`)) {
+      tabLibraryService.deleteTab(doc.id);
     }
   };
 
-  // Esporta PDF con Logo "La musica fa..."
+  // Scarica direttamente il PDF di una partitura salvata nella libreria con 1 click
+  const handleDirectDownloadSavedTabPDF = async (doc: TabSheetDocument) => {
+    setExportingLibraryId(doc.id);
+    try {
+      await generateTabSheetPDF(doc, studioInfo, { blankTemplate: false });
+    } catch (err) {
+      console.error('Errore download PDF da libreria:', err);
+    } finally {
+      setExportingLibraryId(null);
+    }
+  };
+
+  // Esporta PDF con Logo "La musica fa..." (e salva automaticamente la partitura scritta in libreria!)
   const handleExportPDF = async (blankTemplate = false) => {
     setIsExportingPdf(true);
     try {
-      const doc = buildCurrentDocument();
+      const doc = buildCurrentDocument(false);
+      // Se non è un foglio vuoto e contiene note scritte o un titolo, salvala automaticamente in libreria!
+      if (!blankTemplate) {
+        const hasWrittenNotes = doc.measures.some((m) => Object.keys(m.cells || {}).length > 0);
+        if (hasWrittenNotes || title.trim().length > 0) {
+          const saved = tabLibraryService.saveTab(doc);
+          setCurrentDocId(saved.id);
+          setIsSavedBanner(true);
+          setTimeout(() => setIsSavedBanner(false), 2500);
+        }
+      }
       await generateTabSheetPDF(doc, studioInfo, { blankTemplate });
     } catch (err) {
       console.error('Errore generazione PDF Tab:', err);
@@ -1154,6 +1192,21 @@ export const TabStudioCreator: React.FC = () => {
       setIsExportingPdf(false);
     }
   };
+
+  // Lista filtrata della libreria partiture
+  const filteredLibraryTabs = React.useMemo(() => {
+    return savedTabs.filter((item) => {
+      if (libraryInstrumentFilter !== 'all' && item.instrument !== libraryInstrumentFilter) {
+        return false;
+      }
+      if (librarySearch.trim()) {
+        const q = librarySearch.toLowerCase();
+        const hay = `${item.title} ${item.artistOrStudent || ''} ${item.teacherName || ''} ${item.instrument}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [savedTabs, libraryInstrumentFilter, librarySearch]);
 
   const activeMeasure = measures[selectedCell.mIdx] || measures[0];
   const activeChordValue = activeMeasure?.chords?.[selectedCell.sIdx] || '';
@@ -1216,21 +1269,35 @@ export const TabStudioCreator: React.FC = () => {
 
           <button
             type="button"
-            onClick={handleSaveToLibrary}
+            onClick={handleNewBlankScore}
             className="px-3 py-2 min-h-[40px] rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-slate-800 dark:text-yellow-300 border border-slate-200 dark:border-yellow-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-            title="Salva questa tab nella libreria del dispositivo"
+            title="Inizia una nuova partitura vuota"
           >
-            {isSavedBanner ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Save className="w-3.5 h-3.5" />}
-            <span>{isSavedBanner ? 'Salvata!' : 'Salva'}</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Nuova Partitura</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSaveToLibrary}
+            className="px-3.5 py-2 min-h-[40px] rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95 transition-all"
+            title="Salva questa partitura in memoria nella Libreria Cloud & Locale"
+          >
+            {isSavedBanner ? <Check className="w-3.5 h-3.5 text-emerald-800 stroke-[3]" /> : <Save className="w-3.5 h-3.5" />}
+            <span>{isSavedBanner ? 'Salvata in Libreria!' : 'Salva in Libreria'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsLibraryOpen((v) => !v)}
-            className="px-3 py-2 min-h-[40px] rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-slate-800 dark:text-yellow-300 border border-slate-200 dark:border-yellow-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+            className={`px-3.5 py-2 min-h-[40px] rounded-xl border font-extrabold text-xs flex items-center gap-1.5 cursor-pointer transition-all ${
+              isLibraryOpen
+                ? 'bg-slate-900 text-yellow-400 border-yellow-500/50'
+                : 'bg-slate-100 hover:bg-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-slate-800 dark:text-yellow-300 border-slate-200 dark:border-yellow-500/30'
+            }`}
           >
             <FolderOpen className="w-3.5 h-3.5" />
-            <span>Libreria ({savedTabs.length})</span>
+            <span>Libreria Partiture ({savedTabs.length})</span>
           </button>
 
           <button
@@ -1258,54 +1325,182 @@ export const TabStudioCreator: React.FC = () => {
       </div>
 
       <div className="p-4 sm:p-6 space-y-5">
-        {/* Cassetto Libreria Tab Salvate */}
+        {/* ── LIBRERIA DELLE PARTITURE SCRITTE (IN MEMORIA SUL DATABASE PRONTE DA SCARICARE E STAMPARE) ── */}
         {isLibraryOpen && (
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-yellow-500/30 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-yellow-400">
-                Libreria Tab &amp; Esercizi Salvati
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsLibraryOpen(false)}
-                className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-neutral-400 cursor-pointer"
-              >
-                Chiudi ✕
-              </button>
-            </div>
-            {savedTabs.length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-neutral-400 py-2">
-                Nessuna tab salvata finora. Premi &ldquo;Salva&rdquo; per archiviare i tuoi esercizi o brani.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {savedTabs.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3 rounded-xl bg-white dark:bg-neutral-900 border border-slate-200 dark:border-yellow-500/20 flex items-center justify-between gap-2"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleLoadFromLibrary(item)}
-                      className="text-left flex-1 min-w-0 cursor-pointer"
-                    >
-                      <div className="text-xs font-extrabold text-slate-900 dark:text-yellow-300 truncate">
-                        {item.title}
-                      </div>
-                      <div className="text-[11px] text-slate-500 dark:text-neutral-400 truncate">
-                        {item.instrument.toUpperCase()} • {item.measures.length} battute • {item.bpm} BPM
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSavedTab(item.id)}
-                      className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
-                      title="Elimina dalla libreria"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+          <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-[#141414] border-2 border-blue-200 dark:border-yellow-500/35 space-y-3.5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-neutral-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-600 dark:bg-yellow-400 text-white dark:text-black flex items-center justify-center shrink-0 shadow-2xs">
+                  <FolderOpen className="w-4 h-4 stroke-[2.5]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-yellow-400">
+                      Libreria Partiture &amp; Tab Salvate ({savedTabs.length})
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                      ☁️ Sincronizzate su Database (PC &amp; Smartphone)
+                    </span>
                   </div>
-                ))}
+                  <p className="text-[11px] text-slate-500 dark:text-neutral-400">
+                    Ogni partitura salvata o scaricata rimane in memoria pronta per essere riaperta, ristampata o scaricata in PDF con 1 click.
+                  </p>
+                </div>
+              </div>
+
+              {/* Filtri Libreria: Ricerca + Filtro Strumento */}
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  value={librarySearch}
+                  onChange={(e) => setLibrarySearch(e.target.value)}
+                  placeholder="Cerca titolo, allievo, docente..."
+                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-neutral-950 border border-slate-300 dark:border-neutral-800 text-xs text-slate-900 dark:text-yellow-100 min-w-[180px]"
+                />
+                <select
+                  value={libraryInstrumentFilter}
+                  onChange={(e) => setLibraryInstrumentFilter(e.target.value as any)}
+                  className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-neutral-950 border border-slate-300 dark:border-neutral-800 text-xs font-bold text-slate-800 dark:text-yellow-300 cursor-pointer"
+                >
+                  <option value="all">Tutti gli Strumenti</option>
+                  <option value="guitar">🎸 Chitarra (6 Corde)</option>
+                  <option value="bass4">🎸 Basso (4 Corde)</option>
+                  <option value="bass5">🎸 Basso (5 Corde)</option>
+                  <option value="drums">🥁 Batteria</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setIsLibraryOpen(false)}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-200/70 hover:bg-slate-300 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-xs font-bold text-slate-700 dark:text-neutral-300 cursor-pointer"
+                >
+                  Nascondi ▲
+                </button>
+              </div>
+            </div>
+
+            {filteredLibraryTabs.length === 0 ? (
+              <div className="p-6 text-center rounded-xl bg-white dark:bg-neutral-900/60 border border-dashed border-slate-300 dark:border-neutral-800 space-y-1.5">
+                <p className="text-xs font-bold text-slate-700 dark:text-yellow-300">
+                  {savedTabs.length === 0
+                    ? 'Nessuna partitura salvata nella libreria.'
+                    : 'Nessuna partitura corrisponde alla ricerca.'}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-neutral-400">
+                  Scrivi una tab o un groove qui sotto e premi &ldquo;Salva in Libreria&rdquo; o &ldquo;Stampa / Scarica PDF con Logo&rdquo;: verrà memorizzata automaticamente qui!
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {filteredLibraryTabs.map((item) => {
+                  const isCurrentlyLoaded = item.id === currentDocId;
+                  const instBadge =
+                    item.instrument === 'drums'
+                      ? '🥁 Batteria'
+                      : item.instrument === 'guitar'
+                      ? '🎸 Chitarra 6 Corde'
+                      : item.instrument === 'bass5'
+                      ? '🎸 Basso 5 Corde'
+                      : '🎸 Basso 4 Corde';
+                  const formattedDate = item.updatedAt
+                    ? new Date(item.updatedAt).toLocaleDateString('it-IT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : '';
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-3.5 rounded-xl border-2 transition-all flex flex-col justify-between gap-3 ${
+                        isCurrentlyLoaded
+                          ? 'bg-blue-50/70 dark:bg-yellow-400/10 border-blue-500 dark:border-yellow-400 shadow-xs'
+                          : 'bg-white dark:bg-neutral-900 border-slate-200 dark:border-neutral-800 hover:border-blue-400 dark:hover:border-yellow-500/50'
+                      }`}
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-slate-900 text-yellow-400">
+                            {instBadge}
+                          </span>
+                          {formattedDate && (
+                            <span className="text-[10px] font-mono text-slate-400 dark:text-neutral-500">
+                              {formattedDate}
+                            </span>
+                          )}
+                        </div>
+
+                        <div
+                          className="text-sm font-black text-slate-900 dark:text-white leading-snug truncate"
+                          title={item.title}
+                        >
+                          {item.title}
+                        </div>
+
+                        <div className="text-[11px] text-slate-600 dark:text-neutral-300 space-y-0.5">
+                          {item.artistOrStudent && (
+                            <div className="truncate">
+                              <strong>Allievo / Artista:</strong> {item.artistOrStudent}
+                            </div>
+                          )}
+                          {item.teacherName && (
+                            <div className="truncate">
+                              <strong>Docente:</strong> {item.teacherName}
+                            </div>
+                          )}
+                          <div className="text-[10px] font-semibold text-slate-500 dark:text-neutral-400 pt-0.5">
+                            {item.measures?.length || 1} battute • {item.timeSignature} • {item.bpm} BPM
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pulsanti Azione Diretta sulla Partitura in Libreria */}
+                      <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-neutral-800">
+                        <button
+                          type="button"
+                          disabled={exportingLibraryId === item.id}
+                          onClick={() => handleDirectDownloadSavedTabPDF(item)}
+                          className="flex-1 py-2 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black font-black text-[11px] flex items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all shadow-2xs"
+                          title="Scarica subito il PDF A4 pronto da stampare senza dover riaprire l'editor"
+                        >
+                          <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>
+                            {exportingLibraryId === item.id ? 'PDF...' : 'Scarica PDF'}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleLoadFromLibrary(item)}
+                          className="py-2 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-800 dark:text-yellow-300 border border-slate-300 dark:border-neutral-700 font-extrabold text-[11px] cursor-pointer active:scale-95"
+                          title="Carica questa partitura nell'editor per modificarla o ascoltarla"
+                        >
+                          {isCurrentlyLoaded ? '✓ Aperta' : 'Apri / Modifica'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDuplicateSavedTab(item)}
+                          className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-300 border border-slate-200 dark:border-neutral-700 cursor-pointer"
+                          title="Duplica partitura"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSavedTab(item)}
+                          className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40 cursor-pointer"
+                          title="Elimina dalla libreria"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

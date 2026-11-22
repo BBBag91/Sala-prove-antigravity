@@ -624,6 +624,7 @@ export const supabaseService = {
       shiftsRes,
       studentPaymentsList,
       financeSettlementStore,
+      tabLibraryList,
     ] = await Promise.all([
       supabase.from('rooms').select('*').order('nome'),
       supabase.from('staff').select('*').order('cognome'),
@@ -635,6 +636,7 @@ export const supabaseService = {
       supabase.from('shifts').select('*').order('data', { ascending: true }),
       this.getStudentPaymentsFromStore(),
       this.getFinanceSettlementFromStore(),
+      this.getTabLibraryFromStore(),
     ]);
 
     let studioData = studioRes.data;
@@ -642,7 +644,8 @@ export const supabaseService = {
       !studioData ||
       studioData.id === 'shifts_store' ||
       studioData.id === 'student_payments_store' ||
-      studioData.id === 'finance_settlement_store'
+      studioData.id === 'finance_settlement_store' ||
+      studioData.id === 'tab_library_store'
     ) {
       const { data: fallbackStudio } = await supabase
         .from('studio_info')
@@ -650,13 +653,15 @@ export const supabaseService = {
         .neq('id', 'shifts_store')
         .neq('id', 'student_payments_store')
         .neq('id', 'finance_settlement_store')
+        .neq('id', 'tab_library_store')
         .limit(1)
         .maybeSingle();
       if (
         fallbackStudio &&
         fallbackStudio.id !== 'shifts_store' &&
         fallbackStudio.id !== 'student_payments_store' &&
-        fallbackStudio.id !== 'finance_settlement_store'
+        fallbackStudio.id !== 'finance_settlement_store' &&
+        fallbackStudio.id !== 'tab_library_store'
       ) {
         studioData = fallbackStudio;
       }
@@ -681,6 +686,7 @@ export const supabaseService = {
       shifts,
       studentPayments: studentPaymentsList,
       financeSettlement: financeSettlementStore,
+      tabLibrary: tabLibraryList,
     };
   },
 
@@ -912,6 +918,55 @@ export const supabaseService = {
       return true;
     } catch (e) {
       console.error('[Supabase] Errore saveFinanceSettlementToStore catch:', e);
+      return false;
+    }
+  },
+
+  // Recupera la libreria delle partiture/tab salvate dalla riga dedicata 'tab_library_store' in studio_info
+  async getTabLibraryFromStore(): Promise<any[]> {
+    if (!supabase) return [];
+    try {
+      const { data } = await supabase
+        .from('studio_info')
+        .select('note')
+        .eq('id', 'tab_library_store')
+        .maybeSingle();
+      if (data?.note) {
+        const parsed = JSON.parse(data.note);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('[Supabase] Errore getTabLibraryFromStore:', e);
+    }
+    return [];
+  },
+
+  // Salva la libreria delle partiture/tab nella riga dedicata 'tab_library_store' di studio_info
+  async saveTabLibraryToStore(tabs: any[]): Promise<boolean> {
+    if (!supabase) return false;
+    try {
+      const { error } = await supabase
+        .from('studio_info')
+        .upsert({
+          id: 'tab_library_store',
+          nome: DEFAULT_STUDIO_INFO.nome,
+          indirizzo: DEFAULT_STUDIO_INFO.indirizzo,
+          citta: DEFAULT_STUDIO_INFO.citta,
+          cap: DEFAULT_STUDIO_INFO.cap,
+          telefono: DEFAULT_STUDIO_INFO.telefono,
+          email: DEFAULT_STUDIO_INFO.email,
+          note: JSON.stringify(tabs),
+          updated_at: new Date().toISOString(),
+        });
+      if (error) {
+        console.error('[Supabase] Errore saveTabLibraryToStore:', error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('[Supabase] Errore saveTabLibraryToStore catch:', e);
       return false;
     }
   },

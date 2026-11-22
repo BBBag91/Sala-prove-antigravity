@@ -8,6 +8,7 @@ import { isSupabaseConfigured, setSupabaseCredentials, supabase } from '../lib/s
 import { supabaseService } from '../services/supabaseService';
 import { studentPaymentService } from '../services/studentPaymentService';
 import { financeSettlementService } from '../services/financeSettlementService';
+import { tabLibraryService } from '../services/tabLibraryService';
 import { generateUUID } from '../utils/uuid';
 
 interface AppContextType {
@@ -363,6 +364,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (remote.financeSettlement !== undefined) {
             financeSettlementService.syncFromCloud(remote.financeSettlement);
           }
+          if (remote.tabLibrary !== undefined) {
+            tabLibraryService.syncFromCloud(remote.tabLibrary);
+          }
           setIsCloudConnected(true);
         }
       })
@@ -415,6 +419,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     studentPaymentService.pushToCloud();
     financeSettlementService.pushToCloud();
+    tabLibraryService.pushToCloud();
     setIsCloudConnected(true);
     return true;
   };
@@ -481,6 +486,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         if (remote.financeSettlement !== undefined) {
           financeSettlementService.syncFromCloud(remote.financeSettlement);
+        }
+        if (remote.tabLibrary !== undefined) {
+          tabLibraryService.syncFromCloud(remote.tabLibrary);
         }
         setIsCloudConnected(true);
         setLastCloudRefresh(new Date());
@@ -551,6 +559,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (payload?.new?.id === 'finance_settlement_store' || payload?.old?.id === 'finance_settlement_store') {
               supabaseService.getFinanceSettlementFromStore().then((fs) => {
                 financeSettlementService.syncFromCloud(fs);
+              });
+              return;
+            }
+            if (payload?.new?.id === 'tab_library_store' || payload?.old?.id === 'tab_library_store') {
+              supabaseService.getTabLibraryFromStore().then((tl) => {
+                tabLibraryService.syncFromCloud(tl);
               });
               return;
             }
