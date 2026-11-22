@@ -206,6 +206,10 @@ export const TabStudioCreator: React.FC = () => {
     sIdx: number;
   }>({ mIdx: 0, lIdx: 0, sIdx: 0 });
 
+  // Finestrella popup inserimento rapido numeri tasto (0-24) per Smartphone e PC
+  const [isFretPopupOpen, setIsFretPopupOpen] = useState<boolean>(false);
+  const [closePopupOnSelect, setClosePopupOnSelect] = useState<boolean>(true);
+
   // Avanzamento automatico cursore dopo inserimento tasto
   const [autoAdvance, setAutoAdvance] = useState<boolean>(false);
 
@@ -253,6 +257,7 @@ export const TabStudioCreator: React.FC = () => {
     setInstrument(newInst);
     setTuningIdx(0);
     setSelectedCell({ mIdx: 0, lIdx: 0, sIdx: 0 });
+    setIsFretPopupOpen(false);
   };
 
   // Imposta valore in una cella
@@ -359,7 +364,11 @@ export const TabStudioCreator: React.FC = () => {
       if (nextVal) {
         playPreviewNote(lIdx, nextVal);
       }
+      return;
     }
+
+    // In modalità Chitarra o Basso, apre subito la finestrella coi numeri dei tasti (0-24)
+    setIsFretPopupOpen(true);
   };
 
   // Gestione tastiera fisica sulla griglia (0-9 per tasti a 1 o 2 cifre, frecce, h/p/b/x, Canc)
@@ -2486,6 +2495,214 @@ export const TabStudioCreator: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* ── 7. FINESTRELLA POPUP INSERIMENTO RAPIDO NUMERO TASTO (0–24) PER SMARTPHONE E PC ── */}
+      {isFretPopupOpen && instrument !== 'drums' && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setIsFretPopupOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-[#111111] border-2 border-blue-500 dark:border-yellow-400 shadow-2xl overflow-hidden space-y-3 p-3.5 sm:p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Finestrella: Battuta, Corda, Step, Valore Corrente e Chiudi */}
+            <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200 dark:border-neutral-800">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-9 h-9 rounded-xl bg-slate-900 text-yellow-400 font-mono font-black text-base flex items-center justify-center border border-yellow-500/40 shrink-0">
+                  {lines[selectedCell.lIdx]}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-yellow-400 truncate">
+                    Battuta #{selectedCell.mIdx + 1} • {selectedCell.lIdx + 1}ª Corda ({lines[selectedCell.lIdx]}) • Step #{selectedCell.sIdx + 1}
+                  </div>
+                  <div className="text-[11px] font-semibold text-slate-500 dark:text-neutral-400 flex items-center gap-1.5">
+                    <span>Valore attuale:</span>
+                    <strong className="px-2 py-0.2 rounded bg-blue-100 text-blue-800 dark:bg-yellow-400/20 dark:text-yellow-300 font-mono text-xs">
+                      {measures[selectedCell.mIdx]?.cells?.[`${selectedCell.lIdx}_${selectedCell.sIdx}`] || 'Vuota'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsFretPopupOpen(false)}
+                className="w-9 h-9 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-sm flex items-center justify-center shrink-0 cursor-pointer active:scale-95"
+                title="Chiudi finestrella"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Frecce Rapide per spostarsi tra Corde e Step + Switch "Chiudi al tocco / Continua" */}
+            <div className="flex items-center justify-between gap-1.5 bg-slate-100 dark:bg-neutral-900 p-1.5 rounded-xl border border-slate-200 dark:border-neutral-800">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const { mIdx, lIdx, sIdx } = selectedCell;
+                    if (sIdx > 0) setSelectedCell({ mIdx, lIdx, sIdx: sIdx - 1 });
+                    else if (mIdx > 0) {
+                      const prevSteps = measures[mIdx - 1]?.stepsCount || 16;
+                      setSelectedCell({ mIdx: mIdx - 1, lIdx, sIdx: prevSteps - 1 });
+                    }
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-neutral-800 text-slate-800 dark:text-yellow-300 border border-slate-300 dark:border-neutral-700 text-xs font-extrabold cursor-pointer active:scale-95"
+                  title="Step precedente"
+                >
+                  ◀ Step
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const { mIdx, lIdx, sIdx } = selectedCell;
+                    const maxSteps = measures[mIdx]?.stepsCount || 16;
+                    if (sIdx + 1 < maxSteps) setSelectedCell({ mIdx, lIdx, sIdx: sIdx + 1 });
+                    else if (mIdx + 1 < measures.length) setSelectedCell({ mIdx: mIdx + 1, lIdx, sIdx: 0 });
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-neutral-800 text-slate-800 dark:text-yellow-300 border border-slate-300 dark:border-neutral-700 text-xs font-extrabold cursor-pointer active:scale-95"
+                  title="Step successivo"
+                >
+                  Step ▶
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedCell((prev) => ({ ...prev, lIdx: Math.max(0, prev.lIdx - 1) }))
+                  }
+                  className="px-2 py-1.5 rounded-lg bg-white dark:bg-neutral-800 text-slate-800 dark:text-yellow-300 border border-slate-300 dark:border-neutral-700 text-xs font-extrabold cursor-pointer active:scale-95"
+                  title="Corda superiore"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedCell((prev) => ({
+                      ...prev,
+                      lIdx: Math.min(lines.length - 1, prev.lIdx + 1),
+                    }))
+                  }
+                  className="px-2 py-1.5 rounded-lg bg-white dark:bg-neutral-800 text-slate-800 dark:text-yellow-300 border border-slate-300 dark:border-neutral-700 text-xs font-extrabold cursor-pointer active:scale-95"
+                  title="Corda inferiore"
+                >
+                  ▼
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setClosePopupOnSelect((v) => !v)}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold border transition-all cursor-pointer ${
+                  closePopupOnSelect
+                    ? 'bg-blue-600 text-white border-blue-600 dark:bg-yellow-400 dark:text-black dark:border-yellow-400'
+                    : 'bg-emerald-600 text-white border-emerald-500'
+                }`}
+              >
+                {closePopupOnSelect ? '✓ Chiudi al tocco' : '⏩ Resta aperta'}
+              </button>
+            </div>
+
+            {/* Griglia Numeri Tasti 0..24 (Grandi e ottimizzati per Touch Smartphone) */}
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-yellow-400/90">
+                Tocca il Numero del Tasto (0 = Corda a vuoto, 1–24 = Tasto):
+              </div>
+              <div className="grid grid-cols-5 gap-1.5">
+                {Array.from({ length: 25 }, (_, fret) => {
+                  const isSpecial = fret === 0 || fret === 12 || fret === 24;
+                  const isDotMarker = [3, 5, 7, 9, 15, 17, 19, 21].includes(fret);
+                  const curVal =
+                    measures[selectedCell.mIdx]?.cells?.[
+                      `${selectedCell.lIdx}_${selectedCell.sIdx}`
+                    ] || '';
+                  const isCurrentFret = curVal === String(fret);
+
+                  return (
+                    <button
+                      key={fret}
+                      type="button"
+                      onClick={() => {
+                        insertFretNumber(fret);
+                        // Se la cella aveva una tecnica pendente (es. "5h"), ora è completa ("5h7") e può chiudersi
+                        if (closePopupOnSelect) {
+                          setIsFretPopupOpen(false);
+                        }
+                      }}
+                      className={`h-11 rounded-xl font-mono text-sm sm:text-base font-black border-2 transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
+                        isCurrentFret
+                          ? 'bg-emerald-500 text-black border-emerald-400 ring-2 ring-emerald-400/40'
+                          : isSpecial
+                          ? 'bg-blue-600 text-white border-blue-700 dark:bg-yellow-400 dark:text-black dark:border-yellow-300 shadow-2xs'
+                          : isDotMarker
+                          ? 'bg-amber-50 hover:bg-amber-100 text-slate-900 border-amber-300 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-yellow-300 dark:border-yellow-500/40'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:text-neutral-100 dark:border-neutral-800'
+                      }`}
+                    >
+                      {fret === 0 ? '0 (Vuota)' : fret}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Tecniche Rapide (Hammer-on, Pull-off, Slide, Bend, Vibrato, Mute) */}
+            <div className="space-y-1.5 pt-1 border-t border-slate-200 dark:border-neutral-800">
+              <div className="text-[10px] font-bold uppercase text-slate-500 dark:text-neutral-400">
+                Tecniche (tocca prima il 1° tasto, poi la tecnica es. h/p/b, poi il 2° tasto):
+              </div>
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                {[
+                  { t: 'h', label: 'h (Hammer)' },
+                  { t: 'p', label: 'p (Pull)' },
+                  { t: '/', label: '/ (Slide ↑)' },
+                  { t: '\\', label: '\\ (Slide ↓)' },
+                  { t: 'b', label: 'b (Bend)' },
+                  { t: '~', label: '~ (Vibr.)' },
+                  { t: 'x', label: 'x (Stop)' },
+                ].map((item) => (
+                  <button
+                    key={item.t}
+                    type="button"
+                    onClick={() => {
+                      applyTechniqueToSelected(item.t);
+                      if (item.t === 'x' || item.t === '~') {
+                        if (closePopupOnSelect) setIsFretPopupOpen(false);
+                      }
+                    }}
+                    className="py-2 px-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-slate-800 dark:text-yellow-300 border border-slate-300 dark:border-neutral-700 text-[11px] font-mono font-extrabold cursor-pointer active:scale-95 text-center"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer Finestrella: Cancella Cella & Chiudi */}
+            <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-200 dark:border-neutral-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setCellValue(selectedCell.mIdx, selectedCell.lIdx, selectedCell.sIdx, '');
+                  if (closePopupOnSelect) setIsFretPopupOpen(false);
+                }}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-700/50 text-xs font-extrabold cursor-pointer active:scale-95"
+              >
+                ⌫ Svuota Casella
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsFretPopupOpen(false)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black text-xs font-black cursor-pointer active:scale-95"
+              >
+                Conferma &amp; Chiudi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
