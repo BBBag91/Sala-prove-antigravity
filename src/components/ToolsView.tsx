@@ -16,8 +16,10 @@ import {
   Radio,
   Sparkles,
   Hand,
+  FileMusic,
 } from 'lucide-react';
 import { StudioCalculator } from './StudioCalculator';
+import { TabStudioCreator } from './TabStudioCreator';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. ACCORDATORE 440Hz OTTIMIZZATO PER CHITARRA E BASSO
@@ -233,7 +235,7 @@ const TIME_SIGNATURES: TimeSignaturePreset[] = [
 
 export const ToolsView: React.FC = () => {
   // Vista selettore su mobile o compatta
-  const [activeToolSection, setActiveToolSection] = useState<'all' | 'tuner' | 'metronome' | 'calc'>('all');
+  const [activeToolSection, setActiveToolSection] = useState<'all' | 'tuner' | 'metronome' | 'tabs' | 'calc'>('all');
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STATO ACCORDATORE 440Hz
@@ -695,7 +697,7 @@ export const ToolsView: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-yellow-100/70">
-              Accordatore Chitarra/Basso ad alta precisione con microfono, Metronomo con accenti e battute, e Calcolatrice Studio
+              Accordatore Chitarra/Basso 440Hz, Metronomo con accenti, Creatore Tab &amp; Partiture PDF (Chitarra, Basso, Batteria) e Calcolatrice
             </p>
           </div>
         </div>
@@ -704,6 +706,7 @@ export const ToolsView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-[#141414] p-1 rounded-xl border border-slate-200 dark:border-yellow-500/25 self-start lg:self-auto">
           {[
             { id: 'all', label: 'Vista Completa', icon: <Sparkles className="w-3.5 h-3.5" /> },
+            { id: 'tabs', label: 'Tab & Partiture PDF', icon: <FileMusic className="w-3.5 h-3.5" /> },
             { id: 'tuner', label: 'Accordatore 440Hz', icon: <Radio className="w-3.5 h-3.5" /> },
             { id: 'metronome', label: 'Metronomo', icon: <Gauge className="w-3.5 h-3.5" /> },
             { id: 'calc', label: 'Calcolatrice', icon: <CalcIcon className="w-3.5 h-3.5" /> },
@@ -1458,6 +1461,11 @@ export const ToolsView: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Sezione Creatore Tab & Partiture PDF (Chitarra, Basso, Batteria) ── */}
+      {(activeToolSection === 'all' || activeToolSection === 'tabs') && (
+        <TabStudioCreator />
       )}
 
       {/* ── Sezione Calcolatrice Studio in Fondo / Nella Vista Tool ── */}

@@ -363,7 +363,7 @@ export const TeachersReportView: React.FC<TeachersReportViewProps> = ({
                   {teachersList.map((t) => {
                     const isSelected = selectedTeacherId === t.id;
                     const stat = teachersStats.find((s) => s.teacher.id === t.id);
-                    const isPaid = (statusMap[t.id] || 'da_saldare') === 'saldato';
+                    const isPaid = Boolean(stat?.isSettled);
                     return (
                       <button
                         key={t.id}
